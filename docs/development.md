@@ -1,5 +1,12 @@
 # Development
 
+## Contents
+
+- `mods/` — Claude Code mods (plugins), listed in
+  `.claude-plugin/marketplace.json`
+- `bin/` — the installer (`cli.js`) run by `npx`
+- `docs/` — documentation of each mod and of development
+
 ## Working on this repository
 
 ```bash
@@ -25,6 +32,15 @@ needs the `claude` CLI.
 Check formatting and lint with `npm run lint` (ESLint and Prettier,
 as CI does) and fix them with `npm run format`. Prettier skips `*.md`:
 wrap Markdown by hand.
+
+## How options are stored
+
+During install, each option's question starts from the value you
+configured or, for an option you never configured, the mod's latest
+default. Only answers that differ from the default, and options you
+already configured, are stored, so a default you never changed follows
+the mod when it changes. Without a terminal, no answer is stored and
+the mods use their defaults.
 
 ## Adding a mod
 

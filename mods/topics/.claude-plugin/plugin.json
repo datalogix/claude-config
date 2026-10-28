@@ -1,0 +1,7 @@
+{
+  "name": "topics",
+  "description": "Agrupa em tópicos fechados as respostas do Claude com dois ou mais tópicos ## ou com pendências, que abrem com um clique, com as pendências para marcar e enviar, e o painel /topics",
+  "author": { "name": "datalogix" },
+  "license": "MIT",
+  "types": "./types/index.d.ts"
+}

@@ -1,0 +1,36 @@
+{
+  "name": "claude-config",
+  "private": true,
+  "license": "MIT",
+  "description": "Installs datalogix's Claude Code mods",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run && claude plugin test mods/steps && claude plugin test mods/status && claude plugin test mods/topics",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write . && eslint . --fix"
+  },
+  "bin": {
+    "claude-config": "bin/cli.js"
+  },
+  "files": [
+    "bin",
+    "mods/*/.claude-plugin/plugin.json",
+    ".claude-plugin"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": "github:datalogix/claude-config",
+  "dependencies": {
+    "@clack/prompts": "^1.8.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.13.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "typescript-eslint": "^8.72.0",
+    "vitest": "^5.0.5"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "status",
+  "description": "Mostra na linha de status o que o Claude está fazendo, os agentes em execução e quanto do plano já foi usado, e avisa quando uma resposta ou os agentes em segundo plano terminam",
+  "author": { "name": "datalogix" },
+  "license": "MIT",
+  "userConfig": {
+    "minSeconds": {
+      "type": "number",
+      "title": "Duração mínima (segundos)",
+      "description": "Só avisa das respostas e dos agentes em segundo plano que levaram pelo menos este tempo; as exceções estão em docs/mods/status.md",
+      "default": 30
+    },
+    "planAlert": {
+      "type": "number",
+      "title": "Alerta do plano (%)",
+      "description": "Destaca o plano e mostra um toast quando o uso chegar a este percentual, de 1 a 100 (também em 75%); no limite, envia também um aviso (notificação do sistema conforme a opção notify)",
+      "default": 90
+    },
+    "notify": {
+      "type": "string",
+      "title": "Notificação do sistema",
+      "description": "always: todos os avisos; agents: só os dos agentes em segundo plano; never: só o toast",
+      "options": ["always", "agents", "never"],
+      "default": "always"
+    },
+    "excerpt": {
+      "type": "boolean",
+      "title": "Trecho da resposta na notificação",
+      "description": "Mostra a primeira linha de texto da resposta na notificação do sistema (pode aparecer na tela de bloqueio)",
+      "default": false
+    }
+  }
+}

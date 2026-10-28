@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A new push to a pull request cancels the previous run; runs on main always finish
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - name: Lint workflows
+        env:
+          # Not updated by Dependabot: bump manually from https://github.com/rhysd/actionlint/releases
+          ACTIONLINT_VERSION: 1.7.12
+        run: |
+          bash <(curl -fsSL "https://raw.githubusercontent.com/rhysd/actionlint/v$ACTIONLINT_VERSION/scripts/download-actionlint.bash") "$ACTIONLINT_VERSION"
+          ./actionlint -color
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', lts/*]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      # The mod tests run through "claude plugin test", which needs no login
+      - run: npm install --global @anthropic-ai/claude-code
+      # The datalogix mod has no hooks, so only validate checks its manifest
+      - name: Validate Claude plugins
+        run: |
+          claude plugin validate .
+          for mod in mods/*/; do claude plugin validate "$mod"; done
+      - run: npm test
+
+  # Single status check for branch protection, so it does not depend on the matrix job names
+  all-checks:
+    if: always()
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check results
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Results: $RESULTS"
+          for result in $RESULTS; do
+            [ "$result" = success ] || exit 1
+          done

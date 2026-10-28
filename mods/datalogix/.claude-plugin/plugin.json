@@ -1,0 +1,6 @@
+{
+  "name": "datalogix",
+  "description": "Skills da datalogix: /datalogix:review (revisão de pacotes e aplicações Laravel), /datalogix:issue (issue do GitHub a partir de uma descrição), /datalogix:commit (commit das mudanças em stage), /datalogix:pr (pull request da branch atual) e /datalogix:ci (diagnóstico do CI que falhou)",
+  "author": { "name": "datalogix" },
+  "license": "MIT"
+}

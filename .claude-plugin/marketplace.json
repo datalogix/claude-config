@@ -1,0 +1,11 @@
+{
+  "name": "claude-config",
+  "owner": { "name": "datalogix" },
+  "description": "Mods da datalogix para o Claude Code: skills, linha de status, passos e tópicos",
+  "plugins": [
+    { "name": "datalogix", "source": "./mods/datalogix" },
+    { "name": "steps", "source": "./mods/steps" },
+    { "name": "status", "source": "./mods/status" },
+    { "name": "topics", "source": "./mods/topics" }
+  ]
+}

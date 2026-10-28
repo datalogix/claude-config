@@ -1,0 +1,26 @@
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directories:
+      - /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - '*'
+    commit-message:
+      prefix: ci
+
+  - package-ecosystem: npm
+    directories:
+      - /
+    schedule:
+      interval: monthly
+    groups:
+      npm:
+        patterns:
+          - '*'
+    commit-message:
+      prefix: chore

@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 `claude-config`: Datalogix's Claude Code setup, installed with
-`npx --allow-git=all github:datalogix/claude-config#main` (no npm publish). It ships mods, i.e. Claude Code plugins
+`npx --allow-git=root github:datalogix/claude-config#main` (no npm publish). It ships mods, i.e. Claude Code plugins
 (`mods/`), including the `datalogix` mod that holds the skills, plus the installer that puts them in place
 (`bin/cli.js`).
 

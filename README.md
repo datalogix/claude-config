@@ -16,10 +16,10 @@ Needs Node 22+ and git. It is installed straight from GitHub, with no
 npm publish.
 
 ```bash
-npx --allow-git=all github:datalogix/claude-config#main
+npx --allow-git=root github:datalogix/claude-config#main
 ```
 
-`--allow-git=all` is required since npm 12, which refuses packages from
+`--allow-git=root` is required since npm 12, which refuses packages from
 git by default (`EALLOWGIT`); older npm versions ignore it.
 
 It asks which mods to install, all selected by default, and the options
@@ -45,7 +45,7 @@ Use `update` to keep up to date, and `install` only to pick mods or
 change their options:
 
 ```bash
-npx --allow-git=all github:datalogix/claude-config#main update
+npx --allow-git=root github:datalogix/claude-config#main update
 ```
 
 Mods have no `version`: each commit pushed to `main` is a new version,

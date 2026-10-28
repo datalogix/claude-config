@@ -399,7 +399,7 @@ describe('arguments', () => {
 
     assert.equal(status, 0)
     assert.match(output, /Usage:/)
-    assert.match(output, /npx --allow-git=all github:datalogix\/claude-config#main/)
+    assert.match(output, /npx --allow-git=root github:datalogix\/claude-config#main/)
   })
 
   test('installs when no command is given', { skip: process.platform === 'win32' }, () => {

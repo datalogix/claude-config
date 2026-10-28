@@ -28,7 +28,7 @@ const USAGE = `Usage:
   claude-config --help          show this help
 
 Through npx, put the command after the package:
-  npx --allow-git=all github:${REPO}#main [update]`
+  npx --allow-git=root github:${REPO}#main [update]`
 
 /** @type {Record<string, string[]>} */
 const COMMANDS = { install: ['--link'], update: [] }

@@ -1,4 +1,4 @@
-// Checked on any system; quoteForCmd has never run on real Windows.
+// Checked on any system; tests/quote-cmd.test.js runs it through the real cmd.exe.
 import assert from 'node:assert/strict'
 import { describe, test } from 'vitest'
 import { cmdLine, quoteForCmd } from '../bin/quote.js'

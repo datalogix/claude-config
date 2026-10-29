@@ -1,7 +1,7 @@
 // Checked on any system; quoteForCmd has never run on real Windows.
 import assert from 'node:assert/strict'
 import { describe, test } from 'vitest'
-import { quoteForCmd } from '../bin/quote.js'
+import { cmdLine, quoteForCmd } from '../bin/quote.js'
 
 describe('quoteForCmd', () => {
   test.each([
@@ -17,4 +17,8 @@ describe('quoteForCmd', () => {
   ])('%s', (_, input, expected) => {
     assert.equal(quoteForCmd(input), expected)
   })
+})
+
+test('cmdLine quotes each argument, not the command', () => {
+  assert.equal(cmdLine('claude', ['a', 'b c']), 'claude ^^^"a^^^" ^^^"b^^^ c^^^"')
 })

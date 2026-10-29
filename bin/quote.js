@@ -20,3 +20,13 @@ export function quoteForCmd(arg) {
   const quoted = `"${arg.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\*)$/, '$1$1')}"`
   return quoted.replace(CMD_META, '^$&').replace(CMD_META, '^$&')
 }
+
+/**
+ * The command line for running a .cmd through cmd.exe (spawn with `shell: true`).
+ *
+ * @param {string} command
+ * @param {string[]} args
+ */
+export function cmdLine(command, args) {
+  return [command, ...args.map(quoteForCmd)].join(' ')
+}

@@ -153,7 +153,10 @@ node bin/cli.js install --link            # install from this clone: mods load i
   the user checks it, append that line to the local `CLAUDE.md`, the one write they make there.
 - `/datalogix:review` is a prompt-only skill, written in Portuguese.
   - `SKILL.md` drives the flow.
-  - `types/` holds the rules per project type (`package`, `application`), including the step order.
+  - `types/` holds the rules per project type, including the step order: `package` and `application` (Laravel),
+    `library` (JS/TS) and `web-app` (Nuxt and Next in one type, with a section per framework where they differ).
+    The JS types reuse the shared steps, which have sections for them, and add `code-js`, `production-js` and `pack`.
+    Their `ci` step reviews the project's own workflows, since `datalogix/workflows` has no JS stack yet.
   - `steps/` has one checklist per step; `http` and `jobs` are extra checklists that the `code` step applies.
   - `modes/` holds the focus modes.
   - `templates/LICENSE` must stay identical to the root `LICENSE`, which `tests/license.test.js` enforces.

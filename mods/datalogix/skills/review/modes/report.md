@@ -8,12 +8,13 @@ Com `report` (ou `report <modo>`):
   ordem, um passo por vez, cada um num subagente, mas SEM pausas e SEM
   aplicar nada: não edite arquivos do projeto e não rode nada que o
   altere (`composer update`, `npm install`, migrations, publicações).
-- A etapa `install` também é só analisada: leia o README e o provider e
-  aponte o que impediria a instalação, sem criar a sandbox.
+- As etapas `install` e `pack` também são só analisadas: leia o README
+  e o provider (ou o `exports` e o `files` da lib) e aponte o que
+  impediria a instalação, sem criar a sandbox nem rodar o build.
 - Sem `CLAUDE.md`: não pare; registre como item "importante" (rodar
   `/init`) e siga.
 - A etapa `ci` roda o `check` de `datalogix/workflows` normalmente
-  (ele só lê); `setup` e `protect` nunca.
+  nos tipos Laravel (ele só lê); `setup` e `protect` nunca.
 - Grave em `~/.claude/reviews/<id>/report-<AAAA-MM-DD>.md`:
   1. resumo: perfil, tipo, estágio, resultado da linha de base
   2. placar: quantidade de itens por severidade, por etapa

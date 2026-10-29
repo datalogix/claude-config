@@ -1,6 +1,6 @@
 ---
 name: review
-description: Revisão de pacotes e aplicações Laravel, um passo por vez (git, CI, dependências, código, recursos, front-end, produção, docs, instalação), com progresso fora do projeto e testes 100%. Use para revisar ou auditar um projeto inteiro, uma etapa, uma pasta ou um aspecto (docs, naming, tests, deps).
+description: Revisão de pacotes e aplicações Laravel, libs JS/TS e aplicações Nuxt/Next, um passo por vez (git, CI, dependências, código, recursos, front-end, produção, docs, instalação), com progresso fora do projeto e testes 100%. Use para revisar ou auditar um projeto inteiro, uma etapa, uma pasta ou um aspecto (docs, naming, tests, deps).
 argument-hint: "[help [<argumento>] | status | report [<modo>] | reset [<modo>] | <modo> [<pasta>] | <etapa> | <pasta>]"
 disable-model-invocation: true
 ---
@@ -24,8 +24,9 @@ Argumentos: $ARGUMENTS
   - `deps`: revisar e atualizar composer e package.json (`modes/deps.md`)
 - Uma etapa avulsa da revisão completa, pelo nome do arquivo em `steps/`
   (ex.: `git`, `ci`, `composer`, `npm`, `resources`, `frontend`,
-  `install`, `production`). Etapas de outro tipo de projeto são
-  recusadas com aviso.
+  `install`, `pack`, `production`). Etapas de outro tipo de projeto
+  são recusadas com aviso. Nos tipos JS, `code` e `production` usam
+  `steps/code-js.md` e `steps/production-js.md`.
   `http` e `jobs` não são etapas: são checklists extras que a etapa
   `code` aplica nas pastas certas de uma aplicação. `docs` é sempre o
   modo; o passo 1 dele aplica `steps/docs.md`, o mesmo checklist da
@@ -36,8 +37,9 @@ Argumentos: $ARGUMENTS
 ## 1. Arquivos de apoio
 Ficam na pasta desta skill (`${CLAUDE_SKILL_DIR}`).
 Caminhos abaixo são relativos a ela; passe-os absolutos aos subagentes.
-- `types/package.md` / `types/application.md`: regras do tipo de
-  projeto. Leia SÓ o do tipo detectado, uma vez por sessão.
+- `types/package.md` / `types/application.md` / `types/library.md` /
+  `types/web-app.md`: regras do tipo de projeto. Leia SÓ o do tipo
+  detectado, uma vez por sessão.
 - `steps/<etapa>.md`: checklist de cada etapa. Leia só a etapa da vez.
 - `modes/<modo>.md`: instruções de cada modo. Leia só o modo pedido.
 - `templates/LICENSE`: modelo de licença dos pacotes (etapa `composer`).
@@ -51,13 +53,25 @@ projeto) > arquivo do tipo > arquivo da etapa/modo > este arquivo.
 Se o "Perfil do projeto" no progresso não existir, ou se `composer.json`
 ou `package.json` mudou desde o commit registrado nele, ou surgiram
 skills ou tags novas, descubra e registre:
-- **Tipo**: pacote (tem `extra.laravel` no composer.json, ou `type:
-  library`) ou aplicação (tem `artisan` e `bootstrap/app.php`). Na
-  dúvida, pergunte. Depois leia `types/package.md` ou
-  `types/application.md` e faça o reconhecimento extra que ele pede
-  (estágio, requisitos de testes).
-- Versões de PHP e Laravel suportadas/em uso.
-- **Testes PHP**: o padrão é o Pest.
+- **Tipo**:
+  - pacote Laravel (`types/package.md`): tem `extra.laravel` no
+    composer.json, ou `type: library`
+  - aplicação Laravel (`types/application.md`): tem `artisan` e
+    `bootstrap/app.php`
+  - aplicação Nuxt/Next (`types/web-app.md`): tem `nuxt.config.*` ou
+    `next.config.*` na raiz, sem `composer.json`
+  - lib JS/TS (`types/library.md`): tem `package.json`, sem
+    `composer.json` nem config de Nuxt/Next, com `exports`, `main` ou
+    `module` e sem `private: true`
+  Na dúvida (monorepo com workspaces, app Vite sem framework, nenhum
+  dos quatro), pergunte. Depois leia o arquivo do tipo e faça o
+  reconhecimento extra que ele pede (estágio, requisitos de testes).
+  Lib JS/TS e aplicação Nuxt/Next são os **tipos JS**; pacote e
+  aplicação Laravel, os **tipos Laravel**.
+- Tipos Laravel: versões de PHP e Laravel suportadas/em uso. Tipos JS:
+  versão do Node (`engines`, `.nvmrc`/`.node-version`), do TypeScript
+  e do framework (Nuxt, Next, Vue, React).
+- **Testes PHP** (só tipos Laravel): o padrão é o Pest.
   - Pest instalado (`pestphp/pest` no composer.json e `vendor/bin/pest`
     existindo): use o Pest. Senão, PHPUnit (`vendor/bin/phpunit`), com
     os requisitos do arquivo do tipo, e aponte a migração para Pest
@@ -72,7 +86,8 @@ skills ou tags novas, descubra e registre:
   - Todo teste novo no estilo do runner em uso: Pest (`it()`/`test()`,
     `expect()`) ou classes PHPUnit estendendo o `TestCase` do projeto.
     Nunca misture runners; converter só pela migração aprovada.
-- **Testes JS/TS** (só com JS/TS próprio): o padrão é o Vitest.
+- **Testes JS/TS** (com JS/TS próprio; nos tipos JS, sempre): o
+  padrão é o Vitest.
   - Vitest instalado: use-o. Jest instalado: use o Jest e aponte a
     migração para Vitest como item "sugestão"; nunca converta sem
     aprovação.
@@ -80,19 +95,23 @@ skills ou tags novas, descubra e registre:
     gerenciador do projeto (ex.: `npm i -D vitest`), só se eu aprovar.
   - Comando: script `test` do `package.json` se existir; senão
     `vitest run` (ou `jest`).
-- **Ferramentas de qualidade**: Pint, PHPStan/Larastan, Rector (em
-  `vendor/bin` e no composer.json, com a versão do Pint). Use só as que
-  existirem; não instale.
-  Pint, e ESLint + Prettier se houver JS/TS próprio, são obrigatórios:
-  registre no perfil os que faltam (viram item nas etapas `composer` e
-  `npm`, ou `frontend` se houver JS/TS sem `package.json`).
-- **Pastas**: código (`src/` ou `app/`); recursos na raiz (`config/`,
-  `database/`, `routes/`, `lang/`, `stubs/`); front-end (Blade, CSS,
-  JS, TS em `resources/`, `stubs/` ou outra pasta), registrando a stack
+- **Ferramentas de qualidade**: nos tipos Laravel, Pint,
+  PHPStan/Larastan, Rector (em `vendor/bin` e no composer.json, com a
+  versão do Pint). Use só as que existirem; não instale.
+  Pint (tipos Laravel), e ESLint + Prettier se houver JS/TS próprio,
+  são obrigatórios: registre no perfil os que faltam (viram item nas
+  etapas `composer` e `npm`, ou `frontend` se houver JS/TS sem
+  `package.json`).
+- **Pastas**: nos tipos Laravel, código (`src/` ou `app/`); recursos
+  na raiz (`config/`, `database/`, `routes/`, `lang/`, `stubs/`). Nos
+  tipos JS, as pastas que o arquivo do tipo lista para cada etapa.
+  Em todos, front-end (Blade, Vue, JSX, CSS, JS, TS em `resources/`,
+  `stubs/`, `app/`, `components/` ou outra pasta), registrando a stack
   (Livewire, Alpine, Tailwind, Vite, Inertia, TypeScript), o gerenciador
   pelo lockfile, os scripts do `package.json`, as ferramentas (Vitest/
   Jest, Playwright/Cypress, ESLint, Prettier, Stylelint, `tsc`) e o que
-  é gerado e deve ser ignorado (`public/build`, `dist/`, `.min.*`).
+  é gerado e deve ser ignorado (`public/build`, `dist/`, `.min.*`,
+  `.nuxt/`, `.output/`, `.next/`).
 - **Skills e guidelines**:
   - `.claude/skills/*/SKILL.md`, `.claude/commands/*.md` (Claude Code)
   - `.ai/skills/*/SKILL.md`, `.ai/guidelines/*` (Laravel Boost, do projeto)
@@ -117,7 +136,10 @@ Mostre o perfil em poucas linhas, incluindo tipo e estágio.
 ## 3. Progresso (fora do projeto)
 - Arquivo: `~/.claude/reviews/<id>/progress.md`, onde `<id>` é:
   - pacote: o `name` do composer.json com `/` trocado por `-`
-  - aplicação, ou `name` ausente ou genérico (`laravel/laravel`): o nome
+  - lib JS/TS: o `name` do package.json sem `@` e com `/` trocado por
+    `-` (ex.: `@datalogix/ui` → `datalogix-ui`)
+  - aplicação (Laravel ou Nuxt/Next), ou `name` ausente ou genérico
+    (`laravel/laravel`, `nuxt-app`, `my-app`): o nome
     da pasta raiz + os 6 primeiros caracteres do hash do caminho
     absoluto (`pwd | sha1sum | cut -c1-6`), ex.: `loja-3fa91c`
   Grave o caminho absoluto do projeto no topo do progresso; se ele não
@@ -154,23 +176,26 @@ Mostre o perfil em poucas linhas, incluindo tipo e estágio.
   Stylelint, Prettier em modo check) e `build`. Roda na linha de base,
   no fechamento e em todo passo que alterou views, CSS, JS/TS, assets,
   `package.json`, lockfile ou configs de build (Vite, Tailwind, PostCSS).
-- **Verificação completa** = as duas.
+- **Verificação completa** = as duas. Nos tipos JS não há verificação
+  PHP: a verificação front-end roda em todo passo e é a verificação
+  completa.
 - Na primeira chamada da sessão, rode a verificação completa como linha
   de base. Se algo falhar antes de qualquer mudança, pare e me mostre.
 - **Passo de formatação**: se na linha de base só falharem os checks de
   formatação (`pint --test`, `prettier --check`), proponha um passo
   próprio antes das etapas: rodar `pint` (com `--blade` nas mesmas
-  condições da verificação PHP) e `prettier --write` direto, nunca o
-  script `format` (que também roda `eslint --fix`); nenhuma outra
-  mudança. Depois, rodar a verificação completa,
+  condições da verificação PHP; nos tipos JS, não) e `prettier
+  --write` direto, nunca o script `format` (que também roda `eslint
+  --fix`); nenhuma outra mudança. Depois, rodar a verificação completa,
   sugerir um commit só de formatação e que eu inclua o hash dele no
   `.git-blame-ignore-revs`, e PARAR até "próxima". Registre no
   progresso; vale também quando eu instalar o formatador depois.
 - Mostre o plano: as etapas na ordem definida pelo arquivo do tipo, com
   as pastas de cada etapa por pasta (código PHP: Contracts primeiro,
-  depois as que dependem delas, Providers por último; arquivos soltos
-  na raiz contam como um grupo), com quantidade de arquivos e linhas, e
-  as pastas grandes já divididas em partes (seção 8).
+  depois as que dependem delas, Providers por último; código JS/TS:
+  tipos e utilitários primeiro, depois quem os importa; arquivos
+  soltos na raiz contam como um grupo), com quantidade de arquivos e
+  linhas, e as pastas grandes já divididas em partes (seção 8).
 - Etapas que não se aplicam (sem `package.json`, sem front-end, sem
   recursos) são puladas com uma linha de aviso, sem pausa.
 
@@ -203,7 +228,8 @@ Um passo é uma etapa, uma pasta ou uma parte de pasta.
    se a resposta óbvia é "sim", decida e registre em "Decisões tomadas";
    se for uma escolha real, pule-o e pergunte no resumo (seção 7).
 4. Rode a verificação PHP e, se o passo alterou front-end, a verificação
-   front-end (seção 4). Tudo precisa passar 100%.
+   front-end (seção 4); nos tipos JS, a verificação completa. Tudo
+   precisa passar 100%.
    - Se falhar, corrija e rode de novo.
    - Nunca apague, pule ou enfraqueça teste existente. Se achar que o
      teste está errado, me pergunte.
@@ -348,10 +374,11 @@ Com `help`, NÃO leia o projeto nem rode nada, e não crie progresso.
 Leia este arquivo e os da pasta da skill necessários e responda em
 português, de forma curta:
 - `help`: o que o comando faz; tabela de argumentos (argumento · o que
-  faz · exemplo); as etapas para pacote e para aplicação, uma linha
-  cada; os modos; o ciclo de um passo (relatório → aprovo e respondo →
-  aplica → verificação 100% → commit meu → "próxima"); onde fica o
-  progresso e como retomar, ver status e recomeçar; as regras da seção
+  faz · exemplo); as etapas de cada tipo (pacote e aplicação Laravel,
+  lib JS/TS, aplicação Nuxt/Next), uma linha cada; os modos; o ciclo
+  de um passo (relatório → aprovo e respondo → aplica → verificação
+  100% → commit meu → "próxima"); onde fica o progresso e como
+  retomar, ver status e recomeçar; as regras da seção
   10 e a regra de idioma da seção 11; o que muda por estágio em cada
   tipo, em duas linhas; e as respostas aceitas nas pausas (incluindo
   "pula" e responder perguntas só com a letra).

@@ -1,6 +1,9 @@
 # Etapa: ci (integração contínua)
 
-Os projetos da Datalogix usam os workflows reutilizáveis de
+Nos tipos JS, aplique só "Tipos JS" e "Outros workflows" (fim deste
+arquivo): `datalogix/workflows` ainda não tem stack JS.
+
+Os projetos Laravel da Datalogix usam os workflows reutilizáveis de
 `datalogix/workflows`, chamados pela tag `@v2` num único
 `.github/workflows/datalogix.yml`. O que mora lá (permissões,
 versões de actions, matriz padrão, jobs) não é revisado aqui. Numa
@@ -11,7 +14,7 @@ PHPStan. O que o CI não cobrir vai numa linha em "Recomendações
 gerais" como melhoria de `datalogix/workflows`, não como item do
 projeto.
 
-## Em ambos
+## Pacote e aplicação Laravel
 - rode `npx github:datalogix/workflows#v2 check` na raiz do
   projeto: só lê; precisa do Node 22.12+ e do `gh` logado. Se
   faltar algum deles, ou se o comando falhar porque a tag `v2`
@@ -55,8 +58,32 @@ projeto.
   regras ativas da branch com os checks exigidos (sem `gh`, anote e
   siga)
 
+## Tipos JS
+O CI é um workflow do próprio projeto. Não rode o `check` nem o
+`setup` de `datalogix/workflows`. Registre em "Recomendações gerais",
+uma vez, que uma stack JS em `datalogix/workflows` substituiria este
+workflow próprio.
+- sem workflow de CI: item "importante" com o arquivo
+  `.github/workflows/ci.yml` pronto, seguindo os itens abaixo
+- gatilhos `push` na branch padrão e `pull_request`
+- Node pelo `.nvmrc`/`.node-version` (`node-version-file`) ou LTS; lib:
+  matriz com a menor versão do `engines.node` e a LTS
+- instalação pelo lockfile, com o gerenciador dele (`npm ci`,
+  `pnpm install --frozen-lockfile`, `yarn install --immutable`), e
+  cache do gerenciador no `setup-node`
+- roda os scripts `lint`, `typecheck`, `test` e `build` que existirem
+  (etapa `npm`); script que existe e o CI não roda é item "importante"
+- `concurrency` cancelando execuções antigas do mesmo PR
+- lib com workflow de publicação: dispara por tag ou release, nunca em
+  todo push; token do npm só em `secrets.*`; `npm publish
+  --provenance` com `permissions: id-token: write` se publica no npm
+  público
+- deploy pelo CI (aplicação): só depois dos checks passarem
+  (`needs`), com segredos em `secrets.*` ou `environment`
+
 ## Outros workflows
-Workflows próprios do projeto, além dos da Datalogix:
+Workflows próprios do projeto, além dos da Datalogix (nos tipos JS,
+todos, inclusive o de CI):
 - versões de actions fixadas (major ou SHA), não `@main`/`@master`
 - `permissions` mínimas, sem segredos no arquivo (só `secrets.*`)
 - nada que duplique o que os workflows da Datalogix já fazem

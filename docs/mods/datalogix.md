@@ -7,14 +7,18 @@ this mod has no hooks, so it has no `claude plugin test` in the
 check its skills.
 
 - `review/` — `/datalogix:review`: step-by-step review of Laravel
-  packages and applications. Run `/datalogix:review help` for details.
+  packages and applications, JS/TS libraries and Nuxt/Next
+  applications. Run `/datalogix:review help` for details.
   It never runs `/code-review` itself: the closing step, and the end of
   a single step or a focus mode, tell you to run it on the changes in a
   new session, so the review is not the only one checking its own work.
   - `SKILL.md` — the command itself
-  - `types/` — rules per project type (`package`, `application`)
+  - `types/` — rules per project type (`package`, `application`,
+    `library`, `web-app`)
   - `steps/` — one checklist per review step, plus extra checklists
-    (`http`, `jobs`) applied in the `code` step
+    (`http`, `jobs`) applied in the `code` step; the JS types use
+    `code-js` and `production-js` for their `code` and `production`
+    steps, and `pack` instead of `install`
   - `modes/` — focus modes (`docs`, `naming`, `tests`, `deps`) and the
     `report` mode
   - `templates/LICENSE` — license model for packages; must match the

@@ -7,7 +7,8 @@ Passos, um por vez:
 1. README, `/docs`, CLAUDE.md, skills e guidelines: checklist de
    `steps/docs.md`.
 2. Código PHP e recursos (config, stubs), uma pasta por vez:
-   comentários e docblocks.
+   comentários e docblocks. Nos tipos JS, o código JS/TS das pastas da
+   etapa `code`: comentários e JSDoc/TSDoc.
 3. Front-end, uma pasta por vez (se existir): comentários e JSDoc/TSDoc.
 
 ## Comentários
@@ -30,6 +31,9 @@ corrija.
   assinatura, `@throws` de exceção que não é mais lançada
 - facades: `@method static` batendo com os métodos reais da classe
 - formato consistente em todo o projeto
+- JSDoc/TSDoc: as mesmas regras, com `@param`/`@returns` só onde o
+  tipo TS não diz tudo, `@example` nas funções públicas de uma lib,
+  `@deprecated` com o substituto e `@internal` no que fica fora da API
 - docblocks não mudam comportamento, mas rode a verificação PHP
   (análise estática lê docblocks); JSDoc/TSDoc alterado roda também a
   verificação front-end

@@ -16,8 +16,12 @@ Analise:
   pacote também o exige (aí removê-lo não o desinstala). É só sugestão:
   plugins usados só via config dão falso positivo.
 - **dependencies vs devDependencies**: com JS compilado (Vite), quase
-  tudo é `devDependencies`; num pacote publicado no npm, o que vai em
-  runtime fica em `dependencies`.
+  tudo é `devDependencies`; numa lib publicada no npm, o que vai em
+  runtime fica em `dependencies` e o framework (Vue, React) em
+  `peerDependencies`, repetido em `devDependencies` para os testes.
+  Nuxt e Next: o que o servidor importa em produção fica em
+  `dependencies` (o build do Nuxt embute quase tudo, mas o Next
+  `standalone` e o `next start` leem o `node_modules`).
 - **Dependências implícitas**: imports de pacotes que só chegam como
   dependência transitiva.
 - **Redundantes**: duas bibliotecas para a mesma coisa (moment e dayjs),
@@ -27,27 +31,49 @@ Analise:
   plugins do Laravel e Tailwind.
 - **Lockfile**: existe, versionado, coerente com o gerenciador; mais de
   um lockfile no projeto é problema.
-- **Metadados**: `private: true` se não é publicado no npm,
-  `type: "module"` coerente com os configs, `engines` se o projeto
-  depende de uma versão do Node.
+- **Metadados**: `private: true` se não é publicado no npm (sempre nas
+  aplicações Nuxt/Next), `type: "module"` coerente com os configs,
+  `engines` se o projeto depende de uma versão do Node.
+- **Publicação (só lib JS/TS)**:
+  - `exports` em todas as entradas, com a condição `types` primeiro e
+    `import`/`require` batendo com os formatos do build; `main`,
+    `module` e `types` só como fallback, coerentes com o `exports`
+  - `files` listando só o que vai no pacote (o build, não `src/` nem
+    testes); a lista real é conferida na etapa `pack`
+  - `sideEffects: false` se nenhum módulo tem efeito ao importar
+    (lista os que têm, ex.: CSS)
+  - `name`, `version`, `description`, `license`, `repository`,
+    `keywords`; `publishConfig` com `access: "public"` em pacote com
+    escopo publicado no npm público
+  - script `prepublishOnly` (ou `prepack`) rodando o `build`, para
+    não publicar sem build
 - **Scripts** (convenção de `datalogix/workflows`: numa aplicação, o
   CI roda `typecheck`, `lint` e `test` do `package.json` quando
   existem, pelo gerenciador do lockfile; num pacote, o CI não roda JS,
-  mas os scripts são os mesmos):
-  - `dev` e `build` (`vite`, `vite build`) se houver Vite
+  mas os scripts são os mesmos; nos tipos JS, o CI próprio roda esses
+  e o `build`, etapa `ci`):
+  - `dev` e `build` (`vite`, `vite build`) se houver Vite; Nuxt:
+    `nuxt dev`, `nuxt build` e `nuxt preview`; Next: `next dev`,
+    `next build` e `next start`; lib: `build` com a ferramenta dela
+    (ex.: `tsup`, `tsdown`, `unbuild`)
   - `lint`: `eslint . && prettier --check .` (o CI não roda `format`,
     então o Prettier entra pelo `lint`)
   - `format`: `prettier --write . && eslint . --fix`
   - `test`: `vitest run` (ou `jest` enquanto não migrar); o placeholder
     do `npm init` (`no test specified`) conta como ausente
-  - `typecheck`: `tsc --noEmit` (ou `vue-tsc --noEmit`) se houver TS
+  - `typecheck`: `tsc --noEmit` (ou `vue-tsc --noEmit`) se houver TS;
+    Nuxt: `nuxt typecheck`
+  - lint do Next: ESLint direto (`eslint .`), não o `next lint`, que
+    as versões novas removeram
   - `lint`, `test` e `typecheck` só checam e terminam (nada de `--fix`
     nem watch: `vitest run`, não `vitest`)
   - com JS/TS próprio, o que faltar ou divergir é item "importante",
     com o JSON sugerido pronto; sem JS/TS próprio, só `dev`/`build`
 - **Lint e formatação (obrigatórios se houver JS/TS próprio)**: arquivos
-  JS/TS/Vue/JSX do projeto (`resources/js` etc.), fora os gerados
-  (`public/build`, `dist/`, `.min.*`); Alpine inline no Blade não conta.
+  JS/TS/Vue/JSX do projeto (`resources/js`, `src/`, `app/` etc.), fora
+  os gerados (`public/build`, `dist/`, `.min.*`, `.nuxt/`, `.next/`);
+  Alpine inline no Blade não conta. No Nuxt, o `@nuxt/eslint` serve
+  de flat config; no Next, o `eslint-config-next`.
   Exige: `eslint` e `prettier` em `devDependencies`; flat config do
   ESLint (`eslint.config.{js,mjs,cjs,ts}`) e config do Prettier
   (`.prettierrc*`, `prettier.config.*` ou chave no `package.json`);

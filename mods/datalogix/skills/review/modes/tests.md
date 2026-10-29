@@ -12,6 +12,11 @@ Passos, um por vez:
 2. Pastas de `tests/`, uma por vez (ex.: `tests/Unit`, `tests/Feature`).
 3. Testes JS/TS, se existirem.
 
+Nos tipos JS, os passos 1 e 2 tratam só dos testes JS/TS, com as
+ideias da seção 3, e o passo 3 não existe. Cobertura com `vitest run
+--coverage` só se o provider (`@vitest/coverage-v8` ou `-istanbul`)
+já estiver instalado.
+
 ## 1. Visão geral
 - cobertura, se houver driver (`pcov` ou `xdebug`): `--coverage` (Pest)
   ou `--coverage-text` (PHPUnit). Sem driver, não instale nada: mapeie

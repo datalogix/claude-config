@@ -3,7 +3,7 @@
 Depois da última etapa da revisão completa.
 
 ## 1. Notas de versão (conforme o tipo e o estágio)
-Pacote v1+:
+Pacote ou lib JS/TS v1+:
 - entrada no `CHANGELOG.md` (crie se não existir, formato Keep a
   Changelog, seção "Unreleased") com Added, Changed, Deprecated,
   Removed, Fixed e Security, a partir de "Mudanças para documentar" do
@@ -13,17 +13,19 @@ Pacote v1+:
   houver quebra de API, minor se houver funcionalidade nova, patch se só
   houver correções
 
-Aplicação em produção — notas de deploy:
+Aplicação (Laravel ou Nuxt/Next) em produção — notas de deploy:
 - migrations novas e se alguma é lenta ou exige ordem/duas fases
-- chaves novas de `.env` e de config
+- chaves novas de `.env` e de config (no Next, as `NEXT_PUBLIC_`
+  exigem novo build)
 - comandos a rodar (caches, `queue:restart`, seeders obrigatórios)
+- URLs que mudaram e os redirecionamentos criados
 - mudanças em API pública, jobs ou webhooks e o plano de compatibilidade
 - `CHANGELOG.md` só se o projeto já mantiver um
 
 Mostre as notas na conversa e grave-as no progresso; no projeto, só no
 `CHANGELOG.md` existente.
 
-Pacote pré-v1 ou aplicação não lançada: pule este item.
+Pacote ou lib pré-v1, ou aplicação não lançada: pule este item.
 Não crie tag nem release; eu faço.
 Em `report`: só descreva o que entraria nas notas, sem criar arquivos,
 e pule a seção 2.

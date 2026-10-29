@@ -8,14 +8,17 @@ Passos, um por vez:
    cada um (ex.: `token` vs `code` vs `otp`); proponha um nome por
    conceito. As respostas vão para "Decisões do projeto" e valem para
    os passos seguintes.
-2. Código PHP, uma pasta por vez.
+2. Código PHP (tipos Laravel) ou JS/TS (tipos JS), uma pasta por vez.
 3. Front-end, uma pasta por vez (se existir).
 4. Nomes que atravessam o projeto: chaves de config, nomes de rota,
    eventos, comandos Artisan, views, tabelas e colunas, chaves de
-   tradução, tags de publicação.
+   tradução, tags de publicação; nos tipos JS, entradas do `exports`,
+   rotas de páginas e de API, variáveis de ambiente, chaves de
+   cookies e `localStorage`.
 
 ## O que revisar
-Regras de "Nomenclatura" de `steps/code.md`, aplicadas a classes,
+Regras de "Nomenclatura" de `steps/code.md` (nos tipos JS, as de
+`steps/code-js.md`), aplicadas a classes,
 interfaces, traits, enums e casos, métodos, propriedades, constantes,
 parâmetros, variáveis, arquivos e pastas, componentes Blade/Livewire,
 funções e variáveis JS/TS e classes CSS próprias. Também:

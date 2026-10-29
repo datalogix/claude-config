@@ -21,13 +21,35 @@ Aplicação:
   `composer lint`, `composer format` e os do `package.json`)
 - deploy: link ou resumo do processo (o detalhe vai para `/docs`)
 
-Em ambos: corrija ou remova trechos desatualizados.
+Lib JS/TS:
+- o que a lib faz e para quem
+- requisitos: Node (batendo com o `engines`), `peerDependencies`,
+  ambiente (Node, navegador)
+- instalação com npm (e pnpm/yarn se o projeto mostra), import de CSS
+  ou plugin a registrar, se houver
+- exemplo de uso rápido em ESM que funciona de verdade (confira contra
+  o código; a etapa `pack` o executa)
+- links para documentação detalhada, changelog, contribuição e
+  licença, só os que existirem
+
+Aplicação Nuxt/Next:
+- o que a aplicação faz, em uma ou duas frases
+- requisitos (Node, gerenciador, API ou serviços que consome)
+- setup local: clonar, `.env` a partir do `.env.example`,
+  dependências, como rodar (`dev`), build e `preview`/`start`
+- como rodar testes, lint e typecheck pelos scripts do `package.json`
+- deploy: link ou resumo do processo (o detalhe vai para `/docs`)
+
+Em todos: corrija ou remova trechos desatualizados.
 
 ## Documentação detalhada
 - pacote: todo comando Artisan, opção de config, evento, Contract e
   ponto de extensão público documentado
 - aplicação: arquitetura geral, deploy, filas e agendamento, integrações
-  externas, decisões importantes
+  externas, decisões importantes; Nuxt/Next: também o modo de
+  renderização e o cache de cada parte do site
+- lib JS/TS: cada entrada do `exports`, com as funções, opções e
+  padrões, os erros lançados e os comandos do `bin`
 - se o README passar de ~300 linhas ou tiver mais de ~6 seções de
   referência, mova o detalhe para `/docs`, um arquivo por assunto, com
   `docs/README.md` como índice; o README fica com visão geral,

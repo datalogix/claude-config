@@ -4,6 +4,10 @@ Só se existir front-end. Arquivos gerados/compilados ficam fora.
 Nomenclatura, documentação no código e docblocks: mesmas regras de
 `code.md` (nesta mesma pasta); leia só essas seções de lá.
 
+Nos tipos Laravel, as seções "Views", "CSS", "JS/TS" e "Testes". Nos
+tipos JS, "CSS", "JS/TS", a seção do framework ("Vue e Nuxt" ou
+"React e Next") e "Testes".
+
 ## Views (Blade, componentes, Livewire)
 - XSS: `{!! !!}` com dado não confiável, atributos e URLs sem escape;
   `@js`/`Js::from` em vez de concatenar dados em `<script>`
@@ -41,10 +45,48 @@ Nomenclatura, documentação no código e docblocks: mesmas regras de
   (nesta mesma pasta; item "importante"), uma vez só, na primeira
   pasta com JS/TS
 
+## Vue e Nuxt
+- reatividade perdida: desestruturar `props` ou um `reactive` sem
+  `toRefs` (antes do Vue 3.5), `ref` substituído em vez de alterado
+- `v-html` com dado não confiável; `v-for` sem `key` ou com o índice
+  como `key` em lista que muda; `v-if` e `v-for` no mesmo elemento
+- props e emits tipados (`defineProps<...>()`, `defineEmits<...>()`),
+  `v-model` com `defineModel` onde o projeto já usa
+- `computed` com efeito colateral; `watch` que deveria ser `computed`
+- SSR (Nuxt): `window`, `document` e `localStorage` só no cliente
+  (`onMounted`, `<ClientOnly>`, `import.meta.client`); estado global
+  com `useState` ou store (Pinia), nunca em variável de módulo, que é
+  compartilhada entre usuários no servidor; dado buscado com
+  `useFetch`/`useAsyncData` (não `$fetch` direto no `setup`, que busca
+  duas vezes)
+- composables: nome com `use`, sem efeito fora de `setup`; auto-import
+  do Nuxt sem nomes iguais entre `composables/`, `utils/` e módulos
+- páginas: `definePageMeta` (middleware, layout), `useSeoMeta` ou
+  `useHead` com título por página
+
+## React e Next
+- regras dos hooks; dependências de `useEffect`/`useMemo`/
+  `useCallback` completas; `useEffect` para estado derivado (calcule no
+  render) ou para buscar dado que o servidor poderia buscar
+- `dangerouslySetInnerHTML` com dado não confiável; `key` estável em
+  listas (não o índice em lista que muda)
+- App Router: `'use client'` no componente mais baixo possível, não na
+  página inteira; Server Component não passa segredo nem objeto grande
+  como prop para Client Component; `loading.tsx`, `error.tsx` e
+  `not-found.tsx` onde há dado assíncrono
+- formulários com Server Actions: validação e autorização no servidor
+  (etapa `code`), estado de envio e erro na interface
+- `next/link`, `next/image` e `next/font` em vez de `<a>`, `<img>` e
+  fontes externas; `metadata`/`generateMetadata` por página
+
 ## Testes
 - views/componentes: testes PHP renderizando (`$this->view()`,
   `$this->blade()`, `Blade::render`, `Livewire::test`), cobrindo estados
   (vazio, erro, com dados) e escape
 - JS/TS: testes unitários com o runner em uso (Vitest, ou Jest se o
   projeto já usa; regras na seção 2 do `SKILL.md`)
+- componentes Vue/React: testes com `@vue/test-utils` (ou
+  `@nuxt/test-utils` quando dependem do Nuxt) e
+  `@testing-library/react`, cobrindo estados (carregando, vazio, erro,
+  com dados)
 - navegador só se já houver Playwright/Cypress/Dusk

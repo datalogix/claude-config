@@ -27,8 +27,10 @@ node bin/cli.js install --link            # install from this clone: mods load i
 ## CI
 
 - `.github/workflows/ci.yml` runs `npm run lint` and actionlint (`ACTIONLINT_VERSION`, bumped by hand) in `lint`, and
-  `claude plugin validate` for the root and each mod plus `npm test` in `test`, on Ubuntu only (Node 22 and LTS),
-  installing the latest Claude Code. Windows is not in the matrix: the installer still supports it, untested.
+  `claude plugin validate` for the root and each mod plus `npm test` in `test`, on Ubuntu (Node 22 and LTS),
+  installing the latest Claude Code. It also runs weekly (`schedule`), so a Claude Code release that breaks
+  something shows up without a push. The `windows` job runs only the tests that need no fake `claude` shell script
+  (`tests/quote.test.js`, `tests/quote-cmd.test.js`, `tests/options.test.js`) and `node bin/cli.js --help`.
 - `all-checks` aggregates the jobs and is the single required status check; keep it in `needs` when adding a job.
 - Dependabot (`.github/dependabot.yml`): GitHub Actions weekly (`ci:` commits), npm monthly in one group (`chore:`).
 
@@ -66,6 +68,9 @@ node bin/cli.js install --link            # install from this clone: mods load i
   them from `pluginConfigs` in that `settings.json` and warns, on `install` and `update`, with their values.
   On `update`, the new name (and `datalogix` for old skills) is installed only after the marketplace update
   succeeded, since an older marketplace may not list it yet.
+- The migration code (`RENAMED_MODS`, `removeOldSkills` and the old skills handling in `update`, `warnOldOptions`)
+  is temporary: remove it, with its tests and docs, once every team machine has run `update` once. Whether that
+  happened is the user's call; ask before removing it.
 - `install` stores only the options already configured (`configured` in `plugin configure --json`; a reply without
   `configured` counts as configured each option whose value differs from this checkout's default, `configuredKeys`)
   and answers that differ from the default (`valuesToStore`, `bin/options.js`), so a default nobody chose stays
@@ -75,8 +80,12 @@ node bin/cli.js install --link            # install from this clone: mods load i
   (`defaultChoice`), or from its first choice if the default is not one either.
   `optionChanges` decides whether anything needs storing, and `configured: <name>` is logged only after
   `plugin configure --values-stdin` ran.
-- On Windows, when `claude` resolves to npm's `claude.cmd`, it is run through `cmd` with `quoteForCmd`
-  (`bin/quote.js`). That quoting is unit-tested but has never been run on real Windows.
+- On Windows, when `claude` resolves to npm's `claude.cmd`, it is run through `cmd` with `cmdLine`/`quoteForCmd`
+  (`bin/quote.js`). `tests/quote-cmd.test.js` checks that quoting against the real `cmd.exe`, through a fake
+  `claude.cmd` shaped like npm's shim, on the `windows` CI job only.
+- Every `claude` call (`runClaude`) has a timeout (`CLAUDE_TIMEOUT_MS`, 120s; tests lower it with
+  `CLAUDE_CONFIG_TIMEOUT_MS`) and runs with `GIT_TERMINAL_PROMPT=0`, so a hung network call or a git asking for
+  credentials fails the step instead of freezing the installer.
 - `tests/cli-install.test.js` and `tests/cli-update.test.js` run the real CLI without a TTY, with a temporary `HOME`
   and a fake `claude` shell script on `PATH` that logs its arguments; `tests/cli-interactive.test.js` runs the
   prompts in process, with `@clack/prompts` mocked. The shared setup is in `tests/helpers/cli.js` (`useTempHome`,

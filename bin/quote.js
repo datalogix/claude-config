@@ -6,8 +6,8 @@ const CMD_META = /[()\][%!^"`<>&|;, *?]/g
  * Quotes an argument for claude.cmd (an npm install) run through cmd.exe,
  * like cross-spawn's escapeArgument with its double escape for .cmd shims,
  * except that every backslash before a quote is doubled (cross-spawn doubles
- * only the last one); claude.exe never goes through cmd. Unit-tested only;
- * never run on real Windows.
+ * only the last one); claude.exe never goes through cmd. Checked against the
+ * real cmd.exe by tests/quote-cmd.test.js, on the windows CI job.
  * First for the program's own parser: a quote becomes \" and the backslashes
  * before it (or before the closing quote) are doubled. Then every cmd
  * metacharacter, quotes and % included, gets a caret, twice: cmd parses the

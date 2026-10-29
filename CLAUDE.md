@@ -165,7 +165,7 @@ node bin/cli.js install --link            # install from this clone: mods load i
   - `/datalogix:issue`, `/datalogix:pr` and `/datalogix:commit`: Portuguese as the suggested language, with the
     Conventional Commits type in English (`plugins/laravel/skills/conventions/SKILL.md`);
   - `/datalogix:ci`: the checks it fixes and leaves alone follow `plugins/laravel/commands/fix-ci.md` and
-    `.github/workflows/claude-fix-ci.yml`;
+    `.github/workflows/claude-fix-ci.yml`, plus the `build` script, which those do not run (for JS projects' own CI);
   - `/datalogix:pr`: the pull request sections and title rules of `plugins/laravel/skills/conventions/SKILL.md`, and
     the `no-review` label (`cli/kinds/project/state.js`, `.github/workflows/claude-review.yml`).
 - Review progress lives in `~/.claude/reviews/`, outside the repo.

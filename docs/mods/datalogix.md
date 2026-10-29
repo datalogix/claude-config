@@ -75,8 +75,8 @@ check its skills.
   repository is refused. It reads only the failed jobs' logs and
   classifies each failure as caused by the change, pre-existing, flaky
   or infrastructure. For failures the change caused in the code checks
-  (Pint, PHPStan, Pest/PHPUnit, the `lint`, `test` and `typecheck`
-  scripts, `composer audit`) it proposes fixes, applies only the ones
+  (Pint, PHPStan, Pest/PHPUnit, the `lint`, `test`, `typecheck` and
+  `build` scripts, `composer audit`) it proposes fixes, applies only the ones
   you check and runs just what failed to validate them. Only if you
   check them does it reproduce a failure locally (when no log can be
   read) or rerun the failed jobs (`gh run rerun --failed`). It never

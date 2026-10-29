@@ -291,6 +291,30 @@ describe('update', { skip: process.platform === 'win32' }, () => {
       assert.doesNotMatch(output, /ignoring options/)
     }
   })
+
+  test('fails a claude call that hangs and still refreshes the mods', () => {
+    fakeClaude({
+      'plugin list --json': `echo '[{"id":"${PLAIN_MOD}@claude-config"}]'`,
+      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      // exec, so the timeout kills sleep itself and no child keeps the output open
+      'plugin marketplace update claude-config': 'exec /bin/sleep 10',
+    })
+
+    const { status, output } = runCli(['update'], CLI, { CLAUDE_CONFIG_TIMEOUT_MS: '500' })
+
+    assert.equal(status, 1)
+    assert.match(output, /marketplace: timed out after 0\.5s/)
+    assert.match(output, /Finished with errors/)
+    assert.ok(claudeCalls().includes(`plugin update ${PLAIN_MOD}@claude-config --json`))
+  })
+
+  test('turns off git credential prompts for claude', () => {
+    fakeClaude({ '--version': `echo "$GIT_TERMINAL_PROMPT" > "${path.join(tmpDir, 'prompt')}"` })
+
+    runCli(['update'])
+
+    assert.equal(fs.readFileSync(path.join(tmpDir, 'prompt'), 'utf8'), '0\n')
+  })
 })
 
 describe('install and update', { skip: process.platform === 'win32' }, () => {

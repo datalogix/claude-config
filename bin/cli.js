@@ -7,7 +7,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { answerFor, optionChanges, configuredKeys, currentValues, defaultChoice, initialValue } from './options.js'
-import { quoteForCmd } from './quote.js'
+import { cmdLine } from './quote.js'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const REPO = 'datalogix/claude-config'
@@ -15,6 +15,9 @@ const CLAUDE_DIR = path.join(os.homedir(), '.claude')
 const SKILLS_DIR = path.join(CLAUDE_DIR, 'skills')
 /** Old skills were always in ~/.claude; settings follow $CLAUDE_CONFIG_DIR. */
 const SETTINGS_FILE = path.join(process.env.CLAUDE_CONFIG_DIR || CLAUDE_DIR, 'settings.json')
+
+/** A claude call that hangs (network, a git waiting for input) fails after this; tests lower it. */
+const CLAUDE_TIMEOUT_MS = Number(process.env.CLAUDE_CONFIG_TIMEOUT_MS) || 120_000
 
 /** Written by earlier versions into each copied skill: only those are removed. */
 const MARKER_FILE = '.claude-config'
@@ -224,13 +227,29 @@ function removeOldSkills(installed, unchecked = [], names = listOldSkills()) {
  * @returns {Result}
  */
 function runClaude(args, input) {
-  let result = spawnSync('claude', args, { encoding: 'utf8', input })
+  // A git asking for credentials would wait on a prompt nobody sees: it fails instead.
+  /** @type {import('node:child_process').SpawnSyncOptionsWithStringEncoding} */
+  const options = {
+    encoding: 'utf8',
+    input,
+    timeout: CLAUDE_TIMEOUT_MS,
+    env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+  }
+  let result = spawnSync('claude', args, options)
   // The native installer's claude.exe runs directly; npm's claude.cmd, which
   // Node cannot find without a shell, only through cmd.
-  if (isWindows && /** @type {NodeJS.ErrnoException | undefined} */ (result.error)?.code === 'ENOENT') {
-    result = spawnSync(['claude', ...args.map(quoteForCmd)].join(' '), { encoding: 'utf8', input, shell: true })
+  if (isWindows && errorCode(result.error) === 'ENOENT') {
+    result = spawnSync(cmdLine('claude', args), { ...options, shell: true })
+  }
+  if (errorCode(result.error) === 'ETIMEDOUT') {
+    return { ok: false, stdout: '', stderr: `timed out after ${CLAUDE_TIMEOUT_MS / 1000}s` }
   }
   return { ok: !result.error && result.status === 0, stdout: result.stdout ?? '', stderr: result.stderr ?? '' }
+}
+
+/** @param {Error | undefined} error */
+function errorCode(error) {
+  return /** @type {NodeJS.ErrnoException | undefined} */ (error)?.code
 }
 
 /** @returns {boolean} */

@@ -111,7 +111,11 @@ Para cada falha, ache a causa no código local e classifique:
 
 Só falhas **causadas pela mudança** dos checks de código recebem
 correção: Pint, PHPStan, os testes PHP (Pest/PHPUnit), os scripts
-`lint`, `test` e `typecheck` do `package.json` e o `composer audit`.
+`lint`, `test`, `typecheck` e `build` do `package.json` e o
+`composer audit`. O `build` vai além do `fix-ci` do
+`datalogix/workflows`, que não o roda: cobre o CI próprio de
+projetos JS (ex.: `nuxt build`, `next build`), corrigindo só o
+código, nunca o config de build para silenciar o erro.
 Falhas do security review e do risk gate do `datalogix/workflows`
 são só explicadas: a correção é de quem revisa. As outras
 categorias também ficam só no diagnóstico, com a sugestão do que
@@ -153,7 +157,8 @@ alterado antes da resposta.
   código.
 - Valide rodando localmente só o que falhou: o teste específico
   (ex.: `vendor/bin/pest --filter <nome>`), `vendor/bin/pint --test
-  <arquivos alterados>`, o PHPStan ou o script do `package.json`.
+  <arquivos alterados>`, o PHPStan ou o script do `package.json`
+  (o `build` inteiro, que não roda por arquivo).
   Se a ferramenta não estiver instalada no projeto, diga e não
   instale.
 - Se a validação falhar, mostre o erro, liste os arquivos já

@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Weekly, so a new Claude Code release that breaks the mods or the installer shows up without a push
+  schedule:
+    - cron: '0 9 * * 1'
 
 permissions:
   contents: read
@@ -56,10 +59,24 @@ jobs:
           for mod in mods/*/; do claude plugin validate "$mod"; done
       - run: npm test
 
+  # Only what runs without the fake claude shell script: the cmd.exe quoting and the CLI loading
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run tests/quote.test.js tests/quote-cmd.test.js tests/options.test.js
+      - run: node bin/cli.js --help
+
   # Single status check for branch protection, so it does not depend on the matrix job names
   all-checks:
     if: always()
-    needs: [lint, test]
+    needs: [lint, test, windows]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

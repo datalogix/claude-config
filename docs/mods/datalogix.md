@@ -9,9 +9,19 @@ check its skills.
 - `review/` — `/datalogix:review`: step-by-step review of Laravel
   packages and applications, JS/TS libraries and Nuxt/Next
   applications. Run `/datalogix:review help` for details.
-  It never runs `/code-review` itself: the closing step, and the end of
-  a single step or a focus mode, tell you to run it on the changes in a
-  new session, so the review is not the only one checking its own work.
+  After each step it suggests one commit per feature or fix
+  (refactoring and formatting apart), in the commits' language
+  (below), as unchecked boxes. The ones you check are made through
+  `/datalogix:commit`'s flow, which it reads and follows from step 2
+  after its step 1 state checks: one preview, nothing committed before
+  you confirm, never a push; their hashes go in the progress file.
+  Checking "Seguir para a próxima etapa depois dos commits" moves on
+  once they are all made; when the project type checks git before
+  each step, they must all be made first. It
+  never runs `/code-review` itself: the closing step, and the end of a
+  single step or a focus mode, tell you to run it on the changes in a
+  new session, so the review is not the only one checking its own
+  work.
   - `SKILL.md` — the command itself
   - `types/` — rules per project type (`package`, `application`,
     `library`, `web-app`)
@@ -60,17 +70,27 @@ check its skills.
   pull request with `gh`. Run `/datalogix:pr help` for details.
 - `commit/` — `/datalogix:commit`: commits the staged changes with a
   Conventional Commits message, following the project's recent
-  commits (e.g. whether it uses a scope). With nothing staged, it lists
-  the changed files, unchecked, and stages only the ones you check,
-  never with `git add -A`. It warns about changes left out of the
-  commit, commits straight to the default branch and parts of the
-  diff that look sensitive, and suggests splitting a diff that mixes
-  unrelated changes (not when a staged file also has unstaged
-  changes). It adds an authorship trailer only when the session's
-  instructions ask for one, and shows it in the preview. Only after
-  confirmation does it run `git commit -F`, never with `--amend` or
-  `--no-verify`, and it never pushes. Run `/datalogix:commit help`
-  for details.
+  commits (e.g. whether it uses a scope). With nothing staged, it
+  suggests one commit per feature or fix, unchecked, and makes only
+  the ones you check, all shown in one preview and confirmed at once
+  or one by one; you can also make a single commit of everything, or
+  pick the changed files one by one. It never stages with `git add
+  -A`, and cancelling unstages what it staged. `grupos: <title>
+  (<files>); ...` starts from a given split, as `/datalogix:review`
+  shows it. The preview also points out files that look generated
+  (`dist/`, `vendor/`, minified files). The preview points out
+  a commit that depends on an unchecked one, and one whose content,
+  split by hunk, was never tested.
+  It warns about changes left out of the commit, commits straight to
+  the default branch and parts of the diff that look sensitive, and
+  suggests splitting a diff that mixes unrelated changes (not when a
+  staged file also has unstaged changes). A file with changes for
+  more than one commit is split by hunk (`git apply --cached`), never
+  touching the working tree. It adds an authorship trailer only when
+  the session's instructions ask for one, and shows it in the
+  preview. Only after confirmation does it run `git commit -F`, never
+  with `--amend` or `--no-verify`, and it never pushes. Run
+  `/datalogix:commit help` for details.
 - `ci/` — `/datalogix:ci`: diagnoses the latest failed CI run of the
   current branch, of a pull request (`#<number>`) or a given run,
   looking first at the run of the current (or the pull request's head)

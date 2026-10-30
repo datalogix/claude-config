@@ -79,7 +79,9 @@ skills ou tags novas, descubra e registre:
     os testes); nunca converta sem aprovação.
   - Sem runner: item "importante" que oferece
     `composer require --dev pestphp/pest pestphp/pest-plugin-laravel
-    --with-all-dependencies` e `vendor/bin/pest --init`, só se eu aprovar.
+    --with-all-dependencies` numa aplicação, ou só `pestphp/pest` num
+    pacote (o Testbench já basta), e `vendor/bin/pest --init`, só se eu
+    aprovar.
   - Comando: script `test` do composer.json se existir; senão
     `php artisan test` numa aplicação e o binário num pacote, como o
     CI de `datalogix/workflows`.

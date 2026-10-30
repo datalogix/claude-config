@@ -47,7 +47,9 @@ Rode, quando disponíveis: `composer validate --strict`,
     "format": "@php vendor/bin/pint"
     ```
 - **Testes**: Pest e plugins (`pest-plugin-laravel` etc.) coerentes com
-  a versão do PHPUnit; PHPUnit sem restrições conflitantes.
+  a versão do PHPUnit; PHPUnit sem restrições conflitantes. Num pacote,
+  `pest-plugin-laravel` sem nenhum `use function Pest\Laravel\...` nos
+  testes: item "sugestão" de removê-lo.
 - **Vulnerabilidades** (`audit`): separe as de runtime das de dev.
 - **Desatualizados** (`outdated`): só liste, numa linha em
   "Recomendações gerais"; atualizar é o modo `deps`.

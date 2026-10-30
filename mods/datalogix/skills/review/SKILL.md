@@ -154,7 +154,8 @@ Mostre o perfil em poucas linhas, incluindo tipo e estágio.
      configuração ou API pública
   4. **Etapas**: por etapa/pasta/parte, data, commit, o que foi
      analisado, itens aplicados, recusados e pulados (pelo número),
-     "Decisões tomadas" sem perguntar, testes
+     "Decisões tomadas" sem perguntar, testes e os commits feitos
+     pelo fluxo de commit (hash e título)
   5. **Perguntas pendentes**, com o passo e os itens que dependem delas
   6. **Modos de foco**: uma seção por modo, com progresso próprio; um
      modo nunca marca etapa da revisão completa como feita
@@ -187,9 +188,11 @@ Mostre o perfil em poucas linhas, incluindo tipo e estágio.
   condições da verificação PHP; nos tipos JS, não) e `prettier
   --write` direto, nunca o script `format` (que também roda `eslint
   --fix`); nenhuma outra mudança. Depois, rodar a verificação completa,
-  sugerir um commit só de formatação e que eu inclua o hash dele no
-  `.git-blame-ignore-revs`, e PARAR até "próxima". Registre no
-  progresso; vale também quando eu instalar o formatador depois.
+  sugerir um commit só de formatação, com `- [ ] Fazer o commit de
+  formatação` (pelo fluxo de commit da seção 5), e que eu inclua o
+  hash dele no `.git-blame-ignore-revs` num commit seguinte, e PARAR
+  até "próxima". Registre no progresso; vale também quando eu instalar o
+  formatador depois.
 - Mostre o plano: as etapas na ordem definida pelo arquivo do tipo, com
   as pastas de cada etapa por pasta (código PHP: Contracts primeiro,
   depois as que dependem delas, Providers por último; código JS/TS:
@@ -239,9 +242,45 @@ Um passo é uma etapa, uma pasta ou uma parte de pasta.
    comportamento, configuração ou API pública. Salve o progresso,
    mostre um resumo curto (arquivos alterados, testes
    adicionados, "Decisões tomadas", itens pulados e perguntas
-   pendentes), sugira uma mensagem de commit e PARE até eu dizer
-   "próxima" (aplicando antes os itens liberados por respostas que eu
-   der).
+   pendentes), sugira os commits e PARE até eu dizer "próxima"
+   (aplicando antes os itens liberados por respostas que eu der).
+   - Um commit por funcionalidade ou correção, com os testes, a
+     documentação e o lockfile da mudança que acompanham;
+     refatoração e formatação à parte. Cada um com a mensagem e os
+     arquivos, na ordem em que devem ser feitos (o que outro usa vem
+     antes).
+   - Se um arquivo tiver mudanças de mais de um commit, diga quais
+     trechos vão em cada.
+   - Pergunte quais fazer: um `- [ ] <título do commit>` por commit
+     sugerido, todos desmarcados, com os arquivos recuados abaixo;
+     com mais de um, também `- [ ] Fazer tudo em um commit só`; e
+     `- [ ] Seguir para a próxima etapa depois dos commits`. Sem o
+     formato da seção 7, aceite em texto (ex.: "commita 1 e 2 e
+     segue").
+   - Se o arquivo do tipo exigir a checagem de git antes de cada
+     passo, avise que todos os commits sugeridos precisam ser
+     feitos antes de "próxima": com algo sem commit, o próximo passo
+     para.
+   - Com commits marcados, faça-os pelo fluxo de commit (abaixo). Com
+     "Seguir" marcado, só depois que todos os marcados forem feitos
+     vale como "próxima"; se algum for cancelado ou falhar, PARE.
+
+   - Fluxo de commit: leia `${CLAUDE_SKILL_DIR}/../commit/SKILL.md`
+     e siga-o a partir do passo 2, como se os commits marcados
+     fossem os grupos marcados no passo 1 dele (ou, com "Fazer tudo
+     em um commit só", um grupo só, com os arquivos de todos), com o
+     idioma da seção 11.
+   - Antes, faça só as checagens de estado do passo 1 dele: sem
+     repositório git ou com merge, rebase, cherry-pick ou revert em
+     andamento, pare; anote se é o primeiro commit e se a branch
+     atual é a padrão, para os avisos da prévia. Se houver algo em
+     stage, não siga: diga e deixe para eu rodar
+     `/datalogix:commit`.
+   - Só entram arquivos dos commits sugeridos. A prévia, a
+     confirmação e os avisos são os dele; nenhum commit é feito sem
+     a minha confirmação.
+   - Depois, registre no progresso da etapa o hash e o título de cada
+     commit feito (`git log -<n> --format='%h %s'`).
 6. Depois da última etapa, faça o fechamento (`steps/closing.md`),
    com a verificação completa, e liste os passos pulados com "pula".
 7. Etapa avulsa e modo não têm fechamento: no resumo do fim da etapa,
@@ -377,7 +416,7 @@ português, de forma curta:
   faz · exemplo); as etapas de cada tipo (pacote e aplicação Laravel,
   lib JS/TS, aplicação Nuxt/Next), uma linha cada; os modos; o ciclo
   de um passo (relatório → aprovo e respondo → aplica → verificação
-  100% → commit meu → "próxima"); onde fica o progresso e como
+  100% → commits que eu marcar, com prévia → "próxima"); onde fica o progresso e como
   retomar, ver status e recomeçar; as regras da seção
   10 e a regra de idioma da seção 11; o que muda por estágio em cada
   tipo, em duas linhas; e as respostas aceitas nas pausas (incluindo
@@ -394,14 +433,19 @@ Resuma só o que está escrito nos arquivos; não invente comportamento.
 - Todo código que você escrever segue "Documentação no código" de
   `steps/code.md`: só comentários realmente necessários.
 - Docblocks só são revisados no modo `docs`; fora dele, não toque.
-- Não faça commit, tag nem release; eu faço.
+- Commit só pelo fluxo de commit (seção 5), dos que eu marcar e
+  depois da minha confirmação na prévia; nunca push, tag nem release.
 - Seja direto: sem elogios nem descrição do que o código já faz.
 
 ## 11. Idioma
 - Conversa, relatórios, perguntas, resumos e help: português.
 - Tudo que for escrito no projeto: inglês — código, nomes, comentários,
   docblocks, testes, mensagens de exceção e de log, README, /docs,
-  CHANGELOG, UPGRADE, skills, guidelines e mensagens de commit sugeridas.
+  CHANGELOG, UPGRADE, skills e guidelines.
+- Mensagens de commit sugeridas: tipo do Conventional Commits em
+  inglês e descrição no idioma da linha `- Issues and pull requests:
+  <idioma>` do `CLAUDE.md` do projeto, como no `/datalogix:commit`;
+  sem essa linha, em português.
 - Textos para o usuário final ficam nos arquivos de tradução (`lang/`)
   se o projeto usa tradução; nesse caso, nunca fixos no código.
 - Se o projeto tiver código ou documentação em outro idioma, aponte como

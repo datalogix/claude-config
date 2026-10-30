@@ -61,3 +61,13 @@ test('the pr skill still follows the issue skill from its step 2', () => {
   assert.match(read('pr/SKILL.md'), /`\$\{CLAUDE_SKILL_DIR\}\/\.\.\/issue\/SKILL\.md` e\s+siga-o a partir do passo 2/)
   assert.match(read('issue/SKILL.md'), /^## 2\. Contexto do projeto$/m)
 })
+
+test('the review skill still follows the commit skill from its step 2', () => {
+  assert.match(
+    read('review/SKILL.md'),
+    /`\$\{CLAUDE_SKILL_DIR\}\/\.\.\/commit\/SKILL\.md`\s+e\s+siga-o a partir do passo 2/,
+  )
+  const commit = read('commit/SKILL.md')
+  assert.match(commit, /^## 2\. Contexto$/m)
+  assert.match(commit, /grupos marcados no passo 1/)
+})

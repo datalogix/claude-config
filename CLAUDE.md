@@ -133,11 +133,15 @@ node bin/cli.js install --link            # install from this clone: mods load i
   reading and following `../issue/SKILL.md` from its step 2 (the issue skill has `disable-model-invocation`, so it
   cannot be invoked as a skill): renumbering the issue skill's steps breaks that reference.
 - `/datalogix:commit` (`commit/SKILL.md`) is a single prompt-only file in Portuguese. It commits what is staged;
-  with nothing staged it lists the changed files (`git status --porcelain -uall`), unchecked, and stages only the
-  ones checked (never `git add -A`). It may split the commit, unstaging with `git restore --staged` (or
-  `git rm --cached` before the first commit), never `reset --hard`/`checkout`, and only when no staged file has
-  unstaged changes. It adds an authorship trailer only when the session's instructions ask for one, runs
-  `git commit -F` after confirmation, never with `--amend`/`--no-verify`, and never pushes.
+  with nothing staged it suggests commits grouped by feature or fix, unchecked, plus one commit of everything or
+  the changed files of `git status --porcelain -uall` one by one, unchecked, and stages only what is checked (never
+  `git add -A`); cancelling unstages what it staged. It may split the commit, unstaging with `git restore --staged`
+  (or `git rm --cached` before the first commit), never `reset --hard`/`checkout`, and only when no staged file
+  has unstaged changes. Parts of a file go to different commits through `git apply --cached` with a patch of whole
+  hunks, never `git add -p` and never touching the working tree. A split shows every commit in one preview,
+  confirmed all at once or one by one; `grupos: ...` (as `/datalogix:review` suggests) seeds the groups. It adds an
+  authorship trailer only when the session's instructions ask for one, runs `git commit -F` after confirmation,
+  never with `--amend`/`--no-verify`, and never pushes.
 - `/datalogix:ci` (`ci/SKILL.md`) is a single prompt-only file in Portuguese. It reads the failed jobs' logs with `gh`
   (the run of the current or pull request head commit, else the branch's latest failed run), applies only the
   fixes the user checks, and only if checked reproduces a failure locally or reruns the failed jobs
@@ -146,13 +150,16 @@ node bin/cli.js install --link            # install from this clone: mods load i
   (`mods/topics/hooks/parse.ts`), and `/datalogix:review` uses the same format when `topics` is active (its
   `SKILL.md` section 7); keep them in sync. `tests/skills.test.js` runs every item written in a code span in a
   `SKILL.md` through `parseActions`, and checks that pr and commit still find the issue skill's step 2 and its
-  "Idioma" item.
+  "Idioma" item, and that review still finds the commit skill's step 2.
 - `/datalogix:issue`, `/datalogix:pr` and `/datalogix:commit` take the language of issues, pull requests and commits
   from a `- Issues and pull requests: <language>` line in the target project's `CLAUDE.md` (pr and commit by
   following the "Idioma" item of the issue skill's step 2). Without it they ask (Portuguese suggested) and, only if
-  the user checks it, append that line to the local `CLAUDE.md`, the one write they make there.
+  the user checks it, append that line to the local `CLAUDE.md`, the one write they make there. `/datalogix:review`
+  reads the same line for the commit messages it suggests, falling back to Portuguese without asking.
 - `/datalogix:review` is a prompt-only skill, written in Portuguese.
-  - `SKILL.md` drives the flow.
+  - `SKILL.md` drives the flow. It makes the commits the user checks at the end of a step by reading and following
+    `../commit/SKILL.md` from its step 2 (commit has `disable-model-invocation` too), with the checked commits as
+    step 1's groups: renumbering the commit skill's steps breaks that reference.
   - `types/` holds the rules per project type, including the step order: `package` and `application` (Laravel),
     `library` (JS/TS) and `web-app` (Nuxt and Next in one type, with a section per framework where they differ).
     The JS types reuse the shared steps, which have sections for them, and add `code-js`, `production-js` and `pack`.

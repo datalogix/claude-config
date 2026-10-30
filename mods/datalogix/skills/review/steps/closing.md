@@ -31,18 +31,40 @@ Em `report`: só descreva o que entraria nas notas, sem criar arquivos,
 e pule a seção 2.
 
 ## 2. Revisão independente
-Quem fez as mudanças não deve ser o único a revisá-las, então não rode
-você mesmo: PARE e me oriente a rodar, de preferência numa sessão nova,
-nesta ordem:
-- `/code-review` sobre as mudanças da revisão (a branch dela ou o
-  intervalo desde o primeiro commit registrado no progresso)
-- `/security-review`, se o projeto lida com autenticação, autorização,
-  tokens, senhas, pagamentos ou dados pessoais
-- opcional, para mudanças grandes antes do merge: `/code-review ultra`
-  (roda na nuvem e pode ter custo)
+Quem fez as mudanças não deve ser o único a revisá-las. As skills
+abaixo revisam com subagentes de contexto limpo, que não veem esta
+conversa, então podem rodar nesta sessão. Pergunte quais rodar e
+PARE até a resposta:
+- `- [ ] Rodar o /code-review sobre as mudanças da revisão`, sempre,
+  sobre a branch da revisão ou o intervalo desde o primeiro commit
+  registrado no progresso;
+- `- [x] Rodar o /security-review sobre as mudanças da revisão`, só
+  se as mudanças da revisão tocam áreas sensíveis: autenticação,
+  autorização (policies, gates, middleware), validação de entrada,
+  queries cruas, uploads, sessão, cookies, CORS, headers de
+  segurança, criptografia, segredos ou dependências. Escrita marcada,
+  como sugestão: só vale se eu marcar. Abaixo dela, recuado, os
+  arquivos sensíveis que mudaram. Sem nenhum, não a mostre.
+  Ela revisa só o que a branch atual tem a mais que a padrão: na
+  branch padrão (a de `git symbolic-ref --short
+  refs/remotes/origin/HEAD`, sem o `origin/`, ou `main`/`master`), não
+  a mostre; diga que ela não teria o que analisar e sugira fazer as
+  próximas revisões numa branch própria (ex.: `review/<data>`).
 
-Se eu colar os achados aqui, trate-os como um relatório extra: numerados,
-com o ciclo normal.
+Rode as marcadas nesta ordem, pela ferramenta de skills (Skill), sem
+nível (`max` e `ultra` só se eu pedir). Sem a ferramenta, ou se uma
+skill não estiver disponível, diga e oriente-me a rodá-la.
+
+Os achados das duas viram um único relatório extra, no ciclo normal
+(aprovo o que aplicar). Mostre todos, sem descartar nem rebaixar
+nenhum: quem fez as mudanças não filtra a revisão delas. Se discordar
+de um achado, diga por quê no próprio item e deixe a decisão comigo.
+Um achado que repete um item já recusado numa etapa ou uma "Decisão do
+projeto" continua no relatório, com a marca "já recusado em <etapa>"
+ou "já decidido" e o motivo registrado no progresso.
+
+Para mudanças grandes antes do merge, mencione o `/code-review ultra`
+(roda na nuvem e é cobrado): só eu posso rodá-lo.
 
 ## 3. Resumo final
 Etapas feitas, passos pulados ("pula"), itens aplicados e recusados,

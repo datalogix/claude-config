@@ -9,6 +9,9 @@ check its skills.
 - `review/` — `/datalogix:review`: step-by-step review of Laravel
   packages and applications, JS/TS libraries and Nuxt/Next
   applications. Run `/datalogix:review help` for details.
+  It never suggests adding a community file (`FUNDING.yml`,
+  `SECURITY.md`, issue templates...) that the organization's public
+  `<owner>/.github` repository already provides as the default.
   After each step it suggests one commit per feature or fix
   (refactoring and formatting apart), in the commits' language
   (below), as unchecked boxes. The ones you check are made through
@@ -17,11 +20,18 @@ check its skills.
   you confirm, never a push; their hashes go in the progress file.
   Checking "Seguir para a próxima etapa depois dos commits" moves on
   once they are all made; when the project type checks git before
-  each step, they must all be made first. It
-  never runs `/code-review` itself: the closing step, and the end of a
-  single step or a focus mode, tell you to run it on the changes in a
-  new session, so the review is not the only one checking its own
-  work.
+  each step, they must all be made first. The closing step, and the
+  end of a single step or a focus mode, ask whether to run
+  `/code-review` on the changes, and `/security-review` too, already
+  suggested, when the changes touch sensitive areas (auth, validation,
+  raw queries, uploads, session, headers, secrets, dependencies) on a
+  branch other than the default one, since it only reviews what the
+  branch adds. The
+  checked ones run in the same session: their reviewers are subagents
+  that do not see the review's conversation. Every finding is shown,
+  unfiltered, in one extra report, with the ones that repeat a refused
+  item or a project decision marked as such; `/code-review ultra` is
+  only mentioned, for you to run.
   - `SKILL.md` — the command itself
   - `types/` — rules per project type (`package`, `application`,
     `library`, `web-app`)

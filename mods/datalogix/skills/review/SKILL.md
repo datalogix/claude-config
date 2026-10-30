@@ -124,6 +124,19 @@ skills ou tags novas, descubra e registre:
   - **Produto** (`resources/boost/`): revisado na etapa de documentação.
   - Mesma skill em `.claude/skills` e `.ai/skills`: a de `.ai/` é a fonte.
   Mostre no perfil: skill · origem · etapas.
+- **Arquivos de comunidade da organização**: com remoto no GitHub,
+  veja se `<owner>/.github` existe e é público (`gh api
+  repos/<owner>/.github --jq .private`) e liste, na raiz dele, em
+  `.github/` e em `docs/` (`gh api repos/<owner>/.github/contents/
+  <pasta>`), os que o GitHub usa como padrão nos repositórios da
+  organização: `FUNDING.yml`, `CODE_OF_CONDUCT.md`,
+  `CONTRIBUTING.md`, `SECURITY.md`, `SUPPORT.md`, `GOVERNANCE.md`,
+  `ISSUE_TEMPLATE/`, `PULL_REQUEST_TEMPLATE.md` e
+  `DISCUSSION_TEMPLATE/`. Registre no perfil. Nunca sugira criar no
+  projeto um que a organização já fornece: a cópia substituiria o
+  padrão e divergiria dele. `LICENSE` não é herdado. Sem `gh`, sem
+  remoto no GitHub, ou com o repositório inexistente ou privado,
+  registre "nenhum".
 - Leia `CLAUDE.md`, `CONTRIBUTING.md` e `.editorconfig` se existirem.
 - **Sem `CLAUDE.md` na raiz** (o Claude não foi iniciado no projeto):
   PARE e pergunte se quero rodar `/init` antes de seguir; ele dá
@@ -191,8 +204,8 @@ Mostre o perfil em poucas linhas, incluindo tipo e estágio.
   sugerir um commit só de formatação, com `- [ ] Fazer o commit de
   formatação` (pelo fluxo de commit da seção 5), e que eu inclua o
   hash dele no `.git-blame-ignore-revs` num commit seguinte, e PARAR
-  até "próxima". Registre no progresso; vale também quando eu instalar o
-  formatador depois.
+  até "próxima". Registre no progresso; vale também quando eu
+  instalar o formatador depois.
 - Mostre o plano: as etapas na ordem definida pelo arquivo do tipo, com
   as pastas de cada etapa por pasta (código PHP: Contracts primeiro,
   depois as que dependem delas, Providers por último; código JS/TS:
@@ -264,7 +277,6 @@ Um passo é uma etapa, uma pasta ou uma parte de pasta.
    - Com commits marcados, faça-os pelo fluxo de commit (abaixo). Com
      "Seguir" marcado, só depois que todos os marcados forem feitos
      vale como "próxima"; se algum for cancelado ou falhar, PARE.
-
    - Fluxo de commit: leia `${CLAUDE_SKILL_DIR}/../commit/SKILL.md`
      e siga-o a partir do passo 2, como se os commits marcados
      fossem os grupos marcados no passo 1 dele (ou, com "Fazer tudo
@@ -284,9 +296,10 @@ Um passo é uma etapa, uma pasta ou uma parte de pasta.
 6. Depois da última etapa, faça o fechamento (`steps/closing.md`),
    com a verificação completa, e liste os passos pulados com "pula".
 7. Etapa avulsa e modo não têm fechamento: no resumo do fim da etapa,
-   ou do último passo do modo, oriente-me a rodar `/code-review` sobre
-   as mudanças, numa sessão nova, pelo mesmo motivo da seção 2 de
-   `steps/closing.md`; não rode você mesmo. Não vale para `report`.
+   ou do último passo do modo, pergunte se rodo o `/code-review`
+   sobre as mudanças e siga a seção 2 de `steps/closing.md` (o
+   `/security-review` também, nas mesmas condições). Não vale para
+   `report`.
 
 ## 6. Formato do relatório
 Só reporte o que confirmou lendo o código: cite o trecho e a linha
@@ -416,8 +429,8 @@ português, de forma curta:
   faz · exemplo); as etapas de cada tipo (pacote e aplicação Laravel,
   lib JS/TS, aplicação Nuxt/Next), uma linha cada; os modos; o ciclo
   de um passo (relatório → aprovo e respondo → aplica → verificação
-  100% → commits que eu marcar, com prévia → "próxima"); onde fica o progresso e como
-  retomar, ver status e recomeçar; as regras da seção
+  100% → commits que eu marcar, com prévia → "próxima"); onde fica
+  o progresso e como retomar, ver status e recomeçar; as regras da seção
   10 e a regra de idioma da seção 11; o que muda por estágio em cada
   tipo, em duas linhas; e as respostas aceitas nas pausas (incluindo
   "pula" e responder perguntas só com a letra).

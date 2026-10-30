@@ -137,6 +137,10 @@ skills ou tags novas, descubra e registre:
   padrão e divergiria dele. `LICENSE` não é herdado. Sem `gh`, sem
   remoto no GitHub, ou com o repositório inexistente ou privado,
   registre "nenhum".
+- **Notas de versão**: `CHANGELOG.md`, `UPGRADE.md` e, com remoto no
+  GitHub, as releases com texto (`gh release list` e `gh release view
+  <tag> --json body`). Registre no perfil: "CHANGELOG", "GitHub
+  Releases", os dois ou "nenhuma".
 - Leia `CLAUDE.md`, `CONTRIBUTING.md` e `.editorconfig` se existirem.
 - **Sem `CLAUDE.md` na raiz** (o Claude não foi iniciado no projeto):
   PARE e pergunte se quero rodar `/init` antes de seguir; ele dá

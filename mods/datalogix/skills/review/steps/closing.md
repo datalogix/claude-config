@@ -3,11 +3,21 @@
 Depois da última etapa da revisão completa.
 
 ## 1. Notas de versão (conforme o tipo e o estágio)
+Onde ficam as notas (de versão e de deploy) segue o que o perfil
+registrou em "Notas de versão":
+- "CHANGELOG" (ou os dois): atualize a seção "Unreleased" do
+  `CHANGELOG.md`.
+- "GitHub Releases", sem `CHANGELOG.md`: não crie o arquivo. Escreva
+  as notas na conversa, no formato das últimas releases (os mesmos
+  títulos de seção), para eu colar na release.
+- "nenhuma": pergunte qual dos dois usar e registre em "Decisões do
+  projeto". Só então crie o `CHANGELOG.md`, se eu escolher ele.
+
 Pacote ou lib JS/TS v1+:
-- entrada no `CHANGELOG.md` (crie se não existir, formato Keep a
-  Changelog, seção "Unreleased") com Added, Changed, Deprecated,
-  Removed, Fixed e Security, a partir de "Mudanças para documentar" do
-  progresso (a lista inteira, inclusive o já documentado)
+- notas com Added, Changed, Deprecated, Removed, Fixed e Security (no
+  `CHANGELOG.md`, formato Keep a Changelog), a partir de "Mudanças para
+  documentar" do progresso (a lista inteira, inclusive o já
+  documentado)
 - `UPGRADE.md` com passo a passo se houver quebra de API
 - sugestão da próxima versão em semver a partir da última tag: major se
   houver quebra de API, minor se houver funcionalidade nova, patch se só
@@ -20,10 +30,9 @@ Aplicação (Laravel ou Nuxt/Next) em produção — notas de deploy:
 - comandos a rodar (caches, `queue:restart`, seeders obrigatórios)
 - URLs que mudaram e os redirecionamentos criados
 - mudanças em API pública, jobs ou webhooks e o plano de compatibilidade
-- `CHANGELOG.md` só se o projeto já mantiver um
 
 Mostre as notas na conversa e grave-as no progresso; no projeto, só no
-`CHANGELOG.md` existente.
+`CHANGELOG.md` existente ou escolhido em "nenhuma".
 
 Pacote ou lib pré-v1, ou aplicação não lançada: pule este item.
 Não crie tag nem release; eu faço.

@@ -1,4 +1,3 @@
 package-lock.json
-mods/*/.claude-plugin/types/
 # Skill prompts: Prettier reflows lists and changes their meaning
 *.md

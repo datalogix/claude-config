@@ -17,6 +17,7 @@ node_modules/
 *.log
 *.tgz
 .claude/settings.local.json
+CLAUDE.local.md
 
 # Local secrets (safety net: this repository is public)
 .env

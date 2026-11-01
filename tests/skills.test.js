@@ -49,7 +49,7 @@ test('the skills that follow the issue skill language item still find it', () =>
   assert.ok(step2, 'issue/SKILL.md has no step 2 followed by step 3')
   assert.match(step2[1], /^- Idioma:/m)
 
-  for (const skill of ['pr', 'commit']) {
+  for (const skill of ['pr', 'commit', 'review']) {
     assert.match(
       read(`${skill}/SKILL.md`),
       /item "Idioma" do passo 2 de\s+`\$\{CLAUDE_SKILL_DIR\}\/\.\.\/issue\/SKILL\.md`/,
@@ -60,6 +60,11 @@ test('the skills that follow the issue skill language item still find it', () =>
 test('the pr skill still follows the issue skill from its step 2', () => {
   assert.match(read('pr/SKILL.md'), /`\$\{CLAUDE_SKILL_DIR\}\/\.\.\/issue\/SKILL\.md` e\s+siga-o a partir do passo 2/)
   assert.match(read('issue/SKILL.md'), /^## 2\. Contexto do projeto$/m)
+})
+
+test('the language is detected from the commits and asked only when in doubt', () => {
+  assert.match(read('issue/SKILL.md'), /detecte pelos\s+últimos títulos de commit/)
+  assert.doesNotMatch(read('review/SKILL.md'), /sem essa linha, em português/)
 })
 
 test('the review skill still follows the commit skill from its step 2', () => {

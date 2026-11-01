@@ -154,9 +154,11 @@ node bin/cli.js install --link            # install from this clone: mods load i
   "Idioma" item, and that review still finds the commit skill's step 2.
 - `/datalogix:issue`, `/datalogix:pr` and `/datalogix:commit` take the language of issues, pull requests and commits
   from a `- Issues and pull requests: <language>` line in the target project's `CLAUDE.md` (pr and commit by
-  following the "Idioma" item of the issue skill's step 2). Without it they ask (Portuguese suggested) and, only if
-  the user checks it, append that line to the local `CLAUDE.md`, the one write they make there. `/datalogix:review`
-  reads the same line for the commit messages it suggests, falling back to Portuguese without asking.
+  following the "Idioma" item of the issue skill's step 2). Without it they detect the language from the default
+  branch's latest commit titles (at least 5, more than three quarters in one language). Only when in doubt do they
+  ask (Portuguese suggested) and, only if the user checks it, append that line to the local `CLAUDE.md`, the one write
+  they make there. `/datalogix:review` follows the same item for the commit messages it suggests and records the
+  result in the progress file ("Decisões do projeto"); it never falls back to a language silently.
 - `/datalogix:review` is a prompt-only skill, written in Portuguese.
   - `SKILL.md` drives the flow. It makes the commits the user checks at the end of a step by reading and following
     `../commit/SKILL.md` from its step 2 (commit has `disable-model-invocation` too), with the checked commits as

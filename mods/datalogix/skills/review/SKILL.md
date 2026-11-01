@@ -144,6 +144,13 @@ skills ou tags novas, descubra e registre:
   <tag> --json body`). Registre no perfil: "CHANGELOG", "GitHub
   Releases", os dois ou "nenhuma".
 - Leia `CLAUDE.md`, `CONTRIBUTING.md` e `.editorconfig` se existirem.
+- **Idioma de issues, pull requests e commits**: a linha do `CLAUDE.md`
+  ou o registrado em "Decisões do projeto". Sem nenhum dos dois, leia o
+  item "Idioma" do passo 2 de `${CLAUDE_SKILL_DIR}/../issue/SKILL.md` e
+  siga-o, com o diretório atual como destino: detecte pelos commits e,
+  se ficar em dúvida, pergunte junto com o perfil e espere a resposta
+  (com `report`, não pergunte: não há commits). Mostre o idioma no
+  perfil e registre-o em "Decisões do projeto".
 - **Sem `CLAUDE.md` na raiz** (o Claude não foi iniciado no projeto):
   PARE e pergunte se quero rodar `/init` antes de seguir; ele dá
   contexto à revisão e aos workflows de `datalogix/workflows`. Se eu
@@ -404,9 +411,9 @@ das respostas acima:
 - minha resposta chega como a lista marcada.
 
 Pergunte NA HORA e espere apenas quando não der para seguir: linha de
-base falhando, `CLAUDE.md` ausente, requisito de testes ausente
-(arquivo do tipo), skill sem etapa clara, teste existente que parece
-errado, checagem de git falhando, ou ação irreversível ou não
+base falhando, `CLAUDE.md` ausente, idioma dos commits em dúvida
+(seção 2), requisito de testes ausente (arquivo do tipo), skill sem
+etapa clara, teste existente que parece errado, checagem de git falhando, ou ação irreversível ou não
 aprovada (apagar arquivos, editar migration, mudar versão mínima,
 quebrar API pública).
 
@@ -464,7 +471,9 @@ Resuma só o que está escrito nos arquivos; não invente comportamento.
 - Mensagens de commit sugeridas: tipo do Conventional Commits em
   inglês e descrição no idioma da linha `- Issues and pull requests:
   <idioma>` do `CLAUDE.md` do projeto, como no `/datalogix:commit`;
-  sem essa linha, em português.
+  sem essa linha, no registrado em "Decisões do projeto"; sem nenhum
+  dos dois (progresso de antes dessa regra), defina-o como na seção 2
+  antes de sugerir o primeiro commit.
 - Textos para o usuário final ficam nos arquivos de tradução (`lang/`)
   se o projeto usa tradução; nesse caso, nunca fixos no código.
 - Se o projeto tiver código ou documentação em outro idioma, aponte como

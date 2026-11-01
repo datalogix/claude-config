@@ -123,9 +123,12 @@ check its skills.
 repository. `/datalogix:issue`, `/datalogix:commit` and
 `/datalogix:pr` write in the language set in the project's
 `CLAUDE.md` (e.g. `- Issues and pull requests: Portuguese`), which is
-also the commits' language; without it, they ask, suggesting
-Portuguese, and offer to add that line to `CLAUDE.md`. Conventional
-Commits types stay in English. The previews and questions of issue,
+also the commits' language; without it, they detect it from the
+default branch's latest commit titles and, only when in doubt (little
+history or mixed languages), ask, suggesting Portuguese, and offer to
+add that line to `CLAUDE.md`. `/datalogix:review` does the same for
+the commits it suggests and keeps the result in the progress file.
+Conventional Commits types stay in English. The previews and questions of issue,
 pr, commit and ci end with a `## Pendências` list (`/datalogix:review`
 uses it only when `topics` is active), answered in place when the
 [topics](topics.md) mod is installed. Only the boxes you check

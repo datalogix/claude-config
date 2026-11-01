@@ -64,10 +64,18 @@ qualquer ordem." Não faça perguntas antes de receber o texto.
   arquivos, exceto pela linha de idioma (abaixo).
 - Idioma: procure no `CLAUDE.md` do destino uma regra sobre o
   idioma de issues e pull requests (ex.: `- Issues and pull
-  requests: Portuguese`). Sem ela, ou sem `CLAUDE.md`, pergunte
-  antes da prévia, junto com as perguntas do passo 4, se houver:
-  "Idioma das issues e pull requests?", com `- ( ) Português
-  (recomendado)` e `- ( ) English` (outro, em texto). Se o destino
+  requests: Portuguese`). Sem ela, ou sem `CLAUDE.md`, detecte pelos
+  últimos títulos de commit da branch padrão do destino (`git log
+  <branch> -20 --no-merges --format=%s` ou, se o destino não for o
+  diretório atual, `gh api "repos/<owner/repo>/commits?per_page=20"
+  --jq '.[].commit.message | split("\n")[0]'`), ignorando o tipo do
+  Conventional Commits, merges e commits de bots (ex.: Dependabot).
+  Com pelo menos 5 títulos e mais de três quartos deles num idioma,
+  use-o sem perguntar e diga na prévia "Idioma: <idioma>, detectado
+  pelos commits". Sem histórico suficiente ou com idiomas misturados,
+  pergunte antes da prévia, junto com as perguntas do passo 4, se houver:
+  "Idioma das issues e pull requests?", com `- ( ) (recomendo)
+  Português` e `- ( ) English` (outro, em texto). Se o destino
   for o diretório atual e tiver `CLAUDE.md`, inclua depois
   `- [ ] Gravar no CLAUDE.md`, com o detalhe indentado "acrescenta
   a linha do idioma escolhido". Não escreva o idioma no detalhe: ele

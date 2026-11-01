@@ -77,9 +77,10 @@ node bin/cli.js install --link            # install from this clone: mods load i
 - `install` stores only the options already configured (`configured` in `plugin configure --json`; a reply without
   `configured` counts as configured each option whose value differs from this checkout's default, `configuredKeys`)
   and answers that differ from the default (`valuesToStore`, `bin/options.js`), so a default nobody chose stays
-  unstored and a later change of default reaches it. The question for an option never configured starts from the
-  default in this checkout's `plugin.json` (`initialValue`), not the one `plugin configure --json` reports for the
-  installed version. A select whose configured value is not one of its choices starts from that default too
+  unstored and a later change of default reaches it. Without a usable default, that compares with what the question
+  starts from: `false` for a boolean, the first choice for a select. The question for an option never configured
+  starts from the default in this checkout's `plugin.json` (`initialValue`), not the one `plugin configure --json`
+  reports for the installed version. A select whose configured value is not one of its choices starts from that default too
   (`defaultChoice`), or from its first choice if the default is not one either.
   `optionChanges` decides whether anything needs storing, and `configured: <name>` is logged only after
   `plugin configure --values-stdin` ran.

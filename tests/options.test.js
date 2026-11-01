@@ -32,6 +32,18 @@ test('stores an option without a default only once filled in', () => {
   assert.deepEqual(valuesToStore(userConfig, { token: '' }, new Set(['token'])), { token: '' })
 })
 
+test('leaves out an untouched boolean or select without a default', () => {
+  const noDefaults = { flag: { type: 'boolean' }, pick: { type: 'string', options: ['a', 'b'] } }
+  assert.deepEqual(valuesToStore(noDefaults, { flag: 'false', pick: 'a' }, new Set()), {})
+  assert.deepEqual(valuesToStore(noDefaults, { flag: 'true', pick: 'b' }, new Set()), { flag: 'true', pick: 'b' })
+  assert.deepEqual(configuredKeys(undefined, { flag: 'false', pick: 'a' }, noDefaults), new Set())
+})
+
+test('takes as untouched the choice a select starts from when its default is not one of them', () => {
+  const userConfig = { pick: { type: 'string', default: 'z', options: ['a', 'b'] } }
+  assert.deepEqual(valuesToStore(userConfig, { pick: 'a' }, new Set()), {})
+})
+
 test('an answer changed from the current value is a change', () => {
   const result = optionChanges(userConfig, { minSeconds: '10' }, { minSeconds: '30' }, new Set(['minSeconds']))
   assert.deepEqual(result, { toStore: { minSeconds: '10' }, hasChanges: true })

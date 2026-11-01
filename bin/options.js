@@ -12,6 +12,20 @@ function defaultText(option) {
 }
 
 /**
+ * The answer that takes no choice: without a default, a boolean question still
+ * starts from false and a select from its first choice.
+ *
+ * @param {Partial<Option> | undefined} option
+ */
+function untouchedAnswer(option) {
+  if (option?.options) {
+    return defaultChoice(option)
+  }
+  const text = defaultText(option)
+  return option?.type === 'boolean' && text === '' ? 'false' : text
+}
+
+/**
  * A sensitive option starts empty, so an empty answer there means "keep".
  *
  * @param {Option | undefined} option
@@ -61,14 +75,16 @@ export function answerFor(option, input, initial) {
  * a default nobody chose stays unstored and a later change of default in the
  * mod's plugin.json reaches it.
  *
- * @param {Record<string, { default?: unknown }>} userConfig
+ * @param {Record<string, Partial<Option>>} userConfig
  * @param {Record<string, string>} answers
  * @param {ReadonlySet<string>} configured
  * @returns {Record<string, string>}
  */
 export function valuesToStore(userConfig, answers, configured) {
   return Object.fromEntries(
-    Object.entries(answers).filter(([key, answer]) => configured.has(key) || answer !== defaultText(userConfig[key])),
+    Object.entries(answers).filter(
+      ([key, answer]) => configured.has(key) || answer !== untouchedAnswer(userConfig[key]),
+    ),
   )
 }
 
@@ -80,14 +96,14 @@ export function valuesToStore(userConfig, answers, configured) {
  *
  * @param {unknown} configured
  * @param {Record<string, string>} values
- * @param {Record<string, { default?: unknown }>} userConfig
+ * @param {Record<string, Partial<Option>>} userConfig
  * @returns {Set<string>}
  */
 export function configuredKeys(configured, values, userConfig) {
   if (Array.isArray(configured)) {
     return new Set(configured.filter((key) => typeof key === 'string'))
   }
-  return new Set(Object.keys(values).filter((key) => values[key] !== defaultText(userConfig[key])))
+  return new Set(Object.keys(values).filter((key) => values[key] !== untouchedAnswer(userConfig[key])))
 }
 
 /**
@@ -107,7 +123,7 @@ export function initialValue(option, current, isConfigured) {
 }
 
 /**
- * @param {Option} option
+ * @param {Partial<Option>} option
  * @returns {string}
  */
 export function defaultChoice(option) {
@@ -117,7 +133,7 @@ export function defaultChoice(option) {
 }
 
 /**
- * @param {Record<string, { default?: unknown }>} userConfig
+ * @param {Record<string, Partial<Option>>} userConfig
  * @param {Record<string, string>} answers
  * @param {Record<string, string>} current
  * @param {ReadonlySet<string>} configured

@@ -479,6 +479,7 @@ describe('arguments', () => {
   test.each([
     ['update', '--link'],
     ['install', '--force'],
+    ['update', ''],
   ])('rejects a flag the command does not take (%s %s)', (command, flag) => {
     const { status, output } = runCli([command, flag])
 

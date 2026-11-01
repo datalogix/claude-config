@@ -738,7 +738,7 @@ const [command = 'install', ...flags] = args
 // hasOwn: names from Object.prototype, like toString, are not commands.
 const isCommand = Object.hasOwn(COMMANDS, command)
 const unknownFlag = isCommand ? flags.find((flag) => !COMMANDS[command].includes(flag)) : undefined
-if (!isCommand || unknownFlag) {
+if (!isCommand || unknownFlag !== undefined) {
   const problem = isCommand ? `Unknown flag "${unknownFlag}" for ${command}` : `Unknown command "${command}"`
   console.error(`${problem}.\n\n${USAGE}`)
   process.exit(1)

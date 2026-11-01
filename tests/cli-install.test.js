@@ -6,6 +6,7 @@ import path from 'node:path'
 import { describe, test } from 'vitest'
 import {
   ADDED_MARKETPLACE,
+  CLI,
   PLAIN_MOD,
   MODS,
   ROOT,
@@ -86,6 +87,17 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.equal(status, 0, output)
     assert.match(output, /mods skipped/)
     assert.ok(fs.existsSync(skillPath('review')))
+  })
+
+  test('fails the run when claude --version hangs, instead of calling it not installed', () => {
+    fakeClaude({ '--version': 'exec /bin/sleep 10' })
+
+    const { status, output } = runCli(['install'], CLI, { CLAUDE_CONFIG_TIMEOUT_MS: '500' })
+
+    assert.equal(status, 1, output)
+    assert.match(output, /mods skipped: claude --version timed out after 0\.5s/)
+    assert.doesNotMatch(output, /not installed/)
+    assert.match(output, /Finished with errors/)
   })
 
   test('skips the mods when claude --version fails', () => {

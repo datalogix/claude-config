@@ -85,7 +85,8 @@ node bin/cli.js install --link            # install from this clone: mods load i
   `claude.cmd` shaped like npm's shim, on the `windows` CI job only.
 - Every `claude` call (`runClaude`) has a timeout (`CLAUDE_TIMEOUT_MS`, 120s; tests lower it with
   `CLAUDE_CONFIG_TIMEOUT_MS`) and runs with `GIT_TERMINAL_PROMPT=0`, so a hung network call or a git asking for
-  credentials fails the step instead of freezing the installer.
+  credentials fails the step instead of freezing the installer. A `claude --version` that times out is such a failure
+  (`checkClaudeCli`); any other failure of it means the CLI is not installed, which only warns and skips the mods.
 - `tests/cli-install.test.js` and `tests/cli-update.test.js` run the real CLI without a TTY, with a temporary `HOME`
   and a fake `claude` shell script on `PATH` that logs its arguments; `tests/cli-interactive.test.js` runs the
   prompts in process, with `@clack/prompts` mocked. The shared setup is in `tests/helpers/cli.js` (`useTempHome`,

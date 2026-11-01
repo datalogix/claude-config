@@ -46,7 +46,7 @@ let hasModChanges = false
 /**
  * @typedef {import('./options.js').Option} Option
  * @typedef {{ name: string, id: string, description: string, userConfig: Record<string, Option> }} Mod
- * @typedef {{ ok: boolean, stdout: string, stderr: string }} Result
+ * @typedef {{ ok: boolean, stdout: string, stderr: string, isTimedOut?: boolean }} Result
  */
 
 /** @param {string} file */
@@ -242,7 +242,7 @@ function runClaude(args, input) {
     result = spawnSync(cmdLine('claude', args), { ...options, shell: true })
   }
   if (errorCode(result.error) === 'ETIMEDOUT') {
-    return { ok: false, stdout: '', stderr: `timed out after ${CLAUDE_TIMEOUT_MS / 1000}s` }
+    return { ok: false, stdout: '', stderr: `timed out after ${CLAUDE_TIMEOUT_MS / 1000}s`, isTimedOut: true }
   }
   return { ok: !result.error && result.status === 0, stdout: result.stdout ?? '', stderr: result.stderr ?? '' }
 }
@@ -254,8 +254,14 @@ function errorCode(error) {
 
 /** @returns {boolean} */
 function checkClaudeCli() {
-  if (runClaude(['--version']).ok) {
+  const result = runClaude(['--version'])
+  if (result.ok) {
     return true
+  }
+  // A claude that hangs is there, so skipping the mods is a failure, not a machine without it.
+  if (result.isTimedOut) {
+    reportFailure(`mods skipped: claude --version ${result.stderr}`)
+    return false
   }
   p.log.warn('mods skipped: the claude CLI is not installed')
   return false

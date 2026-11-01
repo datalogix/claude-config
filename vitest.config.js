@@ -6,5 +6,6 @@ export default defineConfig({
   // "claude plugin test" generates them (not in git), so don't load tsconfigs to strip the types.
   oxc: /** @type {import('vite').OxcOptions} */ (/** @type {unknown} */ ({ tsconfig: false })),
   // Mod tests import 'claude-code/testing' and run only with "claude plugin test".
-  test: { dir: 'tests' },
+  // The installer tests run the real CLI against a new fake claude each, which can take seconds on a busy machine.
+  test: { dir: 'tests', testTimeout: 30_000 },
 })

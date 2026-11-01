@@ -1,5 +1,6 @@
 // Also covers what install does the same way; run without a terminal.
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { describe, test } from 'vitest'
@@ -7,6 +8,7 @@ import {
   ADDED_MARKETPLACE,
   assertCalledBefore,
   CLI,
+  binDir,
   PLAIN_MOD,
   claudeCalls,
   fakeClaude,
@@ -300,10 +302,13 @@ describe('update', { skip: process.platform === 'win32' }, () => {
       'plugin marketplace update claude-config': 'exec /bin/sleep 10',
     })
 
-    const { status, output } = runCli(['update'], CLI, { CLAUDE_CONFIG_TIMEOUT_MS: '500' })
+    // The limit also covers the calls that must not hang, and the first run of a new script can take a while: it goes
+    // ahead of the limit, so only the call that hangs reaches it.
+    spawnSync(path.join(binDir, 'claude'), ['--version'])
+    const { status, output } = runCli(['update'], CLI, { CLAUDE_CONFIG_TIMEOUT_MS: '3000' })
 
-    assert.equal(status, 1)
-    assert.match(output, /marketplace: timed out after 0\.5s/)
+    assert.equal(status, 1, output)
+    assert.match(output, /marketplace: timed out after 3s/)
     assert.match(output, /Finished with errors/)
     assert.ok(claudeCalls().includes(`plugin update ${PLAIN_MOD}@claude-config --json`))
   })

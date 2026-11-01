@@ -26,13 +26,15 @@ node bin/cli.js install --link            # install from this clone: mods load i
 
 ## CI
 
-- `.github/workflows/ci.yml` runs `npm run lint` and actionlint (`ACTIONLINT_VERSION`, bumped by hand) in `lint`, and
-  `claude plugin validate` for the root and each mod plus `npm test` in `test`, on Ubuntu (Node 22 and LTS),
-  installing the latest Claude Code. It also runs weekly (`schedule`), so a Claude Code release that breaks
-  something shows up without a push. The `windows` job runs only the tests that need no fake `claude` shell script
-  (`tests/quote.test.js`, `tests/quote-cmd.test.js`, `tests/options.test.js`) and `node bin/cli.js --help`.
+- `.github/workflows/ci.yml` runs `npm run lint` and actionlint (`ACTIONLINT_VERSION`, bumped by hand) in `lint`, on
+  Ubuntu and the LTS Node, and `claude plugin validate` for the root and each mod plus `npm test` in `test`, on Ubuntu
+  (Node 22 and LTS), installing the latest Claude Code. It also runs weekly (`schedule`), so a Claude Code release
+  that breaks something shows up without a push. The `windows` job runs only `tests/quote.test.js`,
+  `tests/quote-cmd.test.js` and `tests/options.test.js`, which need no fake `claude` shell script, and
+  `node bin/cli.js --help`.
 - `all-checks` aggregates the jobs and is the single required status check; keep it in `needs` when adding a job.
-- Dependabot (`.github/dependabot.yml`): GitHub Actions weekly (`ci:` commits), npm monthly in one group (`chore:`).
+- Dependabot (`.github/dependabot.yml`), each in one group: GitHub Actions weekly (`ci:` commits), npm monthly
+  (`chore:`).
 
 ## Architecture
 

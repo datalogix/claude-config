@@ -59,7 +59,7 @@ jobs:
           for mod in mods/*/; do claude plugin validate "$mod"; done
       - run: npm test
 
-  # Only what runs without the fake claude shell script: the cmd.exe quoting and the CLI loading
+  # Only part of what runs without the fake claude shell script: the cmd.exe quoting, the options and the CLI loading
   windows:
     runs-on: windows-latest
     timeout-minutes: 30

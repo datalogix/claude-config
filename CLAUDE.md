@@ -146,6 +146,9 @@ node bin/cli.js install --link            # install from this clone: mods load i
   confirmed all at once or one by one; `grupos: ...` (as `/datalogix:review` suggests) seeds the groups. It adds an
   authorship trailer only when the session's instructions ask for one, runs `git commit -F` after confirmation,
   never with `--amend`/`--no-verify`, and never pushes.
+- A branch whose last segment is only a date (`review/2026-11-01`) is handled by the "Branch com data" item of the
+  commit skill's step 1, which pr and review follow: it asks whether to keep the name and renames with
+  `git branch -m`; a branch already on the remote only gets a warning, and the remote one is never deleted.
 - `/datalogix:ci` (`ci/SKILL.md`) is a single prompt-only file in Portuguese. It reads the failed jobs' logs with `gh`
   (the run of the current or pull request head commit, else the branch's latest failed run), applies only the
   fixes the user checks, and only if checked reproduces a failure locally or reruns the failed jobs

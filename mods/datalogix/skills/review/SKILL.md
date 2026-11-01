@@ -193,6 +193,11 @@ Mostre o perfil em poucas linhas, incluindo tipo e estágio.
 ## 4. Linha de base e plano
 `help` e `status` não rodam nada disto: só leem os arquivos e o progresso.
 
+- **Branch com data**: antes da linha de base, siga o item "Branch com
+  data" do passo 1 de `${CLAUDE_SKILL_DIR}/../commit/SKILL.md`, com o
+  assunto tirado do que será revisado, salvo em `report`, que não
+  altera nada. Registre a resposta em "Decisões do projeto", para não
+  perguntar de novo sobre a mesma branch.
 - **Verificação PHP**: suíte PHP e ferramentas PHP existentes (Pint em
   modo `--test`, com `--blade` se houver views Blade e o Pint for 1.30+,
   a menos que o `pint.json` já ative `Pint/laravel_blade`). Roda em todo
@@ -295,7 +300,8 @@ Um passo é uma etapa, uma pasta ou uma parte de pasta.
      fossem os grupos marcados no passo 1 dele (ou, com "Fazer tudo
      em um commit só", um grupo só, com os arquivos de todos), com o
      idioma da seção 11.
-   - Antes, faça só as checagens de estado do passo 1 dele: sem
+   - Antes, faça só as checagens de estado do passo 1 dele (o item
+     "Branch com data" já foi resolvido na seção 4): sem
      repositório git ou com merge, rebase, cherry-pick ou revert em
      andamento, pare; anote se é o primeiro commit e se a branch
      atual é a padrão, para os avisos da prévia. Se houver algo em

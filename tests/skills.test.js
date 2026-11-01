@@ -58,6 +58,19 @@ test('the skills that follow the issue skill language item still find it', () =>
   }
 })
 
+test('the skills that follow the commit skill dated branch item still find it', () => {
+  const step1 = /^## 1\. .*\n([\s\S]*?)^## 2\. /m.exec(read('commit/SKILL.md'))
+  assert.ok(step1, 'commit/SKILL.md has no step 1 followed by step 2')
+  assert.match(step1[1], /^- Branch com data:/m)
+
+  for (const skill of ['pr', 'review']) {
+    assert.match(
+      read(`${skill}/SKILL.md`),
+      /item "Branch com\s+data" do passo 1 de\s+`\$\{CLAUDE_SKILL_DIR\}\/\.\.\/commit\/SKILL\.md`/,
+    )
+  }
+})
+
 test('the pr skill still follows the issue skill from its step 2', () => {
   assert.match(read('pr/SKILL.md'), /`\$\{CLAUDE_SKILL_DIR\}\/\.\.\/issue\/SKILL\.md` e\s+siga-o a partir do passo 2/)
   assert.match(read('issue/SKILL.md'), /^## 2\. Contexto do projeto$/m)

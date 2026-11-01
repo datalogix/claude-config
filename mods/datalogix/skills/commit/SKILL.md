@@ -38,6 +38,20 @@ Respostas às seções `## Pendências`, em todos os passos:
   refs/remotes/origin/HEAD`, sem o `origin/`; se esse ref não
   existir, com ou sem remoto, `main` ou `master`. Se a branch atual
   for ela, avise na prévia que o commit vai direto nela.
+- Branch com data: se o último segmento do nome da branch atual for
+  só uma data (ex.: `review/2026-11-01`, `fix/20261101`), confirme
+  se o nome fica, na primeira seção `## Pendências` que mostrar,
+  com a pergunta "Manter o nome da branch <branch>?", `- ( )
+  (recomendo) Renomear para <prefixo>/<assunto>`, com o assunto
+  tirado das mudanças e sem data, e `- ( ) Manter <branch>`. Sem
+  resposta, o nome fica.
+  - Ao renomear, rode `git branch -m <branch> <novo>` assim que
+    tiver a resposta, nunca com `-M`. Se falhar (ex.: o nome já
+    existe), mostre o erro e siga com o nome atual.
+  - Se a branch já estiver no remoto (`git ls-remote --exit-code
+    --heads origin <branch>` sai com 0), não pergunte: avise que o
+    nome tem data e que trocá-lo exigiria apagar a branch remota,
+    o que fecha um PR aberto dela, e siga. Nunca apague a remota.
 - Nada em stage (`git diff --cached --quiet` sai com 0):
   - Sem nenhuma mudança (`git status --porcelain` vazio), diga e
     pare.

@@ -52,6 +52,10 @@ Respostas às seções `## Pendências`, em todos os passos:
   --count @{u}..HEAD` maior que 0): pergunte com `- [ ] Enviar a
   branch (git push -u origin <branch>) antes de criar o PR`.
   Desmarcado, pare. O push só acontece no passo 7.
+- Branch com data: siga o item "Branch com data" do passo 1 de
+  `${CLAUDE_SKILL_DIR}/../commit/SKILL.md`, com o assunto tirado do
+  diff contra a base. Se renomear, os passos seguintes usam o nome
+  novo.
 - As perguntas dos passos 1 e 2 vão numa única mensagem, depois de
   ler a issue, que termina com uma seção `## Pendências`, uma caixa
   por pergunta, e espera a resposta antes do passo 3.
@@ -59,7 +63,8 @@ Respostas às seções `## Pendências`, em todos os passos:
 ## 2. Issue
 - Número: o de `#<número>` ou, sem ele, o primeiro número do nome da
   branch depois do prefixo (ex.: `claude/123-...`, `feat/123-...`,
-  `123-...`). Sem número, o PR segue sem issue (passo 4).
+  `123-...`). Uma data no nome não conta como número. Sem número, o
+  PR segue sem issue (passo 4).
 - Leia a issue (`gh issue view <número> --json
   number,title,body,state,url`). Se não existir, diga e siga sem
   ela. Se estiver fechada, avise e pergunte com `- [ ] Continuar com

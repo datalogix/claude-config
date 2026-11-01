@@ -92,7 +92,10 @@ check its skills.
   a commit that depends on an unchecked one, and one whose content,
   split by hunk, was never tested.
   It warns about changes left out of the commit, commits straight to
-  the default branch and parts of the diff that look sensitive, and
+  the default branch and parts of the diff that look sensitive, asks
+  whether to keep a branch name that ends in a date (`review/2026-11-01`),
+  suggesting a rename (`/datalogix:pr` and `/datalogix:review` ask too;
+  a branch already on the remote only gets a warning), and
   suggests splitting a diff that mixes unrelated changes (not when a
   staged file also has unstaged changes). A file with changes for
   more than one commit is split by hunk (`git apply --cached`), never

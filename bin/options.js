@@ -12,17 +12,16 @@ function defaultText(option) {
 }
 
 /**
- * The answer that takes no choice: without a default, a boolean question still
- * starts from false and a select from its first choice.
+ * The answer that takes no choice, in the order the questions are asked: a
+ * boolean starts true only from "true", and a select from a choice.
  *
  * @param {Partial<Option> | undefined} option
  */
 function untouchedAnswer(option) {
-  if (option?.options) {
-    return defaultChoice(option)
+  if (option?.type === 'boolean') {
+    return String(defaultText(option) === 'true')
   }
-  const text = defaultText(option)
-  return option?.type === 'boolean' && text === '' ? 'false' : text
+  return option?.options ? defaultChoice(option) : defaultText(option)
 }
 
 /**

@@ -39,6 +39,18 @@ test('leaves out an untouched boolean or select without a default', () => {
   assert.deepEqual(configuredKeys(undefined, { flag: 'false', pick: 'a' }, noDefaults), new Set())
 })
 
+test('takes as untouched what a boolean question starts from, whatever its default or options', () => {
+  const booleans = {
+    text: { type: 'boolean', default: 'yes' },
+    number: { type: 'boolean', default: 1 },
+    choices: { type: 'boolean', options: ['true', 'false'] },
+    enabled: { type: 'boolean', default: true },
+  }
+  const answers = { text: 'false', number: 'false', choices: 'false', enabled: 'true' }
+  assert.deepEqual(valuesToStore(booleans, answers, new Set()), {})
+  assert.deepEqual(configuredKeys(undefined, answers, booleans), new Set())
+})
+
 test('takes as untouched the choice a select starts from when its default is not one of them', () => {
   const userConfig = { pick: { type: 'string', default: 'z', options: ['a', 'b'] } }
   assert.deepEqual(valuesToStore(userConfig, { pick: 'a' }, new Set()), {})

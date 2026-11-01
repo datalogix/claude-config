@@ -268,7 +268,8 @@ function checkClaudeCli() {
 }
 
 /**
- * Undefined when claude fails: an empty list would read as nothing installed.
+ * Undefined when claude fails or replies with anything but a list: an empty
+ * list would read as nothing installed.
  *
  * @param {string} label
  * @param {string[]} args
@@ -279,8 +280,12 @@ function runClaudeList(label, args) {
   if (!checkResult(label, result)) {
     return undefined
   }
-  const value = parseJson(result.stdout, [])
-  return Array.isArray(value) ? value.filter((item) => item !== null && typeof item === 'object') : []
+  const value = parseJson(result.stdout, undefined)
+  if (!Array.isArray(value)) {
+    reportFailure(`${label}: unexpected reply`)
+    return undefined
+  }
+  return value.filter((item) => item !== null && typeof item === 'object')
 }
 
 /** @returns {Set<string> | undefined} undefined when claude could not list them */

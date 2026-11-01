@@ -110,17 +110,40 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.deepEqual(claudeCalls(), ['--version'])
   })
 
-  // Anything but a list of objects reads as an empty list: nothing added, nothing installed.
-  test.each([
-    ['output that is not JSON', 'echo not json', 'echo not json'],
-    ['JSON of another shape', "echo '{}'", "echo '[null]'"],
-  ])('takes claude %s as empty lists', (_, mods, marketplaces) => {
-    fakeClaude({ 'plugin list --json': mods, 'plugin marketplace list --json': marketplaces })
+  // Anything but a list says nothing about what is there: read as empty, it would install everything again.
+  describe.each([
+    ['output that is not JSON', 'echo not json'],
+    ['JSON of another shape', "echo '{}'"],
+    ['no output', 'true'],
+  ])('with claude replying %s', (_, reply) => {
+    test('fails on the marketplace list, adding nothing', () => {
+      fakeClaude({ 'plugin marketplace list --json': reply })
+
+      const { status, output } = runCli(['install'])
+
+      assert.equal(status, 1, output)
+      assert.match(output, /could not list the marketplaces: unexpected reply/)
+      assert.doesNotMatch(output, /SyntaxError|TypeError/)
+      assert.deepEqual(claudeCalls(), ['--version', 'plugin marketplace list --json'])
+    })
+
+    test('fails on the mod list, installing nothing', () => {
+      fakeClaude({ 'plugin list --json': reply, 'plugin marketplace list --json': ADDED_MARKETPLACE })
+
+      const { status, output } = runCli(['install'])
+
+      assert.equal(status, 1, output)
+      assert.match(output, /could not list the installed mods: unexpected reply/)
+      assert.ok(!claudeCalls().some((call) => call.startsWith('plugin install')))
+    })
+  })
+
+  test('skips the list items that are not objects', () => {
+    fakeClaude({ 'plugin list --json': "echo '[null]'", 'plugin marketplace list --json': "echo '[null, 1]'" })
 
     const { status, output } = runCli(['install'])
 
     assert.equal(status, 0, output)
-    assert.doesNotMatch(output, /SyntaxError|TypeError/)
     const calls = claudeCalls()
     assert.ok(calls.includes('plugin marketplace add datalogix/claude-config'))
     for (const name of MODS) {

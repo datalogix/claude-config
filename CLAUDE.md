@@ -42,8 +42,9 @@ node bin/cli.js install --link            # install from this clone: mods load i
 
 - Two commands, `install [--link]` and `update`. Unknown commands or flags are errors. Any failed step ends with
   "Finished with errors" and exit code 1.
-- Failing to list the installed mods or the marketplaces (`runClaudeList`) is a failure that stops the mods part of
-  the run, since an empty list would read as nothing installed. Failing to read a mod's options
+- Failing to list the installed mods or the marketplaces (`runClaudeList`), or a reply that is not a JSON list, is a
+  failure that stops the mods part of the run, since an empty list would read as nothing installed. Failing to read a
+  mod's options
   (`plugin configure --json`) is a failure that skips configuring that mod; a reply without `inputs` only warns and
   skips it too. Cancelling a prompt ends with the run's closing hint (`reloadHint`): `/clear`, and `/reload-plugins`
   when a mod already changed (`hasModChanges`).

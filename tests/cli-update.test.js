@@ -39,6 +39,16 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     assert.ok(!calls.includes('plugin install datalogix@claude-config'))
   })
 
+  test('fails when the marketplace list is not a list, instead of reading as nothing installed', () => {
+    fakeClaude({ 'plugin marketplace list --json': 'echo Update available' })
+
+    const { status, output } = runCli(['update'])
+
+    assert.equal(status, 1, output)
+    assert.match(output, /could not list the marketplaces: unexpected reply/)
+    assert.doesNotMatch(output, /mods not installed/)
+  })
+
   test('asks for /reload-plugins only when a refresh brings a new version', () => {
     /** @param {string} newVersion */
     const refreshTo = (newVersion) => {

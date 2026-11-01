@@ -7,6 +7,7 @@ import {
   formatDuration,
   formatPlan,
   formatTimeLeft,
+  formatWorkflows,
   planAlertLevels,
   projectName,
 } from './register'
@@ -396,11 +397,11 @@ test('only says everything is done when the background agents finish', async ($,
   await $.turn.complete(turnComplete(40_000))
 
   expect(toasts).toEqual(['✅ Claude terminou em 40s — 1 agente segue em segundo plano'])
-  expect(lastStatus()).toBe('✅ pronto em 40s · ⠋ em segundo plano  │  🤖 agente: Revisar código')
+  expect(lastStatus()).toBe('⠋ em segundo plano  │  🤖 agente: Revisar código')
 
   await $.turn.start({ text: '', turnId: 't2', agentId: 'bg' })
   await clock.advance(200)
-  expect(lastStatus()).toMatch(/^✅ pronto em 40s · . em segundo plano/)
+  expect(lastStatus()).toMatch(/^. em segundo plano/)
 
   agents.length = 0
   await $.turn.complete(turnComplete(30_000, { agentId: 'bg', turnId: 't2' }))
@@ -492,6 +493,108 @@ test('an agent that starts again after ending shows up again', async ($, on) => 
   await $.turn.start({ text: '', turnId: 't3', agentId: 'a1' })
   await clock.advance(200)
   expect(lastStatus()).toMatch(/│ {2}🤖 agente: Explorar$/)
+})
+
+test('a failed answer stays in the status next to the background agents', async ($, on) => {
+  const { agents, lastStatus } = setup(on)
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  agents.push(agent('bg', 'Revisar'))
+  await $.agent.spawn({ prompt: 'x', description: 'Revisar' } as never)
+  await $.turn.complete(turnComplete(3_000, { reason: 'error' }))
+
+  expect(lastStatus()).toBe('❌ deu erro após 3s · ⠋ em segundo plano  │  🤖 agente: Revisar')
+})
+
+test('an agent that ended a run and is held on its own work does not read as done', async ($, on) => {
+  const { notifications, agents, lastStatus } = setup(on)
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  agents.push(agent('bg', 'Revisar'))
+  await $.agent.spawn({ prompt: 'x', description: 'Revisar' } as never)
+  await $.turn.complete(turnComplete(5_000))
+
+  agents[0] = agent('bg', 'Revisar', 'waiting')
+  await $.turn.complete(turnComplete(1_000, { agentId: 'bg', turnId: 't2' }))
+
+  expect(lastStatus()).toBe('⠋ em segundo plano  │  🤖 agente: Revisar')
+  expect(notifications).toEqual([])
+})
+
+const launchWorkflow = (on: On, taskId: string, workflowName?: string) =>
+  on('tool.call', { tool: 'Workflow' }, () => ({ result: { status: 'async_launched', taskId, workflowName } }) as never)
+
+const notification = (text: string) => ({ text, origin: { kind: 'task-notification' }, wait: false }) as never
+
+test('a workflow still running does not read as done', async ($, on) => {
+  const { toasts, lastStatus, clock } = setup(on)
+  launchWorkflow(on, 'w1', 'revisao')
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  await $.tool.call({ tool: 'Workflow', script: 'x' } as never)
+  await $.turn.complete(turnComplete(40_000))
+
+  expect(toasts).toEqual(['✅ Claude terminou em 40s — 1 workflow segue em segundo plano'])
+  expect(lastStatus()).toBe('⠋ em segundo plano  │  🔀 workflow: revisao')
+  await clock.advance(200)
+  expect(lastStatus()).toBe('⠙ em segundo plano  │  🔀 workflow: revisao')
+})
+
+test('the notice of the end of a workflow takes it off the status', async ($, on) => {
+  const { lastStatus, clock, statuses } = setup(on)
+  launchWorkflow(on, 'w1', 'revisao')
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  await $.tool.call({ tool: 'Workflow', script: 'x' } as never)
+  await $.turn.complete(turnComplete(5_000))
+
+  await $.prompt.submit(notification('<task-id>outro</task-id>'))
+  expect(lastStatus()).toMatch(/🔀 workflow: revisao$/)
+
+  await $.prompt.submit(notification('<task-id>w1</task-id>'))
+  expect(lastStatus()).toBeUndefined()
+
+  // With nothing left, the spinner stopped too.
+  await clock.advance(200)
+  const countBefore = statuses.length
+  await clock.advance(5_000)
+  expect(statuses.length).toBe(countBefore)
+})
+
+test('the workflow ending does not end the wait for the agents, nor the other way around', async ($, on) => {
+  const { notifications, agents, lastStatus } = setup(on)
+  launchWorkflow(on, 'w1', 'revisao')
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  agents.push(agent('bg', 'Revisar'))
+  await $.agent.spawn({ prompt: 'x', description: 'Revisar' } as never)
+  await $.tool.call({ tool: 'Workflow', script: 'x' } as never)
+  await $.turn.complete(turnComplete(40_000))
+  expect(notifications).toEqual(['✅ Claude terminou em 40s — 1 agente segue e 1 workflow segue em segundo plano'])
+
+  agents.length = 0
+  await $.turn.complete(turnComplete(1_000, { agentId: 'bg', turnId: 't2' }))
+  expect(lastStatus()).toBe('⠋ em segundo plano  │  🔀 workflow: revisao')
+  expect(notifications).toHaveLength(1)
+})
+
+test('Stop says which workflows are in flight, before or after the turn ends', async ($, on) => {
+  const { lastStatus } = setup(on)
+  on('classic.Stop', () => ({}) as never)
+  const stop = (background_tasks: unknown[]) => $.classic.Stop({ stop_hook_active: false, background_tasks } as never)
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  await $.turn.complete(turnComplete(5_000))
+  expect(lastStatus()).toBe('✅ pronto em 5s')
+
+  await stop([
+    { id: 'w2', type: 'workflow', status: 'running', description: 'desc', name: 'deploy' },
+    { id: 's1', type: 'shell', status: 'running', description: 'npm test' },
+  ])
+  expect(lastStatus()).toBe('⠋ em segundo plano  │  🔀 workflow: deploy')
+
+  await stop([])
+  expect(lastStatus()).toBe('✅ pronto em 5s')
 })
 
 test('agents during the answer send no notice when they end', async ($, on) => {
@@ -924,6 +1027,15 @@ describe('formatAgents', () => {
     ['the type without a name', [{ id: 't', type: 'Explore', status: 'running' } as AgentInfo], '🤖 agente: Explore'],
   ]
   for (const [name, agents, text] of cases) test(name, () => expect(formatAgents(agents)).toBe(text))
+})
+
+describe('formatWorkflows', () => {
+  const cases: [string, string[], string | undefined][] = [
+    ['no workflows', [], undefined],
+    ['one workflow', ['revisao'], '🔀 workflow: revisao'],
+    ['two workflows', ['revisao', 'deploy'], '🔀 2 workflows'],
+  ]
+  for (const [name, names, text] of cases) test(name, () => expect(formatWorkflows(names)).toBe(text))
 })
 
 describe('excerpt', () => {

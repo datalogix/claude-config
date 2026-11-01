@@ -107,6 +107,15 @@ const AGENT_END_TEXTS: Partial<Record<TurnCompleteReason, string>> = {
 
 const formatRemainingAgents = (count: number): string => (count === 1 ? '1 agente segue' : `${count} agentes seguem`)
 
+const formatRemainingWorkflows = (count: number): string =>
+  count === 1 ? '1 workflow segue' : `${count} workflows seguem`
+
+export const formatWorkflows = (names: string[]): string | undefined => {
+  if (names.length === 0) return undefined
+  if (names.length === 1) return `🔀 workflow: ${names[0]}`
+  return `🔀 ${names.length} workflows`
+}
+
 export const formatAgents = (agents: AgentInfo[]): string | undefined => {
   if (agents.length === 0) return undefined
   if (agents.length === 1) return `🤖 agente: ${shortAgentName(agents[0]!)}`
@@ -151,6 +160,7 @@ type State = {
   mainTurnStartedAt?: number
   agents: AgentInfo[]
   finishedAgentIds: Set<string> // already ended, even if the list still shows them
+  workflows: Map<string, string> // running in the background, task id → name; $.agent.list() does not show them
   failedAgentCount: number // since the main turn started
   windows: SessionRateLimit[]
   outcome?: string // how the last answer, or the background agents after it, ended
@@ -159,15 +169,28 @@ type State = {
   windowsAtLimit: Map<string, string | undefined> // kind at 100% → resetsAt
 }
 
+const hasBackgroundWork = (s: State): boolean => s.agents.length > 0 || s.workflows.size > 0
+
 const formatStatus = (s: State, now: number): string | undefined => {
   const spinnerFrame = FRAMES[s.frame]
   let main: string | undefined
   if (s.mainTurnStartedAt !== undefined)
     main = `${spinnerFrame} Claude está trabalhando… ${formatClock(now - s.mainTurnStartedAt)}`
-  else if (s.agents.length > 0) main = [s.outcome, `${spinnerFrame} em segundo plano`].filter(Boolean).join(' · ')
+  // A ✅ next to work still running would read as if everything had ended; the failures stay.
+  else if (hasBackgroundWork(s))
+    main = [s.outcome?.startsWith('✅') ? undefined : s.outcome, `${spinnerFrame} em segundo plano`]
+      .filter(Boolean)
+      .join(' · ')
   else main = s.outcome
 
-  const text = [main, formatAgents(s.agents), formatPlan(s.windows, now, s.planAlert)].filter(Boolean).join('  │  ')
+  const text = [
+    main,
+    formatAgents(s.agents),
+    formatWorkflows([...s.workflows.values()]),
+    formatPlan(s.windows, now, s.planAlert),
+  ]
+    .filter(Boolean)
+    .join('  │  ')
   return text || undefined
 }
 
@@ -198,7 +221,7 @@ async function sendNotice($: EngineInterface, s: State, text: string, options: N
 
 /** @param hasNotifiedEnd the agent that just ended already sent a notice of its own failure */
 async function checkAgentsDone($: EngineInterface, s: State, agentCountBefore: number, hasNotifiedEnd: boolean) {
-  if (s.isWaitingForAgents && agentCountBefore > 0 && s.agents.length === 0 && s.mainTurnStartedAt === undefined) {
+  if (s.isWaitingForAgents && agentCountBefore > 0 && !hasBackgroundWork(s) && s.mainTurnStartedAt === undefined) {
     s.isWaitingForAgents = false
     if (s.failedAgentCount > 0) {
       const problems = `${s.failedAgentCount} com problema`
@@ -226,7 +249,10 @@ async function refreshAgents($: EngineInterface, s: State, hasNotifiedEnd = fals
   for (const id of s.finishedAgentIds) {
     if (!listed.some((a) => a.id === id)) s.finishedAgentIds.delete(id)
   }
-  s.agents = listed.filter((a) => ACTIVE_STATUSES.has(a.status) && !s.finishedAgentIds.has(a.id))
+  // A run ending is not the agent ending: one held on its own background work is `waiting`, which no lag explains.
+  s.agents = listed.filter(
+    (a) => ACTIVE_STATUSES.has(a.status) && (a.status === 'waiting' || !s.finishedAgentIds.has(a.id)),
+  )
   await checkAgentsDone($, s, agentCountBefore, hasNotifiedEnd)
 }
 
@@ -241,7 +267,7 @@ function startSpinner($: EngineInterface, s: State) {
   s.spinner = $.clock.every(FRAME_MS, async () => {
     s.frame = (s.frame + 1) % FRAMES.length
     if (s.frame % FRAMES_PER_AGENT_LIST === 0) await refreshAgents($, s)
-    if (s.mainTurnStartedAt === undefined && s.agents.length === 0) stopSpinner(s)
+    if (s.mainTurnStartedAt === undefined && !hasBackgroundWork(s)) stopSpinner(s)
     await showStatus($, s)
   })
 }
@@ -309,6 +335,7 @@ export const register: Register = (on, options) => {
     frame: 0,
     agents: [],
     finishedAgentIds: new Set(),
+    workflows: new Map(),
     failedAgentCount: 0,
     windows: [],
     isWaitingForAgents: false,
@@ -355,6 +382,30 @@ export const register: Register = (on, options) => {
     return r
   })
 
+  on('tool.call', { tool: 'Workflow' }, async ($, e, next) => {
+    const r = await next(e)
+    if (r.result && !r.isError) {
+      s.workflows.set(r.result.taskId, r.result.workflowName ?? 'workflow')
+      await showStatus($, s)
+    }
+    return r
+  })
+
+  // What is in flight as the engine counts it, so a workflow whose end notice was missed does not stay on the status.
+  on('classic.Stop', async ($, e, next) => {
+    if (e.background_tasks) {
+      const workflows = e.background_tasks.filter((task) => task.type === 'workflow')
+      s.workflows = new Map(workflows.map((task) => [task.id, task.name ?? task.description]))
+      // It may come after the main turn.complete, which then read the workflows before this.
+      if (s.mainTurnStartedAt === undefined) {
+        s.isWaitingForAgents = hasBackgroundWork(s)
+        if (hasBackgroundWork(s)) startSpinner($, s)
+        await showStatus($, s)
+      }
+    }
+    return next(e)
+  })
+
   on('turn.start', async ($, e, next) => {
     if (e.agentId !== undefined) {
       s.finishedAgentIds.delete(e.agentId)
@@ -373,6 +424,9 @@ export const register: Register = (on, options) => {
   })
 
   on('prompt.submit', async ($, e, next) => {
+    if (e.origin?.kind === 'task-notification') {
+      for (const id of s.workflows.keys()) if (e.text.includes(id)) s.workflows.delete(id)
+    }
     // The previous outcome stays until the next prompt.
     if (s.mainTurnStartedAt === undefined) {
       s.outcome = undefined
@@ -413,7 +467,13 @@ export const register: Register = (on, options) => {
     const isAborted = e.reason === 'aborted'
     await refreshAgents($, s)
     const remaining = s.agents.length
-    const remainingSuffix = remaining > 0 ? ` — ${formatRemainingAgents(remaining)} em segundo plano` : ''
+    const remainingWork = [
+      remaining > 0 && formatRemainingAgents(remaining),
+      s.workflows.size > 0 && formatRemainingWorkflows(s.workflows.size),
+    ]
+      .filter(Boolean)
+      .join(' e ')
+    const remainingSuffix = remainingWork ? ` — ${remainingWork} em segundo plano` : ''
 
     if (e.reason === 'error') {
       s.outcome = `❌ deu erro após ${duration}`
@@ -434,8 +494,8 @@ export const register: Register = (on, options) => {
     }
 
     // Even after Esc, agents that stay active still send a notice when they end.
-    s.isWaitingForAgents = remaining > 0
-    if (remaining === 0) stopSpinner(s)
+    s.isWaitingForAgents = hasBackgroundWork(s)
+    if (!hasBackgroundWork(s)) stopSpinner(s)
     await showStatus($, s)
     return next(e)
   })

@@ -165,6 +165,12 @@ describe('tool progress', () => {
     await runStepsCommand($)
     expect(await isShownBySteps(ui)).toBe(true)
   })
+
+  test('of a kind it does not know stays visible', async ($, on) => {
+    drawOriginal(on, 'ToolProgress')
+    const ui = await mount($, 'ToolProgress', { tool_use_id: 'tu1', kind: 'percent', percent: 50 } as never)
+    expect(await isOriginalShown(ui)).toBe(true)
+  })
 })
 
 describe('tool groups', () => {

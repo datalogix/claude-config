@@ -1,6 +1,6 @@
 {
   "name": "steps",
-  "description": "Esconde as linhas de ferramentas da conversa (erros e interrupções continuam visíveis, e o ctrl+o mostra todas), alterna com /steps e mostra o passo atual sob a linha animada",
+  "description": "Esconde as linhas de ferramentas da conversa (erros e interrupções continuam visíveis, e o ctrl+o as mostra, menos a dica do ctrl+b), alterna com /steps e mostra o passo atual sob a linha animada",
   "author": { "name": "datalogix" },
   "license": "MIT",
   "types": "./types/index.d.ts"

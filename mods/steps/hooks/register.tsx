@@ -46,7 +46,8 @@ export const register: Register = (on) => {
     return <Box />
   })
 
-  on('ui.render', { component: 'ToolProgress' }, async ($, e, next) => {
+  // Only the ctrl+b hint: a kind added by a newer Claude Code has no way back but /steps, so it stays.
+  on('ui.render', { component: 'ToolProgress', props: { kind: 'background_hint' } }, async ($, e, next) => {
     if (await shouldShow($, false)) return next(e)
 
     const { Box } = $.ui.resolve(e)

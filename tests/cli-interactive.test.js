@@ -54,7 +54,7 @@ vi.mock('@clack/prompts', () => {
     confirm: ask,
     select: ask,
     text: ask,
-    password: ask,
+    password: (/** @type {Record<string, any>} */ question) => ask({ ...question, isPassword: true }),
     isCancel: (/** @type {unknown} */ value) => value === prompts.CANCEL,
   }
 })
@@ -328,6 +328,58 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
     } finally {
       readSpy.mockRestore()
     }
+  })
+
+  describe('a sensitive option', () => {
+    const SECRET = 's3cret'
+
+    /** @param {string} answer */
+    async function answerSensitiveOption(answer) {
+      const statusManifest = path.join(ROOT, 'mods/status/.claude-plugin/plugin.json')
+      const { readFileSync } = fs
+      const readSpy = vi.spyOn(fs, 'readFileSync').mockImplementation((file, options) => {
+        const text = readFileSync(file, options)
+        if (file !== statusManifest) return text
+        const manifest = JSON.parse(String(text))
+        manifest.userConfig = { token: { type: 'string', title: 'Token', sensitive: true } }
+        return JSON.stringify(manifest)
+      })
+      fakeClaude({
+        'plugin list --json': `echo '[{"id":"status@claude-config"}]'`,
+        'plugin marketplace list --json': ADDED_MARKETPLACE,
+        [READ_STATUS_OPTIONS]: `echo '{"inputs":{"token":"****"},"configured":["token"]}'`,
+      })
+      try {
+        return await runInteractive([['status'], answer])
+      } finally {
+        readSpy.mockRestore()
+      }
+    }
+
+    test('is asked without showing its current value', async () => {
+      const { status, output } = await answerSensitiveOption('')
+
+      assert.equal(status, 0, output)
+      assert.equal(prompts.questions[1].isPassword, true)
+      assert.equal(prompts.questions[1].initialValue, undefined)
+    })
+
+    test('stores nothing when the answer is empty', async () => {
+      const { status, output } = await answerSensitiveOption('')
+
+      assert.equal(status, 0, output)
+      assert.ok(!claudeCalls().some((call) => call.includes('--values-stdin')))
+      assert.doesNotMatch(output, /configured: status/)
+    })
+
+    test('sends a filled answer only through stdin', async () => {
+      const { status, output } = await answerSensitiveOption(SECRET)
+
+      assert.equal(status, 0, output)
+      assert.deepEqual(claudeStdin(), [JSON.stringify({ token: SECRET })])
+      assert.ok(!claudeCalls().some((call) => call.includes(SECRET)))
+      assert.doesNotMatch(output, new RegExp(SECRET))
+    })
   })
 
   test('counts as configured the options that differ from the default when the reply has no configured list', async () => {

@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, test } from 'vitest'
 import { cmdLine } from '../bin/quote.js'
 
@@ -14,7 +15,15 @@ describe('cmdLine through cmd.exe', { skip: process.platform !== 'win32' }, () =
 
   beforeAll(() => {
     binDir = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-config-cmd-'))
-    fs.writeFileSync(path.join(binDir, 'args.js'), 'process.stdout.write(JSON.stringify(process.argv.slice(2)))\n')
+    fs.writeFileSync(
+      path.join(binDir, 'args.js'),
+      [
+        'const args = JSON.stringify(process.argv.slice(2))',
+        "if (process.env.ARGS_LOG) require('node:fs').appendFileSync(process.env.ARGS_LOG, args + '\\n')",
+        'process.stdout.write(args)',
+        '',
+      ].join('\n'),
+    )
     // The last line of npm's cmd-shim, which passes the arguments on with %*.
     fs.writeFileSync(
       path.join(binDir, 'claude.cmd'),
@@ -50,5 +59,23 @@ describe('cmdLine through cmd.exe', { skip: process.platform !== 'win32' }, () =
 
     assert.equal(result.status, 0, result.stderr)
     assert.deepEqual(JSON.parse(result.stdout), args)
+  })
+
+  // Only claude.cmd on PATH: Node cannot run it directly, so runClaude must fall back to cmd.
+  test('the installer reaches claude.cmd', () => {
+    const log = path.join(binDir, 'calls')
+    const result = spawnSync(process.execPath, [fileURLToPath(new URL('../bin/cli.js', import.meta.url)), 'update'], {
+      encoding: 'utf8',
+      env: { ...process.env, PATH: binDir, USERPROFILE: binDir, ARGS_LOG: log },
+    })
+
+    assert.equal(result.status, 0, result.stdout + result.stderr)
+    assert.doesNotMatch(result.stdout, /mods skipped/)
+    const calls = fs
+      .readFileSync(log, 'utf8')
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line))
+    assert.deepEqual(calls, [['--version'], ['plugin', 'marketplace', 'list', '--json'], ['plugin', 'list', '--json']])
   })
 })

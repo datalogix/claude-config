@@ -165,8 +165,8 @@ dividido), a mensagem exatamente como será enviada e, se for o caso:
 
 Termine com uma seção `## Pendências`, que o usuário responde
 marcando as caixas e devolvendo a lista:
-- Se sugeriu dividir: "Dividir o commit?", com `- ( ) Dividir em
-  <n> commits (recomendado)` e `- ( ) Fazer um commit só`. A prévia
+- Se sugeriu dividir: "Dividir o commit?", com `- ( ) (recomendo)
+  Dividir em <n> commits` e `- ( ) Fazer um commit só`. A prévia
   mostra os commits divididos; com "Fazer um commit só", mostre a
   prévia de novo, com uma mensagem só.
 - "O que fazer?", uma alternativa exclusiva por linha: confirmar e

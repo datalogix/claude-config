@@ -5,8 +5,8 @@ declare module 'claude-code' {
       openTopics: StateFamily<number[]>
       /** Indexes of the "Pendências" items with their explanation open */
       explainedItems: StateFamily<number[]>
-      /** Only what the user checked: an item the answer wrote checked starts unchecked */
-      checkedItems: StateFamily<number[]>
+      /** null until the user changes one, meaning the `(recomendo)` items; `[x]` written in the answer never counts */
+      checkedItems: StateFamily<number[] | null>
       isSent: StateFamily<boolean>
       /** Main turn only (agent turns don't count); sending waits for complete items */
       isAnswering: boolean

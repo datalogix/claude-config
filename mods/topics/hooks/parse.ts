@@ -17,17 +17,32 @@ export type ParsedAnswer = { intro: string; topics: Topic[]; actions?: Actions }
 
 export const ACTIONS_TITLE = 'Pendências'
 
-export const RECOMMENDED_MARK = /\s*\**\(recomendad[oa]\)\**[.!]?\s*$/i
+export type Stance = 'recommended' | 'notRecommended' | 'evaluate'
 
-/** Also drops the `**` left unpaired when the mark took a bold's closing one: `**cache local (recomendado)**`. */
-export const withoutRecommendedMark = (t: string) => {
-  const mark = RECOMMENDED_MARK.exec(t)?.[0] ?? ''
-  const text = t.replace(RECOMMENDED_MARK, ' ').trim()
+const STANCE_WORDS = 'recomendo|recomendad[oa]|n[ãa]o recomendo|avalie'
+/** The instruction asks for it at the start of the item; "(recomendado)" and the end are how older answers wrote it. */
+export const STANCE_MARK = new RegExp(
+  `^\\s*\\**\\((${STANCE_WORDS})\\)\\**\\s*[:.!–—-]?\\s*|\\s*\\**\\((${STANCE_WORDS})\\)\\**[.!]?\\s*$`,
+  'i',
+)
+
+export const stanceOf = (t: string): Stance | undefined => {
+  const match = STANCE_MARK.exec(t)
+  if (!match) return undefined
+  const word = (match[1] ?? match[2]!).toLowerCase()
+  return word.startsWith('n') ? 'notRecommended' : word === 'avalie' ? 'evaluate' : 'recommended'
+}
+
+/** Also drops the `**` left unpaired when the mark took one of a bold's: `**(recomendo) cache local**`. */
+export const withoutStanceMark = (t: string) => {
+  const match = STANCE_MARK.exec(t)
+  const mark = match?.[0] ?? ''
+  const text = t.replace(STANCE_MARK, ' ').trim()
   // Code spans are blanked out (same length) so a ** in code (`**kwargs`) is not counted.
   const outsideCode = text.replace(/(`+).*?(?<!`)\1(?!`)/g, (span) => ' '.repeat(span.length))
   if (!mark.includes('**') || outsideCode.split('**').length % 2 !== 0) return text
-  const last = outsideCode.lastIndexOf('**')
-  return `${text.slice(0, last)}${text.slice(last + 2)}`.replace(/\s{2,}/g, ' ').trim()
+  const unpaired = match?.index === 0 ? outsideCode.indexOf('**') : outsideCode.lastIndexOf('**')
+  return `${text.slice(0, unpaired)}${text.slice(unpaired + 2)}`.replace(/\s{2,}/g, ' ').trim()
 }
 
 const PREVIEW_MAX = 90
@@ -185,6 +200,17 @@ export const alternativesOf = (actions: Actions, i: number): number[] => {
   const group: number[] = []
   for (let p = start; isRadioPart(actions, p); p++) group.push((actions.parts[p] as { item: number }).item)
   return group
+}
+
+/** What starts checked: the items written `(recomendo)`, and in a radio group only the first of them. */
+export const defaultChecked = (actions: Actions): number[] => {
+  const checked: number[] = []
+  actions.items.forEach((item, i) => {
+    if (stanceOf(item.text) === 'recommended' && !alternativesOf(actions, i).some((j) => checked.includes(j))) {
+      checked.push(i)
+    }
+  })
+  return checked
 }
 
 /** `isSuggested` plays no part: sending a suggested item as checked would be an approval never given. */

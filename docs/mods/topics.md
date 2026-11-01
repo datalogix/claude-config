@@ -17,7 +17,7 @@ list to answer in place:
 ```markdown
 ## Pendências
 Which database?
-- ( ) PostgreSQL (recomendado)
+- ( ) (recomendo) PostgreSQL
   Keeps the current driver.
   ver: Database choice
 - ( ) SQLite
@@ -32,7 +32,14 @@ Which database?
   its own what will be done ("Fix the order total with a coupon",
   never "Apply #1" or "Do option B"), so the list sent back makes sense
   without the rest of the answer
-- an alternative ending in "(recomendado)" is shown as recommended
+- a box may start with Claude's stance, drawn in color before its text
+  so it stays in sight when a long item wraps: `(recomendo)` in green,
+  `(não recomendo)` in red and `(avalie)` in blue. Older answers wrote
+  "(recomendado)" or put the mark at the end; both still count
+- a `(recomendo)` box starts checked, and in a radio group only the first
+  one does, so sending without touching the list approves it. The
+  instruction keeps destructive, hard to undo or outward-facing actions
+  out of `(recomendo)`
 - indented lines below an item are its details (an indented code block
   is kept whole); the instruction asks for only what is specific to that
   item, so the shared context is not repeated under every item
@@ -43,9 +50,8 @@ Which database?
   as a detail. The instruction asks for it once per decision, on the
   first alternative of a group
 - a box the answer wrote checked (`[x]`, `(x)`) starts unchecked, marked
-  "sugerido" (only "★ recomendado" when it is also the recommended
-  one): only the user checks, so sending never approves something on
-  Claude's behalf; the format instruction tells Claude that such a box
+  "sugerido" (not when it also has a stance): writing `[x]` never
+  checks anything; the format instruction tells Claude that such a box
   coming back unchecked only means it was not checked
 - "enviar pendências" sends the list back as a message: the boxes as
   checked on screen, each preceded by its question (the line of text

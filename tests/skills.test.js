@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import { describe, test } from 'vitest'
 
-import { RECOMMENDED_MARK, parseActions, withoutRecommendedMark } from '../mods/topics/hooks/parse.ts'
+import { parseActions, stanceOf, withoutStanceMark } from '../mods/topics/hooks/parse.ts'
 
 const skillsDir = new URL('../mods/datalogix/skills/', import.meta.url)
 /** @param {string} file */
@@ -37,9 +37,10 @@ describe.each(skills)('/datalogix:%s', (_skill, items) => {
     assert.doesNotMatch(item.text, / - (?:\[[ xX]\]|\([ xX•●]\)) /)
     assert.equal(item.isRadio, span.startsWith('- ('))
     assert.equal(item.isSuggested, /^- (?:\[[xX]\]|\([xX•●]\))/.test(span))
-    if (/\(recomendad[oa]\)/.test(span)) {
-      assert.match(item.text, RECOMMENDED_MARK)
-      assert.notEqual(withoutRecommendedMark(item.text), '')
+    assert.doesNotMatch(item.text, /\(recomendad[oa]\)/)
+    if (stanceOf(item.text)) {
+      assert.match(item.text, /^\((?:recomendo|não recomendo|avalie)\) /)
+      assert.notEqual(withoutStanceMark(item.text), '')
     }
   })
 })

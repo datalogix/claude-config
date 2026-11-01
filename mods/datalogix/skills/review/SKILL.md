@@ -396,7 +396,7 @@ das respostas acima:
 - cada pergunta vira uma linha só com o texto da pergunta (sem
   quebrar: só essa linha volta com a resposta), logo seguida das
   alternativas como `- ( ) <opção>`, uma por alternativa, a
-  recomendada primeiro e terminando em "(recomendado)"; o exemplo
+  recomendada primeiro e começando com "(recomendo)"; o exemplo
   de cada opção vai recuado logo abaixo dela (bloco de código
   recuado), nunca entre a pergunta e as opções;
 - pergunta sem opções (ex.: "este comportamento é intencional?")

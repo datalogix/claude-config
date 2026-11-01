@@ -10,7 +10,16 @@ import type {
 import { describe, expect, test } from 'claude-code/testing'
 import type { Engine as TestEngine } from 'claude-code/testing'
 
-import { parseAnswer, previewOf, RECOMMENDED_MARK, submitText, toggleChecked, withoutRecommendedMark } from './parse'
+import {
+  parseAnswer,
+  previewOf,
+  STANCE_MARK,
+  stanceOf,
+  submitText,
+  toggleChecked,
+  withoutStanceMark,
+  defaultChecked,
+} from './parse'
 
 let mountCount = 0
 const mountMessage = (
@@ -102,7 +111,7 @@ const WITH_ALTERNATIVES = [
   'O X fica dentro do link.',
   '## Pendências',
   'Close dentro do link: o que fazer?',
-  '- ( ) Manter como está (recomendado)',
+  '- ( ) (recomendo) Manter como está',
   '  O X fecha o badge, mas o link ainda abre.',
   '  Ex.: clicar no X vai para /tags/php.',
   '  ver: o caso',
@@ -174,7 +183,7 @@ describe('parseAnswer', () => {
     const actions = parseAnswer(WITH_ALTERNATIVES).actions!
     expect(actions.items).toEqual([
       {
-        text: 'Manter como está (recomendado)',
+        text: '(recomendo) Manter como está',
         isSuggested: false,
         isRadio: true,
         details: ['O X fecha o badge, mas o link ainda abre.', 'Ex.: clicar no X vai para /tags/php.'],
@@ -221,23 +230,54 @@ describe('parseActions', () => {
 
   test('the recommended mark may end in a period or bold', () => {
     const actions = parseAnswer('## Pendências\nQual?\n- ( ) A (recomendado).\n- ( ) B **(recomendada)**').actions!
-    expect(actions.items.map((i) => RECOMMENDED_MARK.test(i.text))).toEqual([true, true])
+    expect(actions.items.map((i) => STANCE_MARK.test(i.text))).toEqual([true, true])
   })
 
   test('a fully bold recommended item loses both bold marks', () => {
-    expect(withoutRecommendedMark('**Usar Redis (recomendado)**')).toBe('Usar Redis')
-    expect(withoutRecommendedMark('A ** B (recomendado)**')).toBe('A B')
-    expect(withoutRecommendedMark('B **(recomendada)**')).toBe('B')
-    expect(withoutRecommendedMark('**Usar** Redis')).toBe('**Usar** Redis')
-    expect(withoutRecommendedMark('**Redis** com **cache local (recomendado)**')).toBe('**Redis** com cache local')
+    expect(withoutStanceMark('**Usar Redis (recomendado)**')).toBe('Usar Redis')
+    expect(withoutStanceMark('A ** B (recomendado)**')).toBe('A B')
+    expect(withoutStanceMark('B **(recomendada)**')).toBe('B')
+    expect(withoutStanceMark('**Usar** Redis')).toBe('**Usar** Redis')
+    expect(withoutStanceMark('**Redis** com **cache local (recomendado)**')).toBe('**Redis** com cache local')
   })
 
   test('a recommended mark without bold leaves a ** in code alone', () => {
-    expect(withoutRecommendedMark('Passar `**kwargs` adiante (recomendado)')).toBe('Passar `**kwargs` adiante')
+    expect(withoutStanceMark('Passar `**kwargs` adiante (recomendado)')).toBe('Passar `**kwargs` adiante')
+  })
+
+  test('a mark at the start takes the opening bold it left unpaired', () => {
+    expect(withoutStanceMark('**(recomendado) Usar Redis**')).toBe('Usar Redis')
+    expect(withoutStanceMark('**(recomendado)** Usar Redis')).toBe('Usar Redis')
+    expect(withoutStanceMark('**(recomendado) cache local** com **Redis**')).toBe('cache local com **Redis**')
+    expect(withoutStanceMark('(recomendado) **Usar** Redis')).toBe('**Usar** Redis')
+  })
+
+  test('a mark in the middle of the text is not the mark', () => {
+    expect(STANCE_MARK.test('Usar A (recomendado) com B')).toBe(false)
   })
 
   test('a ** in code does not hide the bold the mark left unpaired', () => {
-    expect(withoutRecommendedMark('`**kwargs` com **cache local (recomendado)**')).toBe('`**kwargs` com cache local')
+    expect(withoutStanceMark('`**kwargs` com **cache local (recomendado)**')).toBe('`**kwargs` com cache local')
+  })
+})
+
+describe('the stance marks', () => {
+  test('each mark reads as its stance, at the start or at the end', () => {
+    expect(stanceOf('(recomendo) A')).toBe('recommended')
+    expect(stanceOf('(não recomendo) A')).toBe('notRecommended')
+    expect(stanceOf('(nao recomendo) A')).toBe('notRecommended')
+    expect(stanceOf('(avalie) A')).toBe('evaluate')
+    expect(stanceOf('A (avalie)')).toBe('evaluate')
+    expect(stanceOf('(recomendado) A')).toBe('recommended')
+    expect(stanceOf('A')).toBeUndefined()
+    expect(withoutStanceMark('(não recomendo) A')).toBe('A')
+  })
+
+  test('only recommended items start checked, one per radio group', () => {
+    const actions = parseAnswer(
+      '## Pendências\nQual?\n- ( ) (recomendo) A\n- ( ) (recomendo) B\n- [ ] (recomendo) C\n- [ ] (avalie) D\n- [ ] (não recomendo) E\n- [x] F',
+    ).actions!
+    expect(defaultChecked(actions)).toEqual([0, 2])
   })
 })
 
@@ -266,10 +306,14 @@ describe('the item marks', () => {
     'A (recomendado)!',
     'A (RECOMENDADO)',
     'A **(recomendado)**',
+    '(recomendado) A',
+    '(recomendada): A',
+    '(RECOMENDADO) - A',
+    '**(recomendado)** A',
   ]) {
     test(`"${text}" carries the recommended mark`, () => {
-      expect(RECOMMENDED_MARK.test(text)).toBe(true)
-      expect(withoutRecommendedMark(text)).toBe('A')
+      expect(STANCE_MARK.test(text)).toBe(true)
+      expect(withoutStanceMark(text)).toBe('A')
     })
   }
 })
@@ -364,7 +408,7 @@ describe('checking and sending', () => {
       [
         'Pendências:',
         'Close dentro do link: o que fazer?',
-        '- ( ) Manter como está (recomendado)',
+        '- ( ) (recomendo) Manter como está',
         '- (x) Desfazer',
         'Outra coisa:',
         '- [ ] Rodar os testes',
@@ -483,11 +527,10 @@ describe('in the conversation', () => {
     expect(await rowOf()).toBe('  2. [✔] Já aprovado')
   })
 
-  test('a radio written checked starts unchecked, marked as a suggestion unless recommended', async ($) => {
-    const ui = await mountMessage($, '## Pendências\nQual?\n- (x) A (recomendado)\n- (x) B', 'row9')
-    expect((await ui.find({ key: 'row9-action-0' }))?.text).toBe('( ) A')
+  test('a radio written checked starts unchecked, as a suggestion, and a recommended one starts checked', async ($) => {
+    const ui = await mountMessage($, '## Pendências\nQual?\n- (x) (recomendo) A\n- (x) B', 'row9')
+    expect((await ui.find({ key: 'row9-action-0' }))?.text).toBe('(●) recomendo: A')
     expect((await ui.find({ key: 'row9-action-1' }))?.text).toBe('( ) B')
-    expect(await ui.findAll({ type: 'Text', text: ' ★ recomendado' })).toHaveLength(1)
     expect(await ui.findAll({ type: 'Text', text: ' sugerido' })).toHaveLength(1)
     await ui.press({ key: 'row9-action-1' })
     await ui.press({ key: 'row9-action-1' })
@@ -495,23 +538,31 @@ describe('in the conversation', () => {
     expect((await ui.find({ key: 'row9-action-1' }))?.text).toBe('( ) B')
   })
 
+  test('each stance is drawn in its color before the text', async ($) => {
+    const ui = await mountMessage(
+      $,
+      '## Pendências\n- [ ] (recomendo) A\n- [ ] (não recomendo) B\n- [ ] (avalie) C',
+      'row8',
+    )
+    expect((await ui.find({ key: 'row8-action-1' }))?.text).toBe('2. [ ] não recomendo: B')
+    expect((await ui.find({ type: 'Text', text: 'recomendo: ' }))?.props.color).toBe('success')
+    expect((await ui.find({ type: 'Text', text: 'não recomendo: ' }))?.props.color).toBe('error')
+    expect((await ui.find({ type: 'Text', text: 'avalie: ' }))?.props.color).toBe('blue')
+  })
+
   test('on screen, checking the second alternative unchecks the first', async ($) => {
     const ui = await mountMessage($, WITH_ALTERNATIVES, 'row5')
-    await ui.press({ key: 'row5-action-0' })
     await ui.press({ key: 'row5-action-2' })
-    expect((await ui.find({ key: 'row5-action-0' }))?.text).toBe('(●) Manter como está')
+    expect((await ui.find({ key: 'row5-action-0' }))?.text).toBe('(●) recomendo: Manter como está')
     await ui.press({ key: 'row5-action-1' })
-    expect((await ui.find({ key: 'row5-action-0' }))?.text).toBe('( ) Manter como está')
+    expect((await ui.find({ key: 'row5-action-0' }))?.text).toBe('( ) recomendo: Manter como está')
     expect((await ui.find({ key: 'row5-action-1' }))?.text).toBe('(●) Desfazer')
     expect((await ui.find({ key: 'row5-action-2' }))?.text).toBe('2. [✔] Rodar os testes')
   })
 
-  test('each alternative shows its details and the recommended mark on its own row', async ($) => {
+  test('each alternative shows its details on its own row, with the recommended mark before the text', async ($) => {
     const ui = await mountMessage($, WITH_ALTERNATIVES, 'row4')
-    expect((await ui.find({ key: 'row4-action-0' }))?.text).toBe('( ) Manter como está')
-    expect((await ui.findAll({ type: 'Box', text: /Manter como está/ })).at(-1)?.text).toBe(
-      '     ( ) Manter como está ★ recomendado',
-    )
+    expect((await ui.find({ key: 'row4-action-0' }))?.text).toBe('(●) recomendo: Manter como está')
     expect((await ui.findAll({ type: 'Markdown' })).map((m) => m.text)).toEqual([
       'Achei um problema no badge.',
       'Close dentro do link: o que fazer?',
@@ -824,6 +875,25 @@ describe('the /topics pane', () => {
     expect(sent).toEqual(['Pendências:\n- [ ] Rodar `npm test`\n- [ ] Já aprovado'])
   })
 
+  test('sends the recommended items checked without a touch, and not after the user unchecks them', async ($, on) => {
+    const sent: string[] = []
+    on('turn.complete', () => ({ text: '' }))
+    on('prompt.submit', ($, e) => {
+      sent.push(e.text)
+      return { text: '' } as never
+    })
+    const answer = '## Pendências\n- [ ] (recomendo) A\n- [ ] (avalie) B'
+    await $.turn.complete(completeTurn({ answer }))
+    const ui = await mountPane($)
+    await ui.press({ key: 'topics-actions-submit' })
+    expect(sent.at(-1)).toBe('Pendências:\n- [x] (recomendo) A\n- [ ] (avalie) B')
+
+    await $.turn.complete(completeTurn({ answer, turnId: 't2' }))
+    await ui.press({ key: 'topics-action-0' })
+    await ui.press({ key: 'topics-actions-submit' })
+    expect(sent.at(-1)).toBe('Pendências:\n- [ ] (recomendo) A\n- [ ] (avalie) B')
+  })
+
   test('marks the focused item with ❯', async ($, on) => {
     on('turn.complete', () => ({ text: '' }))
     on('ui.focus', () => ({ value: {} }) as never)
@@ -857,7 +927,7 @@ describe('the /topics pane', () => {
     expect(await ui.find({ type: 'Text', text: '✓ pendências enviadas' })).toBeDefined()
 
     await $.turn.complete(completeTurn({ answer, turnId: 't2' }))
-    expect((await ui.find({ key: 'topics-action-0' }))?.text).toBe('( ) Manter como está')
+    expect((await ui.find({ key: 'topics-action-0' }))?.text).toBe('(●) recomendo: Manter como está')
     expect((await ui.find({ key: 'topics-topic-0' }))?.text).toBe('▸ O caso')
     expect((await ui.find({ key: 'topics-action-0-explanation' }))?.text).toBe('▸ explicação: O caso')
     expect(await ui.find({ key: 'topics-actions-submit' })).toBeDefined()

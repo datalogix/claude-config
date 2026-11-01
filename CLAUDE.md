@@ -114,10 +114,11 @@ node bin/cli.js install --link            # install from this clone: mods load i
   - `"license": "MIT"` and `"author": { "name": "datalogix" }` in its `plugin.json`;
   - an entry in `.claude-plugin/marketplace.json`;
   - a `claude plugin test mods/<name>` added to the `test` script, if it has hooks (the command fails without them).
-- `topics` parses the `## Pendências` format (the last such topic; checkbox/radio items, `(recomendado)`, an item's
-  first `ver:` matched to a topic title ignoring case, accents, backticks and bold/italics, the first matching topic
-  winning) in `hooks/parse.ts`. An item the answer writes checked (`isSuggested`) starts unchecked, as a suggestion;
-  only what the user checks is sent as checked. Keep it in sync with the format `docs/mods/topics.md` documents.
+- `topics` parses the `## Pendências` format (the last such topic; checkbox/radio items, a stance mark,
+  `(recomendo)`, `(não recomendo)` or `(avalie)`, an item's first `ver:` matched to a topic title ignoring case,
+  accents, backticks and bold/italics, the first matching topic winning) in `hooks/parse.ts`. An item the answer writes
+  checked (`isSuggested`) starts unchecked, as a suggestion; a `(recomendo)` item starts checked (`defaultChecked`, one
+  per radio group), so sending as is approves it. Keep it in sync with the format `docs/mods/topics.md` documents.
 
 ### Skills (`mods/datalogix/skills/`)
 

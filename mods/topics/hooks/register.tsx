@@ -4,25 +4,26 @@ import type { Elements, EngineInterface, Register } from 'claude-code'
 import {
   ACTIONS_TITLE,
   alternativesOf,
+  defaultChecked,
   isRadioPart,
   isSameTitle,
   parseAnswer,
   previewOf,
   questionOf,
-  RECOMMENDED_MARK,
+  stanceOf,
   stripBackticks,
   submitText,
   toggle,
   toggleChecked,
-  withoutRecommendedMark,
+  withoutStanceMark,
 } from './parse'
-import type { Actions, ParsedAnswer, Topic } from './parse'
+import type { Actions, ParsedAnswer, Stance, Topic } from './parse'
 
 const PANE_ID = 'topics'
 const lastAnswerAtom = atom({ plugin: 'topics', key: 'lastAnswer' } as const, '')
 const openTopicsAtom = atom({ plugin: 'topics', key: 'openTopics' } as const, [])
 const explainedItemsAtom = atom({ plugin: 'topics', key: 'explainedItems' } as const, [])
-const checkedItemsAtom = atom({ plugin: 'topics', key: 'checkedItems' } as const, [])
+const checkedItemsAtom = atom({ plugin: 'topics', key: 'checkedItems' } as const, null)
 const isSentAtom = atom({ plugin: 'topics', key: 'isSent' } as const, false)
 const isAnsweringAtom = atom({ plugin: 'topics', key: 'isAnswering' } as const, false)
 const focusedKeyAtom = atom({ plugin: 'topics', key: 'focusedKey' } as const, '')
@@ -52,11 +53,17 @@ const FORMAT_INSTRUCTION = [
   'Há dois tipos de caixa. Checkbox `- [ ] ação` é uma ação independente, que pode ser marcada junto com qualquer outra.',
   'Radio `- ( ) opção` é uma alternativa exclusiva: os radios seguidos formam um grupo em que só um fica marcado.',
   'Quando houver alternativas, escreva antes uma linha de texto com a pergunta, terminada em "?", e depois um radio por',
-  'alternativa, a recomendada primeiro e terminando em "(recomendado)". Um grupo de radios só tem alternativas da mesma',
-  'decisão: depois dele, uma ação independente é checkbox `[ ]`, e outra decisão começa com a sua própria pergunta.',
+  'alternativa, a recomendada primeiro.',
+  'Um grupo de radios só tem alternativas da mesma decisão: depois dele, uma ação independente é checkbox `[ ]`,',
+  'e outra decisão começa com a sua própria pergunta.',
   'Nunca use radio para ações que podem ser feitas juntas, nem checkbox para opções que se excluem.',
+  'Quando tiver uma posição sobre a caixa, comece o texto dela com `(recomendo)`, `(não recomendo)` ou `(avalie)`:',
+  '`- [ ] (recomendo) ação`, `- ( ) (avalie) opção`. A caixa com `(recomendo)` já aparece marcada e pode ser enviada',
+  'sem o usuário tocar nela, então uma ação destrutiva, difícil de desfazer ou visível para outras pessoas nunca leva',
+  '`(recomendo)`: use `(avalie)`.',
   'Uma caixa escrita já marcada (`[x]`, `(x)`) aparece ao usuário desmarcada, só como sugestão: na resposta dele,',
-  'uma caixa desmarcada quer dizer só que ele não a marcou, nunca que recusou.',
+  'uma caixa desmarcada quer dizer só que ele não a marcou, nunca que recusou; a que tinha `(recomendo)` e volta',
+  'desmarcada foi desmarcada por ele.',
   'Logo abaixo de cada caixa, em linhas recuadas com dois espaços, diga só o que aquela opção tem de próprio: o que',
   'acontece se ela for marcada e um exemplo curto do resultado ("Ex.: ..."), para a decisão caber na própria lista;',
   'uma ideia por linha, no máximo três linhas. Não repita nos detalhes a pergunta, o contexto comum a todas as opções',
@@ -165,6 +172,12 @@ type ActionsState = {
   submit: () => unknown
 }
 
+const STANCES: Record<Stance, { label: string; color: string }> = {
+  recommended: { label: 'recomendo', color: 'success' },
+  notRecommended: { label: 'não recomendo', color: 'error' },
+  evaluate: { label: 'avalie', color: 'blue' },
+}
+
 const renderActions = (
   { Box, Button, Markdown, Text }: ResolvedElements,
   actions: Actions,
@@ -215,7 +228,7 @@ const renderActions = (
         const i = part.item
         const item = actions.items[i]!
         const itemKey = `${id}-action-${i}`
-        const isRecommended = RECOMMENDED_MARK.test(item.text)
+        const stance = stanceOf(item.text)
         const explanationTopic =
           item.explanationTitle === undefined
             ? undefined
@@ -223,7 +236,7 @@ const renderActions = (
         const isExplained = state.explainedItems.includes(i)
         const previous = actions.parts[p - 1]
         const lacksQuestion = item.isRadio && numbers[p]! > 0 && questionOf(previous) === undefined
-        const text = stripBackticks(withoutRecommendedMark(item.text))
+        const text = stripBackticks(withoutStanceMark(item.text))
         const hasGapAbove = item.isRadio
           ? lacksQuestion
           : !(previous && 'item' in previous && !isRadioPart(actions, p - 1))
@@ -240,19 +253,16 @@ const renderActions = (
                 {focusedKey === itemKey ? '❯ ' : '  '}
                 {item.isRadio ? '   ' : ''}
               </Text>
-              <Button
-                key={itemKey}
-                plain
-                label={
-                  item.isRadio
-                    ? `${isCheckedAt[i] ? '(●)' : '( )'} ${text}`
-                    : `${numbers[p]}. ${isCheckedAt[i] ? '[✔]' : '[ ]'} ${text}`
-                }
-                onPress={() => state.toggleItem(i)}
-              />
-              {isRecommended && <Text color="success"> ★ recomendado</Text>}
-              {/* Only a suggestion until the user checks it; ★ recomendado alone marks a recommended one. */}
-              {item.isSuggested && !isCheckedAt[i] && !isRecommended && <Text dimColor> sugerido</Text>}
+              <Button key={itemKey} plain onPress={() => state.toggleItem(i)}>
+                {item.isRadio
+                  ? `${isCheckedAt[i] ? '(●)' : '( )'} `
+                  : `${numbers[p]}. ${isCheckedAt[i] ? '[✔]' : '[ ]'} `}
+                {/* Ahead of the text, so a long item that wraps does not push it out of sight. */}
+                {stance && <Text color={STANCES[stance].color}>{STANCES[stance].label}: </Text>}
+                {text}
+              </Button>
+              {/* Only a suggestion until the user checks it; a stance alone marks an item that has one. */}
+              {item.isSuggested && !isCheckedAt[i] && !stance && <Text dimColor> sugerido</Text>}
             </Box>
             {item.details.map((detail, d) => (
               <Box key={`${itemKey}-detail-${d}`} paddingLeft={DETAIL_INDENT}>
@@ -341,7 +351,7 @@ export const register: Register = (on) => {
         const pane = { requestId: PANE_ID }
         await update($, memberOf(openTopicsAtom, pane), () => [])
         await update($, memberOf(explainedItemsAtom, pane), () => [])
-        await update($, memberOf(checkedItemsAtom, pane), () => [])
+        await update($, memberOf(checkedItemsAtom, pane), () => null)
         await update($, memberOf(isSentAtom, pane), () => false)
       }
     }
@@ -440,11 +450,11 @@ const actionsStateOf = async (
   const explainedItems = memberOf(explainedItemsAtom, member)
   const isSent = memberOf(isSentAtom, member)
   return {
-    checkedItems: await read($, checkedItems),
+    checkedItems: (await read($, checkedItems)) ?? defaultChecked(actions),
     explainedItems: await read($, explainedItems),
     isSent: await read($, isSent),
     isAnswering: await read($, isAnsweringAtom),
-    toggleItem: (i) => update($, checkedItems, (list) => toggleChecked(actions, list, i)),
+    toggleItem: (i) => update($, checkedItems, (list) => toggleChecked(actions, list ?? defaultChecked(actions), i)),
     toggleExplanation: (i) => update($, explainedItems, (list) => toggle(list, i)),
     // Reads the state at press time: the drawing it came from may be older than the last check or send.
     submit: async () => {
@@ -457,7 +467,10 @@ const actionsStateOf = async (
       })
       if (wasSent) return
       try {
-        await $.prompt.submit({ text: submitText(actions, await read($, checkedItems)), asUser: true })
+        await $.prompt.submit({
+          text: submitText(actions, (await read($, checkedItems)) ?? defaultChecked(actions)),
+          asUser: true,
+        })
       } catch {
         await update($, isSent, () => false)
         $.ui.toast('⚠️ Não foi possível enviar as pendências', { timeoutMs: 8000 })

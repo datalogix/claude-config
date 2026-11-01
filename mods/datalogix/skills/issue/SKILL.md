@@ -257,7 +257,7 @@ Termine com uma seção `## Pendências`, que o usuário responde
 marcando as caixas e devolvendo a lista, nesta ordem:
 1. "O Claude deve agir na issue?", uma alternativa exclusiva por
    linha, cada uma com o efeito indentado logo abaixo:
-   `- ( ) Nenhum (recomendado)`, `- ( ) claude` ("implementa a
+   `- ( ) (recomendo) Nenhum`, `- ( ) claude` ("implementa a
    issue e abre um PR") e `- ( ) claude-plan` ("posta um plano de
    implementação na issue"). Sem nenhuma marcada, vale "Nenhum".
 2. "Labels?", um `- [ ] <label>` por label do destino, menos os

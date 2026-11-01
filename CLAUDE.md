@@ -42,9 +42,9 @@ node bin/cli.js install --link            # install from this clone: mods load i
 
 - Two commands, `install [--link]` and `update`. Unknown commands or flags are errors. Any failed step ends with
   "Finished with errors" and exit code 1.
-- Failing to list the installed mods or the marketplaces (`runClaudeList`), or a reply that is not a JSON list, is a
-  failure that stops the mods part of the run, since an empty list would read as nothing installed. Failing to read a
-  mod's options
+- Failing to list the installed mods or the marketplaces (`runClaudeList`), or a reply that is not a JSON list of items
+  with their `id` or `name`, is a failure that stops the mods part of the run, since an empty list would read as
+  nothing installed. Failing to read a mod's options
   (`plugin configure --json`) is a failure that skips configuring that mod; a reply without `inputs` only warns and
   skips it too. Cancelling a prompt ends with the run's closing hint (`reloadHint`): `/clear`, and `/reload-plugins`
   when a mod already changed (`hasModChanges`).
@@ -80,8 +80,8 @@ node bin/cli.js install --link            # install from this clone: mods load i
   unstored and a later change of default reaches it. Without a usable default, that compares with what the question
   starts from: `false` for a boolean, the first choice for a select. The question for an option never configured
   starts from the default in this checkout's `plugin.json` (`initialValue`), not the one `plugin configure --json`
-  reports for the installed version. A select whose configured value is not one of its choices starts from that default too
-  (`defaultChoice`), or from its first choice if the default is not one either.
+  reports for the installed version. A select whose configured value is not one of its choices starts from that
+  default too (`defaultChoice`), or from its first choice if the default is not one either.
   `optionChanges` decides whether anything needs storing, and `configured: <name>` is logged only after
   `plugin configure --values-stdin` ran.
 - On Windows, when `claude` resolves to npm's `claude.cmd`, it is run through `cmd` with `cmdLine`/`quoteForCmd`

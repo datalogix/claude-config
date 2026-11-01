@@ -115,6 +115,8 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     ['output that is not JSON', 'echo not json'],
     ['JSON of another shape', "echo '{}'"],
     ['no output', 'true'],
+    ['items that are not objects', "echo '[null, 1]'"],
+    ['items without the field they need', `echo '[{"other":1}]'`],
   ])('with claude replying %s', (_, reply) => {
     test('fails on the marketplace list, adding nothing', () => {
       fakeClaude({ 'plugin marketplace list --json': reply })
@@ -136,19 +138,6 @@ describe('install', { skip: process.platform === 'win32' }, () => {
       assert.match(output, /could not list the installed mods: unexpected reply/)
       assert.ok(!claudeCalls().some((call) => call.startsWith('plugin install')))
     })
-  })
-
-  test('skips the list items that are not objects', () => {
-    fakeClaude({ 'plugin list --json': "echo '[null]'", 'plugin marketplace list --json': "echo '[null, 1]'" })
-
-    const { status, output } = runCli(['install'])
-
-    assert.equal(status, 0, output)
-    const calls = claudeCalls()
-    assert.ok(calls.includes('plugin marketplace add datalogix/claude-config'))
-    for (const name of MODS) {
-      assert.ok(calls.includes(`plugin install ${name}@claude-config`), `${name} not installed`)
-    }
   })
 
   test('ends with exit code 1 when the marketplace cannot be added', () => {

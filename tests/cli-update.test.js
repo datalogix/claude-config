@@ -45,7 +45,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     const { status, output } = runCli(['update'])
 
     assert.equal(status, 1, output)
-    assert.match(output, /could not list the marketplaces: unexpected reply/)
+    assert.match(output, /could not list the marketplaces: unexpected reply \(Update available\)/)
     assert.doesNotMatch(output, /mods not installed/)
   })
 

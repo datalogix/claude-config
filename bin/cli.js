@@ -277,33 +277,35 @@ function checkClaudeCli() {
 }
 
 /**
- * Undefined when claude fails or replies with anything but a list: an empty
- * list would read as nothing installed.
+ * Undefined when claude fails or replies with anything but a list of items
+ * holding `key`: an empty list would read as nothing installed.
  *
  * @param {string} label
  * @param {string[]} args
+ * @param {string} key
  * @returns {Record<string, unknown>[] | undefined}
  */
-function runClaudeList(label, args) {
+function runClaudeList(label, args, key) {
   const result = runClaude(args)
   if (!checkResult(label, result)) {
     return undefined
   }
   const value = parseJson(result.stdout, undefined)
-  if (!Array.isArray(value)) {
-    reportFailure(`${label}: unexpected reply`)
+  if (!Array.isArray(value) || !value.every((item) => typeof item?.[key] === 'string')) {
+    const reply = (result.stdout.trim() || result.stderr.trim()).slice(0, 200)
+    reportFailure(`${label}: unexpected reply${reply ? ` (${reply})` : ''}`)
     return undefined
   }
-  return value.filter((item) => item !== null && typeof item === 'object')
+  return value
 }
 
 /** @returns {Set<string> | undefined} undefined when claude could not list them */
 function listInstalledModIds() {
-  const plugins = runClaudeList('could not list the installed mods', ['plugin', 'list', '--json'])
+  const plugins = runClaudeList('could not list the installed mods', ['plugin', 'list', '--json'], 'id')
   if (!plugins) {
     return undefined
   }
-  return new Set(plugins.map((plugin) => plugin.id).filter((id) => typeof id === 'string'))
+  return new Set(plugins.map((plugin) => /** @type {string} */ (plugin.id)))
 }
 
 const RENAMED_MODS = { passos: 'steps', topicos: 'topics' }
@@ -389,12 +391,11 @@ function warnOldOptions(mod) {
  * @returns {{ entry?: Record<string, unknown> } | undefined}
  */
 function findMarketplace() {
-  const list = runClaudeList('marketplace: could not list the marketplaces', [
-    'plugin',
-    'marketplace',
-    'list',
-    '--json',
-  ])
+  const list = runClaudeList(
+    'marketplace: could not list the marketplaces',
+    ['plugin', 'marketplace', 'list', '--json'],
+    'name',
+  )
   return list && { entry: list.find((item) => item.name === marketplace.name) }
 }
 

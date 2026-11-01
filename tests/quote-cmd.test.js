@@ -19,8 +19,10 @@ describe('cmdLine through cmd.exe', { skip: process.platform !== 'win32' }, () =
       path.join(binDir, 'args.js'),
       [
         'const args = JSON.stringify(process.argv.slice(2))',
-        "if (process.env.ARGS_LOG) require('node:fs').appendFileSync(process.env.ARGS_LOG, args + '\\n')",
-        'process.stdout.write(args)',
+        'const log = process.env.ARGS_LOG',
+        "if (log) require('node:fs').appendFileSync(log, args + '\\n')",
+        // With a log it stands in for claude, whose lists hold objects: an empty one, not the arguments.
+        "process.stdout.write(log ? '[]' : args)",
         '',
       ].join('\n'),
     )

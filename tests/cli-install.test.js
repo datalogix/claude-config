@@ -354,6 +354,17 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.ok(claudeCalls().includes('plugin marketplace update claude-config'))
   })
 
+  test('ignores the source fields of a listed marketplace that are not text', () => {
+    fakeClaude({ 'plugin marketplace list --json': `echo '[{"name":"claude-config","repo":123,"path":{},"url":[]}]'` })
+
+    const { status, output } = runCli(['install'])
+
+    assert.equal(status, 0, output)
+    assert.match(output, /marketplace: claude-config \(already added\)/)
+    assert.doesNotMatch(output, /startsWith|comes from/)
+    assert.ok(claudeCalls().includes('plugin marketplace update claude-config'))
+  })
+
   test('does not warn when --link finds the clone added through a symlink', () => {
     const link = path.join(tmpDir, 'clone-link')
     fs.symlinkSync(ROOT, link)

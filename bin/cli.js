@@ -377,7 +377,7 @@ function warnOldOptions(mod) {
 /**
  * `entry` is absent when not added; undefined when claude could not list.
  *
- * @returns {{ entry?: { name: string, repo?: string, path?: string, url?: string, source?: unknown } } | undefined}
+ * @returns {{ entry?: Record<string, unknown> } | undefined}
  */
 function findMarketplace() {
   const list = runClaudeList('marketplace: could not list the marketplaces', [
@@ -386,7 +386,12 @@ function findMarketplace() {
     'list',
     '--json',
   ])
-  return list && { entry: /** @type {any} */ (list.find((item) => item.name === marketplace.name)) }
+  return list && { entry: list.find((item) => item.name === marketplace.name) }
+}
+
+/** @param {unknown} value */
+function textOrUndefined(value) {
+  return typeof value === 'string' ? value : undefined
 }
 
 /**
@@ -437,12 +442,15 @@ function ensureMarketplace(shouldLink) {
   const current = listed.entry
   const requestedSource = shouldLink ? ROOT : REPO
   if (current) {
-    const textSource = typeof current.source === 'string' ? current.source : undefined
-    const currentSource = current.repo ?? current.path ?? current.url ?? textSource
-    const localPath = current.path ?? textSource
+    const repo = textOrUndefined(current.repo)
+    const listedPath = textOrUndefined(current.path)
+    const url = textOrUndefined(current.url)
+    const textSource = textOrUndefined(current.source)
+    const currentSource = repo ?? listedPath ?? url ?? textSource
+    const localPath = listedPath ?? textSource
     const isOtherSource = shouldLink
       ? localPath === undefined || !isSamePath(localPath, ROOT)
-      : githubRepo(current.repo ?? current.url ?? textSource) !== REPO
+      : githubRepo(repo ?? url ?? textSource) !== REPO
     if (currentSource && isOtherSource) {
       p.log.warn(
         `marketplace: ${marketplace.name} comes from ${tildify(currentSource)}, not ${tildify(requestedSource)}; to switch, run "claude plugin marketplace remove ${marketplace.name}" (this uninstalls its mods and deletes their options and data) and install again; not updated`,

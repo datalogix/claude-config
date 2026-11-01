@@ -50,7 +50,7 @@ Tudo que quem instala o pacote usa ou estende:
 - **Checagem de git antes de CADA passo**:
   - `git status --porcelain` vazio (o passo anterior foi commitado)
   - fora da branch padrão (`main`/`master`); se estiver nela, pare e
-    sugira criar uma (ex.: `review/<data>`)
+    sugira criar uma (ex.: `review/<assunto>`, sem data)
   - registre no progresso o commit de início do passo
 - Quebras de API: alias `@deprecated` apontando o substituto; remoção só
   na próxima major

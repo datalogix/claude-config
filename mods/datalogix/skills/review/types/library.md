@@ -57,7 +57,7 @@ API pública.
 - **Checagem de git antes de CADA passo**:
   - `git status --porcelain` vazio (o passo anterior foi commitado)
   - fora da branch padrão (`main`/`master`); se estiver nela, pare e
-    sugira criar uma (ex.: `review/<data>`)
+    sugira criar uma (ex.: `review/<assunto>`, sem data)
   - registre no progresso o commit de início do passo
 - Quebras de API: o nome antigo continua exportado, apontando para o
   novo, com `@deprecated` no JSDoc indicando o substituto; remoção só

@@ -58,7 +58,8 @@ PARE até a resposta:
   branch padrão (a de `git symbolic-ref --short
   refs/remotes/origin/HEAD`, sem o `origin/`, ou `main`/`master`), não
   a mostre; diga que ela não teria o que analisar e sugira fazer as
-  próximas revisões numa branch própria (ex.: `review/<data>`).
+  próximas revisões numa branch própria (ex.: `review/<assunto>`, sem
+  data).
 
 Rode as marcadas nesta ordem, pela ferramenta de skills (Skill), sem
 nível (`max` e `ultra` só se eu pedir). Sem a ferramenta, ou se uma

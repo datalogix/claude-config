@@ -52,7 +52,7 @@ Classes e métodos internos NÃO são API pública: renomeie sem alias.
 - **Checagem de git antes de CADA passo**:
   - `git status --porcelain` vazio (o passo anterior foi commitado)
   - fora da branch padrão (`main`/`master`); se estiver nela, pare e
-    sugira criar uma (ex.: `review/<data>`)
+    sugira criar uma (ex.: `review/<assunto>`, sem data)
   - registre no progresso o commit de início do passo
 - Migrations já rodadas nunca são editadas; mudança exige migration nova,
   segura para produção (`steps/resources.md`)

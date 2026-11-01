@@ -106,7 +106,7 @@ Depois da resposta:
 - Título em Conventional Commits: tipo em inglês (`feat`, `fix`,
   `refactor`, `docs`, `test`, `chore`, `perf`, `build`, `ci`,
   `style`) e a descrição no idioma do passo 1, curta, no imperativo
-  ou presente, sem ponto final e com até 72 caracteres (ex.:
+  ou presente, sem ponto final, sem data e com até 72 caracteres (ex.:
   `feat: adiciona exportação de pedidos em CSV`). Use escopo
   (`fix(api): ...`) só se o projeto já usa.
 - O tipo vem da mudança principal. Mudança que quebra

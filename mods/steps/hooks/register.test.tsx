@@ -12,8 +12,12 @@ const drawOriginal = (on: On, component: 'ToolUse' | 'ToolResult' | 'ToolProgres
 
 /** Each mount takes its own requestId, so one test can mount several rows. */
 let mountCount = 0
-const mount = <C extends RenderComponent>($: TestEngine, component: C, props: RenderPropsOf[C]) =>
-  $.ui.mount({ plugin: 'steps', surface: 'terminal', component, requestId: `r${++mountCount}`, props })
+const mount = <C extends RenderComponent>(
+  $: TestEngine,
+  component: C,
+  props: RenderPropsOf[C],
+  surface: 'terminal' | 'desktop' | 'vscode' | 'mobile' = 'terminal',
+) => $.ui.mount({ plugin: 'steps', surface, component, requestId: `r${++mountCount}`, props })
 
 const isOriginalShown = async (ui: Pick<Mounted, 'find'>) =>
   (await ui.find({ type: 'Text', text: 'original' })) !== undefined
@@ -274,4 +278,41 @@ describe('spinner', () => {
     // Only the watcher's Box: steps passed the original on with no label row around it.
     expect((await ui.findAll({ type: 'Box' })).map((box) => box.key)).toEqual(['steps-ok'])
   })
+})
+
+// A tree a surface refuses skips the hook and draws the original row back, so what counts is what ends up drawn.
+describe('surfaces', () => {
+  for (const surface of ['terminal', 'desktop', 'vscode', 'mobile'] as const) {
+    test(`hides the tool rows on ${surface}, and /steps shows them again`, async ($, on) => {
+      drawOriginal(on, 'ToolUse')
+      const input = {
+        tool_use_id: 'tu1',
+        tool: 'Bash',
+        input: {},
+        isRunning: false,
+        isErrored: false,
+        isInterrupted: false,
+      }
+      const ui = await mount($, 'ToolUse', input, surface)
+      expect(await isOriginalShown(ui)).toBe(false)
+
+      await runStepsCommand($)
+      expect(await isOriginalShown(ui)).toBe(true)
+    })
+  }
+
+  // The engine raises Spinner on these three: mobile has none.
+  for (const surface of ['terminal', 'desktop', 'vscode'] as const) {
+    test(`shows the current step under the spinner on ${surface}`, async ($, on) => {
+      on('ui.render', { component: 'Spinner' }, async ($, e) => {
+        const { Text } = $.ui.resolve(e)
+        return <Text>{e.props.word}</Text>
+      })
+      const props = { word: 'Sauteing', message: null, suffix: '…', mode: 'thinking' } as const
+      const ui = await mount($, 'Spinner', props, surface)
+
+      const texts = (await ui.findAll({ type: 'Text' })).map((t) => t.text)
+      expect(texts).toEqual(['Sauteing', 'pensando'])
+    })
+  }
 })

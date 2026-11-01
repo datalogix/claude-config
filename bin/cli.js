@@ -79,15 +79,15 @@ function reloadHint() {
 
 /**
  * @template T
- * @param {T | symbol} value
- * @returns {T}
+ * @param {T} value
+ * @returns {Exclude<T, symbol>}
  */
 function exitIfCancelled(value) {
   if (p.isCancel(value)) {
     p.cancel(`Cancelled. ${reloadHint()}`)
     process.exit(1)
   }
-  return /** @type {T} */ (value)
+  return /** @type {Exclude<T, symbol>} */ (value)
 }
 
 /** @param {string} message */
@@ -108,13 +108,23 @@ function checkResult(label, result) {
   return result.ok
 }
 
+/** @param {unknown} error */
+function errorMessage(error) {
+  return error instanceof Error ? error.message : String(error)
+}
+
+/** @param {string} name */
+function modId(name) {
+  return `${name}@${marketplace.name}`
+}
+
 /** @returns {Mod[]} */
 function listMods() {
   return marketplace.plugins.map((/** @type {{ name: string, source: string }} */ plugin) => {
     const manifest = readJson(path.join(ROOT, plugin.source, '.claude-plugin/plugin.json'))
     return {
       name: plugin.name,
-      id: `${plugin.name}@${marketplace.name}`,
+      id: modId(plugin.name),
       description: manifest.description ?? '',
       userConfig: manifest.userConfig ?? {},
     }
@@ -122,18 +132,17 @@ function listMods() {
 }
 
 /**
- * @param {string} message
  * @param {{ name: string, description: string }[]} mods
  * @returns {Promise<string[]>}
  */
-async function chooseMods(message, mods) {
+async function chooseMods(mods) {
   const names = mods.map((mod) => mod.name)
   if (!isInteractive) {
     return names
   }
   return exitIfCancelled(
     await p.multiselect({
-      message,
+      message: 'Which mods to install?',
       options: mods.map((mod) => ({ value: mod.name, label: mod.name, hint: mod.description })),
       initialValues: names,
       required: false,
@@ -168,7 +177,7 @@ function listOldSkills() {
     const names = fs.existsSync(SKILLS_DIR) ? fs.readdirSync(SKILLS_DIR) : []
     return names.filter((name) => isOwnedSkill(path.join(SKILLS_DIR, name)))
   } catch (error) {
-    reportFailure(`could not read ${tildify(SKILLS_DIR)}: ${error instanceof Error ? error.message : error}`)
+    reportFailure(`could not read ${tildify(SKILLS_DIR)}: ${errorMessage(error)}`)
     return []
   }
 }
@@ -203,7 +212,7 @@ function removeOldSkills(installed, unchecked = [], names = listOldSkills()) {
   if (names.length === 0) {
     return
   }
-  if (!installed.has(`${SKILLS_MOD}@${marketplace.name}`) && !unchecked.includes(SKILLS_MOD)) {
+  if (!installed.has(modId(SKILLS_MOD)) && !unchecked.includes(SKILLS_MOD)) {
     p.log.warn(
       `kept: ${names.join(', ')} in ~/.claude/skills (${SKILLS_MOD} is not installed yet; run again to replace them)`,
     )
@@ -216,7 +225,7 @@ function removeOldSkills(installed, unchecked = [], names = listOldSkills()) {
       removeOldSkill(folder)
       p.log.info(`removed: ${tildify(folder)} (skills now ship in the ${SKILLS_MOD} mod)`)
     } catch (error) {
-      reportFailure(`could not remove ${tildify(folder)}: ${error instanceof Error ? error.message : error}`)
+      reportFailure(`could not remove ${tildify(folder)}: ${errorMessage(error)}`)
     }
   }
 }
@@ -308,11 +317,11 @@ const RENAMED_MODS = { passos: 'steps', topicos: 'topics' }
  */
 function uninstallRenamedMods(installed, unchecked = []) {
   for (const [oldName, newName] of Object.entries(RENAMED_MODS)) {
-    const id = `${oldName}@${marketplace.name}`
+    const id = modId(oldName)
     if (!installed.has(id)) {
       continue
     }
-    if (!installed.has(`${newName}@${marketplace.name}`) && !unchecked.includes(newName)) {
+    if (!installed.has(modId(newName)) && !unchecked.includes(newName)) {
       p.log.warn(`kept: ${oldName} (${newName} is not installed yet; run again to replace it)`)
       continue
     }
@@ -515,7 +524,9 @@ async function askOptions(mod, isInstalled) {
     return { toStore: {}, hasChanges: false }
   }
 
-  const currentOptions = isInstalled ? readOptions(mod) : { values: {}, configured: new Set() }
+  const currentOptions = isInstalled
+    ? readOptions(mod)
+    : { values: /** @type {Record<string, string>} */ ({}), configured: new Set() }
   if (!currentOptions) {
     // Asking from the defaults would show them as the current values.
     return { toStore: {}, hasChanges: false, isSkipped: true }
@@ -573,6 +584,55 @@ function warnInline(name, installed) {
   }
 }
 
+/**
+ * @param {Mod} mod
+ * @param {Set<string>} installed loses or gets the mod's id when it changes
+ * @param {{ isChosen: boolean, canInstall: boolean, canRefresh: boolean }} state
+ */
+async function syncMod(mod, installed, { isChosen, canInstall, canRefresh }) {
+  const isInstalled = installed.has(mod.id)
+  if (!isChosen) {
+    if (isInstalled && checkResult(mod.name, runClaude(['plugin', 'uninstall', '--keep-data', mod.id]))) {
+      p.log.info(`uninstalled: ${mod.name}`)
+      installed.delete(mod.id)
+      hasModChanges = true
+    }
+    return
+  }
+  if (!canInstall) {
+    return
+  }
+  // Refreshed first, so the options asked match its userConfig. A failed
+  // refresh still asks: configuring does not need the network.
+  if (isInstalled && canRefresh) {
+    refreshMod(mod.name, mod.id)
+  }
+  if (isInstalled) {
+    warnOldOptions(mod)
+  }
+  const { toStore, hasChanges, isSkipped } = await askOptions(mod, isInstalled)
+  if (isInstalled && !hasChanges) {
+    // Without a refresh nothing else names it; a skipped one already has its error.
+    if (!canRefresh && !isSkipped) {
+      p.log.info(`ok: ${mod.name}`)
+    }
+    return
+  }
+  if (!isInstalled && !installMod(mod.name, installed)) {
+    return
+  }
+  // Through stdin and not --config: no answer goes through cmd.exe, and a
+  // sensitive one stays out of the process list.
+  const hasValuesToStore = Object.keys(toStore).length > 0
+  if (
+    hasValuesToStore &&
+    checkResult(mod.name, runClaude(['plugin', 'configure', mod.id, '--values-stdin'], JSON.stringify(toStore)))
+  ) {
+    p.log.success(`configured: ${mod.name}`)
+    hasModChanges = true
+  }
+}
+
 /** @param {boolean} shouldLink */
 async function installMods(shouldLink) {
   if (!checkClaudeCli()) {
@@ -580,7 +640,7 @@ async function installMods(shouldLink) {
   }
 
   const mods = listMods()
-  const chosenMods = await chooseMods('Which mods to install?', mods)
+  const chosenMods = await chooseMods(mods)
   // Nothing chosen: the marketplace is left alone and the installed mods are still uninstalled below.
   const marketplaceState =
     chosenMods.length === 0 ? { canInstall: true, canRefresh: false } : ensureMarketplace(shouldLink)
@@ -599,55 +659,9 @@ async function installMods(shouldLink) {
     return
   }
   for (const mod of mods) {
-    const isInstalled = installed.has(mod.id)
-    try {
-      if (!chosenMods.includes(mod.name)) {
-        if (isInstalled && checkResult(mod.name, runClaude(['plugin', 'uninstall', '--keep-data', mod.id]))) {
-          p.log.info(`uninstalled: ${mod.name}`)
-          installed.delete(mod.id)
-          hasModChanges = true
-        }
-        continue
-      }
-      if (!canInstall) {
-        continue
-      }
-      // Refreshed first, so the options asked match its userConfig. A failed
-      // refresh still asks: configuring does not need the network.
-      if (isInstalled && canRefresh) {
-        refreshMod(mod.name, mod.id)
-      }
-      if (isInstalled) {
-        warnOldOptions(mod)
-      }
-      const { toStore, hasChanges, isSkipped } = await askOptions(mod, isInstalled)
-      if (isInstalled && !hasChanges) {
-        // Without a refresh nothing else names it; a skipped one already has its error.
-        if (!canRefresh && !isSkipped) {
-          p.log.info(`ok: ${mod.name}`)
-        }
-        continue
-      }
-      if (!isInstalled && !installMod(mod.name, installed)) {
-        continue
-      }
-      // Through stdin and not --config: no answer goes through cmd.exe, and a
-      // sensitive one stays out of the process list.
-      const hasValuesToStore = Object.keys(toStore).length > 0
-      if (
-        hasValuesToStore &&
-        !checkResult(mod.name, runClaude(['plugin', 'configure', mod.id, '--values-stdin'], JSON.stringify(toStore)))
-      ) {
-        continue
-      }
-      if (hasValuesToStore) {
-        p.log.success(`configured: ${mod.name}`)
-        hasModChanges = true
-      }
-    } finally {
-      if (installed.has(mod.id)) {
-        warnInline(mod.name, installed)
-      }
+    await syncMod(mod, installed, { isChosen: chosenMods.includes(mod.name), canInstall, canRefresh })
+    if (installed.has(mod.id)) {
+      warnInline(mod.name, installed)
     }
   }
 
@@ -670,7 +684,7 @@ async function install(shouldLink) {
  * @returns {boolean} whether it installed
  */
 function installMod(name, installed) {
-  const id = `${name}@${marketplace.name}`
+  const id = modId(name)
   if (!checkResult(name, runClaude(['plugin', 'install', id]))) {
     return false
   }
@@ -706,17 +720,16 @@ async function update() {
   // Only after a marketplace update: an older one may not list the new name.
   const installedAfterRenames = new Set(installed)
   for (const [oldName, newName] of Object.entries(RENAMED_MODS)) {
-    const id = `${newName}@${marketplace.name}`
-    if (!isUpdated || !installed.has(`${oldName}@${marketplace.name}`) || installed.has(id)) {
+    const id = modId(newName)
+    if (!isUpdated || !installed.has(modId(oldName)) || installed.has(id)) {
       continue
     }
     installMod(newName, installedAfterRenames)
   }
   uninstallRenamedMods(installedAfterRenames)
   // Old skills come back as their mod, the same way.
-  const skillsModId = `${SKILLS_MOD}@${marketplace.name}`
   const oldSkills = listOldSkills()
-  if (isUpdated && !installed.has(skillsModId) && oldSkills.length > 0) {
+  if (isUpdated && !installed.has(modId(SKILLS_MOD)) && oldSkills.length > 0) {
     installMod(SKILLS_MOD, installedAfterRenames)
   }
   removeOldSkills(installedAfterRenames, [], oldSkills)
@@ -748,7 +761,7 @@ p.intro(`claude-config ${command}`)
 try {
   await (command === 'install' ? install(flags.includes('--link')) : update())
 } catch (error) {
-  p.cancel(error instanceof Error ? error.message : String(error))
+  p.cancel(errorMessage(error))
   process.exit(1)
 }
 if (hasFailed) {

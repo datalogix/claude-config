@@ -27,7 +27,8 @@ them and no "pronto": an answer that succeeded is only reported again
 once they end. A failed or interrupted answer stays next to them. The
 final notice for background agents goes out when the last one ends,
 saying how many workflows still run; a workflow's own end comes back as
-a new answer from Claude.
+a new answer from Claude. An agent held on its own background work still
+counts as running, so no "finished" notice goes out until it really ends.
 
 A plan window whose reset time has passed leaves the status line
 until the next answer from the API brings the new window; a window

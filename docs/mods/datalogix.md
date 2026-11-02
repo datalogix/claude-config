@@ -8,7 +8,9 @@ check its skills.
 
 - `review/` — `/datalogix:review`: step-by-step review of Laravel
   packages and applications, JS/TS libraries and Nuxt/Next
-  applications. Run `/datalogix:review help` for details.
+  applications. It takes `status`, `report [<mode>]`, `reset [<mode>]`,
+  a focus mode with an optional folder, a single step, or a folder. Run
+  `/datalogix:review help` for details.
   It never suggests adding a community file (`FUNDING.yml`,
   `SECURITY.md`, issue templates...) that the organization's public
   `<owner>/.github` repository already provides as the default.
@@ -26,9 +28,9 @@ check its skills.
   suggested, when the changes touch sensitive areas (auth, validation,
   raw queries, uploads, session, headers, secrets, dependencies) on a
   branch other than the default one, since it only reviews what the
-  branch adds. The
-  checked ones run in the same session: their reviewers are subagents
-  that do not see the review's conversation. Every finding is shown,
+  branch adds. The checked ones run in the same session: their
+  reviewers are subagents that do not see the review's conversation.
+  Every finding is shown,
   unfiltered, in one extra report, with the ones that repeat a refused
   item or a project decision marked as such; `/code-review ultra` is
   only mentioned, for you to run.
@@ -61,8 +63,9 @@ check its skills.
   only after confirmation. `/datalogix:issue #123` rewrites an
   existing issue the same way, keeping its labels except the ones
   you check to remove, and warns when the current repository is a
-  fork, since a bare `#123` points at the fork's issue. Run
-  `/datalogix:issue help` for details.
+  fork, since a bare `#123` points at the fork's issue. `-R
+  <owner/repo>` opens the issue in another repository, and a link to
+  an issue works like `#123`. Run `/datalogix:issue help` for details.
 - `pr/` — `/datalogix:pr`: opens the current branch's pull request in
   the format of Claude's pull requests in `datalogix/workflows`: a
   Conventional Commits title and _Resumo_, _Motivação_ (with
@@ -77,7 +80,8 @@ check its skills.
   (an answer is optional) and can create the issue first with
   `/datalogix:issue`. Only after confirmation does it push the
   branch, if you checked that, never with `--force`, and create the
-  pull request with `gh`. Run `/datalogix:pr help` for details.
+  pull request with `gh`. `--base <branch>` targets another branch and
+  `--draft` opens a draft. Run `/datalogix:pr help` for details.
 - `commit/` — `/datalogix:commit`: commits the staged changes with a
   Conventional Commits message, following the project's recent
   commits (e.g. whether it uses a scope). With nothing staged, it
@@ -86,12 +90,11 @@ check its skills.
   or one by one; you can also make a single commit of everything, or
   pick the changed files one by one. It never stages with `git add
   -A`, and cancelling unstages what it staged. `grupos: <title>
-  (<files>); ...` starts from a given split, as `/datalogix:review`
-  shows it. The preview also points out files that look generated
-  (`dist/`, `vendor/`, minified files). The preview points out
-  a commit that depends on an unchecked one, and one whose content,
-  split by hunk, was never tested.
-  It warns about changes left out of the commit, commits straight to
+  (<files>); ...` starts from a split you give. The preview also
+  points out files that look generated (`dist/`, `vendor/`, minified
+  files), a commit that depends on an unchecked one, and one whose
+  content, split by hunk, was never tested. It warns about changes left
+  out of the commit, commits straight to
   the default branch and parts of the diff that look sensitive, asks
   whether to keep a branch name that ends in a date (`review/2026-11-01`),
   suggesting a rename (`/datalogix:pr` and `/datalogix:review` ask too;
@@ -131,14 +134,15 @@ default branch's latest commit titles and, only when in doubt (little
 history or mixed languages), ask, suggesting Portuguese, and offer to
 add that line to `CLAUDE.md`. `/datalogix:review` does the same for
 the commits it suggests and keeps the result in the progress file.
-Conventional Commits types stay in English. The previews and questions of issue,
-pr, commit and ci end with a `## Pendências` list (`/datalogix:review`
-uses it only when `topics` is active), answered in place when the
-[topics](topics.md) mod is installed. Only the boxes you check
-apply: a box a preview wrote checked is a suggestion, which `topics`
-shows unchecked, so leaving one alone never removes anything.
-`tests/skills.test.js` checks that every item the skills describe
-parses as one.
+Conventional Commits types stay in English. The previews and questions
+of issue, pr, commit and ci end with a `## Pendências` list
+(`/datalogix:review` uses it only when `topics` is active), answered in
+place when the [topics](topics.md) mod is installed. Only the boxes
+checked when you send the list apply: an item a skill marks
+`(recomendo)` starts checked, so sending as is approves it, while a box
+a preview wrote checked is a suggestion, which `topics` shows unchecked,
+so leaving one alone never removes anything. `tests/skills.test.js`
+checks that every item the skills describe parses as one.
 
 Earlier versions copied these skills into `~/.claude/skills/` as
 `/review` and `/issue`, with a `.claude-config` marker (or linked them

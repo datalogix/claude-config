@@ -4,7 +4,10 @@
 
 - `mods/` — Claude Code mods (plugins), listed in
   `.claude-plugin/marketplace.json`
-- `bin/` — the installer (`cli.js`) run by `npx`
+- `bin/` — the installer (`cli.js`, `options.js`, `quote.js`) run by
+  `npx`
+- `tests/` — Vitest tests of the installer and of the skills' Markdown;
+  each mod's own tests sit next to its hooks
 - `docs/` — documentation of each mod and of development
 
 ## Working on this repository
@@ -25,7 +28,7 @@ neither it nor its mods (`update` still does). Remove it with
 uninstalls its mods and deletes their options and data.
 
 Run the tests with `npm test`: Vitest for `tests/` (the installer,
-the skills' `## Pendências` items against the `topics` parser, the
+the skills' Markdown against the `topics` parser and each other, the
 license) plus `claude plugin test` for each mod with hooks, so it
 needs the `claude` CLI.
 
@@ -39,8 +42,10 @@ During install, each option's question starts from the value you
 configured or, for an option you never configured, the mod's latest
 default. Only answers that differ from the default, and options you
 already configured, are stored, so a default you never changed follows
-the mod when it changes. Without a terminal, no answer is stored and
-the mods use their defaults.
+the mod when it changes. An option without a default is compared with
+what its question starts from: `false` for a boolean, the first choice
+for a select. Without a terminal, no answer is stored and the mods use
+their defaults.
 
 ## Adding a mod
 
@@ -65,5 +70,6 @@ the mods use their defaults.
 3. Add `claude plugin test mods/<name>` to the `test` script in
    `package.json` (it fails for a mod without hooks).
 4. Run the installer again. Options declared in `userConfig` are asked
-   during install (`number`, `string`, `boolean`, and `options` for a
-   fixed list).
+   during install (`number`, `string`, `boolean`, `options` for a fixed
+   list, and `sensitive` for a hidden answer that keeps the stored value
+   when left empty).

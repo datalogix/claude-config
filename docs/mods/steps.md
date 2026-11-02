@@ -7,4 +7,4 @@ under Claude's spinner. Errors and interrupted calls stay visible, as
 does a group that holds more than tool calls (recalled memory, hook
 timing), and the ctrl+o transcript shows the tool rows; the ctrl+b hint
 comes back only with `/steps`, which shows or hides the rows for the
-current session.
+current session. A tool progress row of any other kind stays visible.

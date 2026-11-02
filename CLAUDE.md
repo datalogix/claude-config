@@ -13,13 +13,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm install
-npm test                                  # Vitest for tests/ + `claude plugin test` for each mod with hooks (needs the claude CLI)
+npm test                                  # Vitest for tests/ + `claude plugin test` per mod with hooks (needs claude)
 npx vitest run tests/cli-install.test.js  # one installer test file
 npx vitest run tests/cli-update.test.js -t "renamed"  # installer tests whose name matches
 claude plugin test mods/topics            # one mod's tests (*.test.ts/tsx under the folder)
 npm run lint                              # eslint . && prettier --check .
 npm run format                            # prettier --write . && eslint . --fix
-node bin/cli.js install --link            # install from this clone: mods load in place, edits apply after /reload-plugins
+node bin/cli.js install --link            # install from this clone: edits apply after /reload-plugins
 ```
 
 `claude plugin validate` warns that mods have no `version`; that is intended (see below).
@@ -44,17 +44,17 @@ node bin/cli.js install --link            # install from this clone: mods load i
   "Finished with errors" and exit code 1.
 - Failing to list the installed mods or the marketplaces (`runClaudeList`), or a reply that is not a JSON list of items
   with their `id` or `name`, is a failure that stops the mods part of the run, since an empty list would read as
-  nothing installed. Failing to read a mod's options
-  (`plugin configure --json`) is a failure that skips configuring that mod; a reply without `inputs` only warns and
-  skips it too. Cancelling a prompt ends with the run's closing hint (`reloadHint`): `/clear`, and `/reload-plugins`
-  when a mod already changed (`hasModChanges`).
+  nothing installed. Failing to read a mod's options (`plugin configure --json`) is a failure that skips configuring
+  that mod; a reply without an `inputs` object only warns and skips it too. Cancelling a prompt ends with the run's
+  closing hint (`reloadHint`): `/clear`, and `/reload-plugins` when a mod already changed (`hasModChanges`).
 - `install` also updates the marketplace (only when it was already added) and the mods already installed
   (`updateMarketplace`, `refreshMod`), as `update` does, so either command leaves them current. It logs
   `refreshed: <name>`, and a failed marketplace update still refreshes the mods. A failed refresh still asks for
   the mod's options. A marketplace added from another source than the one asked for (GitHub with `--link`, or the
   other way around) is only pointed out: neither it nor the mods are updated, and an installed mod with nothing to
-  configure logs `ok: <name>`, unless its options could not be read (`isSkipped`), which is already reported. A mod
-  also loaded inline (`<name>@inline` in `plugin list`) is pointed out on `install`.
+  configure logs `ok: <name>`, unless its options could not be read (`isSkipped`), which is already reported. A
+  marketplace with no readable source (no text in its source fields) still updates. A mod also loaded inline
+  (`<name>@inline` in `plugin list`) is pointed out on `install`.
 - It no longer writes skills. Earlier versions copied them into `~/.claude/skills/<name>` with a `.claude-config`
   marker (or symlinked them with `--link`); `removeOldSkills` deletes those folders, and only those, once the
   `datalogix` mod (`SKILLS_MOD`) is installed or unchecked. `update` installs `datalogix` when such folders exist.
@@ -85,8 +85,9 @@ node bin/cli.js install --link            # install from this clone: mods load i
   `optionChanges` decides whether anything needs storing, and `configured: <name>` is logged only after
   `plugin configure --values-stdin` ran.
 - On Windows, when `claude` resolves to npm's `claude.cmd`, it is run through `cmd` with `cmdLine`/`quoteForCmd`
-  (`bin/quote.js`). `tests/quote-cmd.test.js` checks that quoting and this fallback (running `update`) against the real
-  `cmd.exe`, through a fake `claude.cmd` shaped like npm's shim, on the `windows` CI job only.
+  (`bin/quote.js`). `tests/quote-cmd.test.js` checks that quoting, stdin reaching the program behind the shim and this
+  fallback (running `update`) against the real `cmd.exe`, through a fake `claude.cmd` shaped like npm's shim, on the
+  `windows` CI job only.
 - Every `claude` call (`runClaude`) has a timeout (`CLAUDE_TIMEOUT_MS`, 120s; tests lower it with
   `CLAUDE_CONFIG_TIMEOUT_MS`) and runs with `GIT_TERMINAL_PROMPT=0`, so a hung network call or a git asking for
   credentials fails the step instead of freezing the installer. A `claude --version` that times out is such a failure
@@ -112,8 +113,9 @@ node bin/cli.js install --link            # install from this clone: mods load i
   `claude plugin test` neither generates nor checks them: it checks the mods' behavior.
 - Mods that keep plugin state declare it in `types/index.d.ts` (augmenting `PluginState`) and point to it from the
   `types` field of `plugin.json`.
-- `mods/*/.claude-plugin/types/` is generated by Claude Code. It is git- and eslint-ignored, and each mod's
-  `tsconfig.json` extends it.
+- `mods/*/.claude-plugin/types/` is generated by Claude Code. It is git- and eslint-ignored, and the `tsconfig.json` of
+  each mod with hooks
+  extends it.
 - Never add `version` to `plugin.json` or to the marketplace entry. Without it, the commit SHA is the version, so every
   push reaches `update`.
 - A new mod needs:
@@ -137,9 +139,9 @@ node bin/cli.js install --link            # install from this clone: mods load i
   picked (`gh label create`), never on its own.
 - `/datalogix:pr` (`pr/SKILL.md`) is a single prompt-only file in Portuguese. It runs test/lint scripts only when the
   user picks them. Only after confirmation does it push the branch (if the user checked it, never with `--force`)
-  and run `gh pr create --body-file`. Without an issue it can create one by
-  reading and following `../issue/SKILL.md` from its step 2 (the issue skill has `disable-model-invocation`, so it
-  cannot be invoked as a skill): renumbering the issue skill's steps breaks that reference.
+  and run `gh pr create --body-file`. Without an issue it can create one by reading and following
+  `../issue/SKILL.md` from its step 2 (the issue skill has `disable-model-invocation`, so it cannot be invoked as a
+  skill): renumbering the issue skill's steps breaks that reference.
 - `/datalogix:commit` (`commit/SKILL.md`) is a single prompt-only file in Portuguese. It commits what is staged;
   with nothing staged it suggests commits grouped by feature or fix, unchecked, plus one commit of everything or
   the changed files of `git status --porcelain -uall` one by one, unchecked, and stages only what is checked (never
@@ -147,7 +149,7 @@ node bin/cli.js install --link            # install from this clone: mods load i
   (or `git rm --cached` before the first commit), never `reset --hard`/`checkout`, and only when no staged file
   has unstaged changes. Parts of a file go to different commits through `git apply --cached` with a patch of whole
   hunks, never `git add -p` and never touching the working tree. A split shows every commit in one preview,
-  confirmed all at once or one by one; `grupos: ...` (as `/datalogix:review` suggests) seeds the groups. It adds an
+  confirmed all at once or one by one; `grupos: ...` seeds the groups with a split the user already has. It adds an
   authorship trailer only when the session's instructions ask for one, runs `git commit -F` after confirmation,
   never with `--amend`/`--no-verify`, and never pushes.
 - A branch whose last segment is only a date (`review/2026-11-01`) is handled by the "Branch com data" item of the

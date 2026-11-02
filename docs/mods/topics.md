@@ -1,8 +1,12 @@
 # topics
 
 Adds an instruction to the system prompt so long answers start with a
-summary and are split into `## ` topics, shown closed (also in the
-ctrl+o transcript) with a one-line preview. `/topics` opens the last
+summary and are split into `## ` topics, shown closed when an answer
+has two or more of them or a `## Pendências` list (also in the ctrl+o
+transcript), with a one-line preview. Titles, boxes and previews are
+drawn as plain text: emphasis marks and backticks come off and what a
+code span holds stays as written; the list sent back keeps the original
+text. `/topics` opens the last
 answer in a keyboard-driven pane (Tab, arrows, 1–9 for the topics,
 a/f to open or close all); its boxes and its send button are the ones
 of that answer in the conversation, so checking or sending in one
@@ -46,8 +50,9 @@ Which database?
 - `ver: <topic title>` becomes a button that opens that topic next to
   the item; the title is matched ignoring case, accents, backticks and
   bold or italic marks, the first matching topic winning, and with no
-  match it stays as a plain detail. Only an item's first `ver:` counts; a later one stays
-  as a detail. The instruction asks for it once per decision, on the
+  match it stays as a plain detail. Only an item's first `ver:` counts;
+  a later one stays as a detail. The instruction asks for it once per
+  decision, on the
   first alternative of a group
 - a box the answer wrote checked (`[x]`, `(x)`) starts unchecked, marked
   "sugerido" (not when it also has a stance): writing `[x]` never

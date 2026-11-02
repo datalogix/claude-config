@@ -37,11 +37,13 @@ Respostas às seções `## Pendências`, em todos os passos:
   (`gh repo view --json nameWithOwner,visibility,defaultBranchRef`).
   Se falhar, diga o motivo e pare; não tente configurar nada.
 - Base: `--base` ou a branch padrão. Se a branch atual for a base,
-  diga que é preciso uma branch própria e pare.
+  diga que é preciso uma branch própria e pare. HEAD destacado
+  (`git branch --show-current` vazio): diga o mesmo e pare.
 - Se já houver PR aberto da branch (`gh pr view --json url,state`),
   mostre o link e pare.
 - Atualize a base com `git fetch origin <base>` e compare sempre
-  com `origin/<base>`, nunca com a branch local de mesmo nome.
+  com `origin/<base>`, nunca com a branch local de mesmo nome. Se
+  falhar (ex.: a base não existe), mostre o erro e pare.
 - Diff vazio contra a base (`git diff --quiet
   origin/<base>...HEAD` sai com 0): diga e pare. Commits que se
   anulam, como um revert, também contam como vazio.
@@ -50,7 +52,7 @@ Respostas às seções `## Pendências`, em todos os passos:
   commit`. Desmarcado, pare. Não faça commit.
 - Branch sem upstream ou com commits sem push (`git rev-list
   --count @{u}..HEAD` maior que 0): pergunte com `- [ ] Enviar a
-  branch (git push -u origin <branch>) antes de criar o PR`.
+  branch ao origin (git push -u) antes de criar o PR`.
   Desmarcado, pare. O push só acontece no passo 7.
 - Branch com data: siga o item "Branch com data" do passo 1 de
   `${CLAUDE_SKILL_DIR}/../commit/SKILL.md`, com o assunto tirado do
@@ -58,7 +60,8 @@ Respostas às seções `## Pendências`, em todos os passos:
   novo.
 - As perguntas dos passos 1 e 2 vão numa única mensagem, depois de
   ler a issue, que termina com uma seção `## Pendências`, uma caixa
-  por pergunta, e espera a resposta antes do passo 3.
+  por pergunta (na de branch com data, o grupo `( )`), e espera a
+  resposta antes do passo 3.
 
 ## 2. Issue
 - Número: o de `#<número>` ou, sem ele, o primeiro número do nome da
@@ -67,8 +70,10 @@ Respostas às seções `## Pendências`, em todos os passos:
   PR segue sem issue (passo 4).
 - Leia a issue (`gh issue view <número> --json
   number,title,body,state,url`). Se não existir, diga e siga sem
-  ela. Se estiver fechada, avise e pergunte com `- [ ] Continuar com
-  a #<número> (<título>) fechada` (passo 1). Desmarcado, pare.
+  ela. Se estiver fechada e o número veio de `#<número>`, avise e
+  pergunte com `- [ ] Continuar com a #<número> (<título>) fechada`
+  (passo 1). Desmarcado, pare. Se veio da branch, não faça essa
+  pergunta: avise na caixa abaixo que ela está fechada.
 - Se o número veio da branch, ele pode não ser de uma issue (ex.:
   `fix/2fa-login` ou `deps/vite-5-upgrade`): pergunte sempre com
   `- [ ] Fechar a #<número> (<título>) no merge` (passo 1). Leia os
@@ -129,7 +134,7 @@ pergunta aberta fica como texto na seção, para responder em texto:
     issue antes com /datalogix:issue`, para o PR fechá-la com
     `Closes` e, com o label `task`, ligá-la ao gerenciador de
     tarefas.
-- Sem idioma no `CLAUDE.md`: a pergunta de idioma do passo 3.
+- Se o item "Idioma" do passo 3 deixou uma pergunta: ela.
 
 Depois da resposta:
 - Se a resposta não diz o que foi rodado e nenhum script foi

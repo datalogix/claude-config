@@ -19,9 +19,6 @@ Respostas às seções `## Pendências`, em todos os passos:
   desmarcada, não faça aquilo.
 - Resposta só em texto, sem a lista: nenhuma caixa conta como
   marcada, salvo as que o texto citar.
-- Grupo de alternativas `( )` sem nenhuma marcada nem resposta em
-  texto: pergunte de novo só esse grupo, salvo quando o passo
-  disser o que vale sem resposta.
 
 ## 1. Execução
 - Confirme que o `gh` está autenticado e enxerga o repositório
@@ -32,9 +29,11 @@ Respostas às seções `## Pendências`, em todos os passos:
   difere do `nameWithOwner`): diga que a skill só trata o
   repositório do diretório atual e pare.
 - Com `#<número>`, leia o PR (`gh pr view <número> --json
-  number,title,headRefName,headRefOid,url`): a branch é
+  number,title,headRefName,headRefOid,baseRefName,url`): a branch é
   `headRefName` e o commit é `headRefOid`. Sem argumento, use a
-  branch atual e o commit dela (`git rev-parse HEAD`).
+  branch atual e o commit dela (`git rev-parse HEAD`). HEAD destacado
+  (`git branch --show-current` vazio): use só `--commit` abaixo; sem
+  execução, diga e pare.
 - Com run: `gh run view <id> --json
   databaseId,name,workflowName,headBranch,headSha,status,conclusion,url`.
   - Concluído com sucesso (`conclusion` `success`): diga e pare.
@@ -47,7 +46,8 @@ Respostas às seções `## Pendências`, em todos os passos:
   `startup_failure`, a de `createdAt` mais recente. Sem nenhuma
   (ex.: commit local ainda sem push), a mais recente com falha da
   branch: o mesmo `gh run list` com `--branch <branch>` no lugar de
-  `--commit`. Sem nenhuma também, diga e pare.
+  `--commit`. Sem nenhuma também, diga e pare. Se houver outras com
+  falha nesse commit, cite-as na prévia, com o link.
 - Se houver uma execução mais nova do mesmo workflow na mesma
   branch, ainda rodando ou que passou (`gh run list --branch
   <branch> --workflow "<workflowName>" --limit 5`), avise: a falha
@@ -70,7 +70,6 @@ Respostas às seções `## Pendências`, em todos os passos:
         or .conclusion == "cancelled")
       | "\(.id) \(.conclusion) \(.name)"'
   ```
-
 - Um job `cancelled` costuma ter sido cancelado por outro (o
   fail-fast da matriz), pela concorrência ou por alguém. Havendo
   algum `failure` ou `timed_out` na lista, só cite os `cancelled`
@@ -78,12 +77,12 @@ Respostas às seções `## Pendências`, em todos os passos:
   o log deles: podem ter passado do `timeout-minutes`. Se foram
   cancelados pela concorrência ou por alguém, diga isso e não
   proponha correção nem rodar de novo.
-
-- Sem nenhum job na lista (um `startup_failure` não chega a criar
-  jobs): o problema está no workflow, não no código. Leia o erro
-  com `gh run view <id>` e trate-o como a falha a diagnosticar, no
-  arquivo `.github/workflows/` que ele cita.
-
+- Sem nenhum job na lista: com `conclusion` `startup_failure` ou
+  `failure`, o problema está no workflow, não no código; leia o
+  erro com `gh run view <id>` e trate-o como a falha a diagnosticar,
+  no arquivo `.github/workflows/` que ele cita. Em andamento ou com
+  outra `conclusion`, diga que nenhum job falhou até agora, com o
+  `status` e a `conclusion`, e pare.
 - Leia o log de cada um com `gh api
   repos/{owner}/{repo}/actions/jobs/<id do job>/logs | tail -n
   300`. Se o erro não estiver nesse trecho, procure no log inteiro
@@ -98,12 +97,18 @@ Respostas às seções `## Pendências`, em todos os passos:
 ## 3. Diagnóstico
 Para cada falha, ache a causa no código local e classifique:
 - **Causada pela mudança**: a branch introduziu o problema.
-  Atualize a base com `git fetch origin <branch padrão>` e compare
-  com ela (`git diff origin/<branch padrão>...HEAD` nos arquivos
-  envolvidos) para confirmar.
-- **Pré-existente**: falha igual na branch padrão (`gh run list
-  --branch <branch padrão> --workflow "<workflowName>" --limit 5`)
-  ou em código que a branch não tocou.
+  Atualize a base com `git fetch origin <base>` (a `baseRefName` com
+  `#<número>`; senão, a branch padrão) e compare com ela (`git diff
+  origin/<base>...HEAD` nos arquivos envolvidos) para confirmar.
+  Na branch padrão, a base é o commit da última execução que passou
+  (`gh run list --branch <branch padrão> --workflow "<workflowName>"
+  --status success --limit 1 --json headSha`): compare com
+  `git diff <headSha>...HEAD`, e o que esse intervalo trouxe conta
+  como causado pela mudança. Sem execução que passou, diga e trate
+  como pré-existente.
+- **Pré-existente**: falha igual na base (`gh run list --branch
+  <base> --workflow "<workflowName>" --limit 5`) ou em código que a
+  branch não tocou.
 - **Intermitente**: teste que depende de tempo, ordem ou rede, ou
   que passou numa execução anterior do mesmo commit.
 - **Infraestrutura**: dependência indisponível, timeout do runner,
@@ -163,10 +168,13 @@ alterado antes da resposta.
   instale.
 - Se a validação falhar, mostre o erro, liste os arquivos já
   alterados e pare; não tente outra correção sem nova confirmação.
-  Não desfaça nada por conta própria: para desfazer, o usuário pode
-  usar `git restore -- <arquivo>`.
-- Rodar de novo, se marcado: `gh run rerun <id> --failed`, e
-  mostre o link.
+  Não desfaça nada por conta própria. Para desfazer, o usuário pode
+  usar `git restore -- <arquivo>`; se o arquivo já tinha mudanças
+  sem commit (passo 1), diga que o comando as apaga também e que,
+  nesse caso, é melhor desfazer à mão.
+- Rodar de novo, se marcado: `gh run rerun <id> --failed`, e mostre
+  o link; se falhar, mostre o erro. Faça isso mesmo que uma validação
+  tenha falhado; com "Reproduzir" marcado, só depois da nova prévia.
 
 ## 6. Fim
 Mostre o resultado de cada validação e os arquivos alterados. Não

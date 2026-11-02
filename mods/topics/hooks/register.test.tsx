@@ -45,8 +45,8 @@ const PANE_PROPS: RenderPropsOf['Pane'] = {
   view: {},
 }
 
-const mountPane = ($: TestEngine) =>
-  $.ui.mount({ plugin: 'topics', surface: 'terminal', component: 'Pane', requestId: 'topics', props: PANE_PROPS })
+const mountPane = ($: TestEngine, props = PANE_PROPS) =>
+  $.ui.mount({ plugin: 'topics', surface: 'terminal', component: 'Pane', requestId: 'topics', props })
 
 /**
  * A failing hook is skipped and the original drawn, so this wraps each message in a Box keyed `topics-<outcome>` to
@@ -65,6 +65,16 @@ const watcher = {
   },
 } as const
 const withWatcher = { plugins: [watcher as never] }
+
+/** Answers prompt.submit and collects what was sent. */
+const collectSent = (on: On) => {
+  const sent: string[] = []
+  on('prompt.submit', ($, e) => {
+    sent.push(e.text)
+    return { text: '' } as never
+  })
+  return sent
+}
 
 const startTurn = (extra: Partial<TurnStartInput> = {}): TurnStartInput => ({ text: 'oi', turnId: 't1', ...extra })
 
@@ -101,8 +111,8 @@ const WITH_ACTIONS = [
   'Qualquer dúvida me avise.',
 ].join('\n')
 
-/** Tags the text so no other message in the test is drawn with the same answer: the pane keeps its own state. */
-const paneOnly = (text: string, tag: string) => text.replace('\n\n## ', `\n\n(${tag})\n\n## `)
+/** For answers of a test that must differ from each other. */
+const withTag = (text: string, tag: string) => text.replace('\n\n## ', `\n\n(${tag})\n\n## `)
 
 const WITH_ALTERNATIVES = [
   'Achei um problema no badge.',
@@ -200,6 +210,10 @@ describe('parseAnswer', () => {
       { item: 2 },
     ])
   })
+
+  test('a ### title stays in the body of its topic', () => {
+    expect(parseAnswer('## A\n### Sub\nx\n## B').topics[0]?.body).toBe('### Sub\nx')
+  })
 })
 
 describe('parseActions', () => {
@@ -228,17 +242,15 @@ describe('parseActions', () => {
     expect(actions.parts).toEqual([{ text: 'Rode isto:\n```\n- [ ] não é item\n```' }, { item: 0 }])
   })
 
-  test('the recommended mark may end in a period or bold', () => {
-    const actions = parseAnswer('## Pendências\nQual?\n- ( ) A (recomendado).\n- ( ) B **(recomendada)**').actions!
-    expect(actions.items.map((i) => STANCE_MARK.test(i.text))).toEqual([true, true])
-  })
-
   test('a fully bold recommended item loses both bold marks', () => {
     expect(withoutStanceMark('**Usar Redis (recomendado)**')).toBe('Usar Redis')
     expect(withoutStanceMark('A ** B (recomendado)**')).toBe('A B')
     expect(withoutStanceMark('B **(recomendada)**')).toBe('B')
-    expect(withoutStanceMark('**Usar** Redis')).toBe('**Usar** Redis')
     expect(withoutStanceMark('**Redis** com **cache local (recomendado)**')).toBe('**Redis** com cache local')
+  })
+
+  test('text without a mark keeps its bold', () => {
+    expect(withoutStanceMark('**Usar** Redis')).toBe('**Usar** Redis')
   })
 
   test('a recommended mark without bold leaves a ** in code alone', () => {
@@ -271,6 +283,12 @@ describe('the stance marks', () => {
     expect(stanceOf('(recomendado) A')).toBe('recommended')
     expect(stanceOf('A')).toBeUndefined()
     expect(withoutStanceMark('(não recomendo) A')).toBe('A')
+  })
+
+  test('a mark in capitals reads as its own stance, so a (NÃO RECOMENDO) does not start checked', () => {
+    expect(stanceOf('(NÃO RECOMENDO) A')).toBe('notRecommended')
+    expect(stanceOf('(AVALIE) A')).toBe('evaluate')
+    expect(defaultChecked(parseAnswer('## Pendências\n- [ ] (NÃO RECOMENDO) A').actions!)).toEqual([])
   })
 
   test('only recommended items start checked, one per radio group', () => {
@@ -312,7 +330,7 @@ describe('the item marks', () => {
     '**(recomendado)** A',
   ]) {
     test(`"${text}" carries the recommended mark`, () => {
-      expect(STANCE_MARK.test(text)).toBe(true)
+      expect(stanceOf(text)).toBe('recommended')
       expect(withoutStanceMark(text)).toBe('A')
     })
   }
@@ -555,6 +573,12 @@ describe('in the conversation', () => {
     expect((await ui.find({ key: 'row9-action-1' }))?.text).toBe('( ) B')
   })
 
+  test('a box written checked with a stance starts unchecked, and the stance alone marks it', async ($) => {
+    const ui = await mountMessage($, '## Pendências\n- [x] (avalie) A', 'stance-suggested')
+    expect((await ui.find({ key: 'stance-suggested-action-0' }))?.text).toBe('1. [ ] avalie: A')
+    expect(await ui.find({ type: 'Text', text: ' sugerido' })).toBeUndefined()
+  })
+
   test('each stance is drawn in its color before the text', async ($) => {
     const ui = await mountMessage(
       $,
@@ -595,25 +619,24 @@ describe('in the conversation', () => {
   test('an alternative opens its explanation in place', async ($) => {
     const ui = await mountMessage($, WITH_ALTERNATIVES, 'row4b')
     expect(await ui.find({ key: 'row4b-action-1-explanation' })).toBeUndefined()
-    const row4 = 'row4b'
-    expect((await ui.find({ key: `${row4}-action-0-explanation` }))?.text).toBe('▸ explicação: O caso')
+    expect((await ui.find({ key: 'row4b-action-0-explanation' }))?.text).toBe('▸ explicação: O caso')
     expect(await ui.find({ type: 'Markdown', text: /dentro do link\./ })).toBeUndefined()
-    await ui.press({ key: `${row4}-action-0-explanation` })
-    expect((await ui.find({ key: `${row4}-action-0-explanation` }))?.text).toBe('▾ explicação: O caso')
+    await ui.press({ key: 'row4b-action-0-explanation' })
+    expect((await ui.find({ key: 'row4b-action-0-explanation' }))?.text).toBe('▾ explicação: O caso')
     expect(await ui.find({ type: 'Markdown', text: /dentro do link\./ })).toBeDefined()
-    expect((await ui.find({ key: `${row4}-topic-0` }))?.text).toBe('▸ O caso')
+    expect((await ui.find({ key: 'row4b-topic-0' }))?.text).toBe('▸ O caso')
   })
 
   test('radios with no question before them get a number and a prompt', async ($) => {
-    const ui = await mountMessage($, '## Pendências\n- [ ] A\n- ( ) X\n- ( ) Y', 'row8')
+    const ui = await mountMessage($, '## Pendências\n- [ ] A\n- ( ) X\n- ( ) Y', 'no-question')
     expect((await ui.findAll({ type: 'Box', text: /escolha uma opção/ })).at(-1)?.text).toBe('2. escolha uma opção')
-    expect((await ui.find({ key: 'row8-action-1' }))?.text).toBe('( ) X')
+    expect((await ui.find({ key: 'no-question-action-1' }))?.text).toBe('( ) X')
   })
 
   test('"Pendências" with only text has no send button', async ($) => {
-    const ui = await mountMessage($, '## Pendências\nSó um aviso.', 'row9')
+    const ui = await mountMessage($, '## Pendências\nSó um aviso.', 'text-only')
     expect(await ui.find({ type: 'Markdown', text: /Só um aviso/ })).toBeDefined()
-    expect(await ui.find({ key: 'row9-actions-submit' })).toBeUndefined()
+    expect(await ui.find({ key: 'text-only-actions-submit' })).toBeUndefined()
     expect(await ui.find({ type: 'Text', text: / de / })).toBeUndefined()
   })
 
@@ -741,12 +764,8 @@ describe('sending the items', () => {
   }
 
   test('a press drawn before a turn started does not send', async ($, on) => {
-    const sent: string[] = []
     on('turn.start', ($, e) => ({ turnId: e.turnId }))
-    on('prompt.submit', ($, e) => {
-      sent.push(e.text)
-      return { text: '' } as never
-    })
+    const sent = collectSent(on)
     const between = pressAfter(on)
     const ui = await mountMessage($, WITH_ACTIONS, 'late')
 
@@ -757,28 +776,20 @@ describe('sending the items', () => {
   })
 
   test('a pane press drawn before another answer landed does not send', async ($, on) => {
-    const sent: string[] = []
     on('turn.complete', () => ({ text: '' }))
-    on('prompt.submit', ($, e) => {
-      sent.push(e.text)
-      return { text: '' } as never
-    })
+    const sent = collectSent(on)
     const between = pressAfter(on)
-    await $.turn.complete(completeTurn({ answer: paneOnly(WITH_ACTIONS, 'before') }))
+    await $.turn.complete(completeTurn({ answer: withTag(WITH_ACTIONS, 'before') }))
     const pane = await mountPane($)
 
-    between.run = () => $.turn.complete(completeTurn({ answer: paneOnly(WITH_ACTIONS, 'after'), turnId: 't2' }))
+    between.run = () => $.turn.complete(completeTurn({ answer: withTag(WITH_ACTIONS, 'after'), turnId: 't2' }))
     await pane.press({ key: 'topics-actions-submit' })
 
     expect(sent).toEqual([])
   })
 
   test('after sending, the button becomes "enviadas" and does not send again', async ($, on) => {
-    const sent: string[] = []
-    on('prompt.submit', ($, e) => {
-      sent.push(e.text)
-      return { text: '' } as never
-    })
+    const sent = collectSent(on)
     const ui = await mountMessage($, WITH_ACTIONS, 'sent')
     await Promise.all([ui.press({ key: 'sent-actions-submit' }), ui.press({ key: 'sent-actions-submit' })])
     expect(sent).toHaveLength(1)
@@ -813,6 +824,37 @@ describe('sending the items', () => {
     ).toBeDefined()
     await $.turn.complete(completeTurn({ answer: WITH_ACTIONS }))
     expect(await ui.find({ key: 'busy-actions-submit' })).toBeDefined()
+  })
+
+  test('an agent ending while Claude answers does not release sending', async ($, on) => {
+    on('turn.start', ($, e) => ({ turnId: e.turnId }))
+    on('turn.complete', () => ({ text: '' }))
+    await $.turn.start(startTurn())
+    const ui = await mountMessage($, WITH_ACTIONS, 'agent-end')
+
+    await $.turn.complete(completeTurn({ answer: ANSWER, turnId: 't2', agentId: 'sub1' }))
+
+    expect(await ui.find({ key: 'agent-end-actions-submit' })).toBeUndefined()
+  })
+
+  test('a turn with an empty answer releases sending', async ($, on) => {
+    on('turn.start', ($, e) => ({ turnId: e.turnId }))
+    on('turn.complete', () => ({ text: '' }))
+    await $.turn.start(startTurn())
+    const ui = await mountMessage($, WITH_ACTIONS, 'empty-end')
+
+    await $.turn.complete(completeTurn({ answer: '' }))
+
+    expect(await ui.find({ key: 'empty-end-actions-submit' })).toBeDefined()
+  })
+
+  test('sending takes the checks as they are at the press, not as they were drawn', async ($, on) => {
+    const sent = collectSent(on)
+    const ui = await mountMessage($, WITH_ACTIONS, 'press-time')
+
+    await Promise.all([ui.press({ key: 'press-time-action-0' }), ui.press({ key: 'press-time-actions-submit' })])
+
+    expect(sent).toEqual(['Pendências:\n- [x] Rodar `npm test`\n- [ ] Já aprovado'])
   })
 
   test('while Claude answers, a press does not check, so a (recomendo) written later still starts checked', async ($, on) => {
@@ -879,15 +921,61 @@ describe('the format instruction', () => {
 })
 
 describe('the /topics pane', () => {
-  test('the command opens the pane', async ($, on) => {
-    const opened: string[] = []
+  test('registers /topics when the session starts', async ($, on) => {
+    const commands: string[] = []
+    on('command.register', (_$, e) => {
+      commands.push(e.name)
+      return { value: { command: e.name } }
+    })
+    on('session.start', (_$, e) => ({ cwd: e.cwd }))
+
+    await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+
+    expect(commands).toEqual(['topics'])
+  })
+
+  test('the command opens the pane, which Esc closes', async ($, on) => {
+    const opened: unknown[] = []
     on('ui.open', ($, e) => {
-      opened.push(e.id)
+      opened.push(e)
       return { value: {} } as never
     })
     const result = await $.command.run({ command: 'topics', args: '' } as never)
-    expect(opened).toEqual(['topics'])
+    expect(opened).toHaveLength(1)
+    expect(opened[0]).toMatchObject({ id: 'topics', focus: true, closeOnEscape: true })
     expect(result).toMatchObject({ text: 'Painel de tópicos aberto (Esc fecha).' })
+  })
+
+  test('says so when the last answer has no topics', async ($) => {
+    const ui = await mountPane($)
+    expect(await ui.find({ type: 'Text', text: 'A última resposta não tem tópicos ainda.' })).toBeDefined()
+  })
+
+  test('shows the summary of the answer', async ($, on) => {
+    on('turn.complete', () => ({ text: '' }))
+    await $.turn.complete(completeTurn({ answer: ANSWER }))
+    const ui = await mountPane($)
+    expect(await ui.find({ type: 'Markdown', text: 'Resumo: três coisas mudaram.' })).toBeDefined()
+  })
+
+  test('opens a single topic', async ($, on) => {
+    on('turn.complete', () => ({ text: '' }))
+    await $.turn.complete(completeTurn({ answer: ANSWER }))
+    const ui = await mountPane($)
+
+    await ui.press({ key: 'topics-topic-0' })
+
+    expect((await ui.find({ key: 'topics-topic-0' }))?.text).toBe('▾ Banco de dados')
+    expect(await ui.find({ type: 'Markdown', text: /índice/ })).toBeDefined()
+    expect(await ui.find({ type: 'Markdown', text: /Todos passaram/ })).toBeUndefined()
+  })
+
+  test('fits the rule after a title to the width of the pane', async ($, on) => {
+    on('turn.complete', () => ({ text: '' }))
+    await $.turn.complete(completeTurn({ answer: ANSWER }))
+    const ui = await mountPane($, { ...PANE_PROPS, bodyColumns: 40 })
+    const [rule] = await ui.findAll({ type: 'Text', text: /─/ })
+    expect(rule?.text).toBe(` ${'─'.repeat(20)}`)
   })
 
   test('the pane topics carry the hotkeys 1–9, and a message none', async ($, on) => {
@@ -909,6 +997,8 @@ describe('the /topics pane', () => {
     await $.turn.complete(completeTurn({ answer: ANSWER }))
 
     const ui = await mountPane($)
+    expect((await ui.find({ key: 'topics-open-all' }))?.props.hotkey).toBe('a')
+    expect((await ui.find({ key: 'topics-close-all' }))?.props.hotkey).toBe('f')
     expect(await ui.findAll({ type: 'Markdown', text: /índice|Todos/ })).toHaveLength(0)
     await ui.press({ key: 'topics-open-all' })
     expect(await ui.findAll({ type: 'Markdown', text: /índice|Todos/ })).toHaveLength(2)
@@ -917,12 +1007,8 @@ describe('the /topics pane', () => {
   })
 
   test('sends the items from the pane', async ($, on) => {
-    const sent: string[] = []
     on('turn.complete', () => ({ text: '' }))
-    on('prompt.submit', ($, e) => {
-      sent.push(e.text)
-      return { text: '' } as never
-    })
+    const sent = collectSent(on)
     await $.turn.complete(completeTurn({ answer: WITH_ACTIONS }))
 
     const ui = await mountPane($)
@@ -932,12 +1018,8 @@ describe('the /topics pane', () => {
   })
 
   test('sends the recommended items checked without a touch, and not after the user unchecks them', async ($, on) => {
-    const sent: string[] = []
     on('turn.complete', () => ({ text: '' }))
-    on('prompt.submit', ($, e) => {
-      sent.push(e.text)
-      return { text: '' } as never
-    })
+    const sent = collectSent(on)
     const answer = '## Pendências\n- [ ] (recomendo) A\n- [ ] (avalie) B'
     await $.turn.complete(completeTurn({ answer }))
     const ui = await mountPane($)
@@ -968,12 +1050,16 @@ describe('the /topics pane', () => {
     await $.ui.focus(focus as never)
     expect(await ui.findAll({ type: 'Text', text: /❯/ })).toHaveLength(1)
     expect((await ui.findAll({ type: 'Box', text: /^❯/ })).at(-1)?.text).toBe('❯ 2. [ ] Já aprovado sugerido')
+
+    // The engine's close mark: the event comes with no element.
+    await $.ui.focus({ component: 'Pane', requestId: 'topics', origin: { kind: 'person' } } as never)
+    expect(await ui.find({ type: 'Text', text: /❯/ })).toBeUndefined()
   })
 
   test('starts clean for each new answer', async ($, on) => {
     on('turn.complete', () => ({ text: '' }))
     on('prompt.submit', () => ({ text: '' }) as never)
-    const answer = paneOnly(WITH_ALTERNATIVES, 'clean')
+    const answer = WITH_ALTERNATIVES
     await $.turn.complete(completeTurn({ answer }))
     const ui = await mountPane($)
     await ui.press({ key: 'topics-action-0' })
@@ -991,7 +1077,7 @@ describe('the /topics pane', () => {
 
   test('an empty answer keeps the previous one in the pane', async ($, on) => {
     on('turn.complete', () => ({ text: '' }))
-    await $.turn.complete(completeTurn({ answer: paneOnly(WITH_ACTIONS, 'empty') }))
+    await $.turn.complete(completeTurn({ answer: WITH_ACTIONS }))
     const ui = await mountPane($)
     await ui.press({ key: 'topics-action-0' })
 
@@ -1000,13 +1086,9 @@ describe('the /topics pane', () => {
   })
 
   test('shares the checks and the send with the message of the same answer', async ($, on) => {
-    const sent: string[] = []
     on('turn.complete', () => ({ text: '' }))
-    on('prompt.submit', ($, e) => {
-      sent.push(e.text)
-      return { text: '' } as never
-    })
-    const answer = paneOnly(WITH_ACTIONS, 'shared')
+    const sent = collectSent(on)
+    const answer = WITH_ACTIONS
     const message = await mountMessage($, answer, 'shared')
     await $.turn.complete(completeTurn({ answer }))
     const pane = await mountPane($)
@@ -1021,10 +1103,10 @@ describe('the /topics pane', () => {
 
   test('forgets the message of an answer after 200 newer ones', async ($, on) => {
     on('turn.complete', () => ({ text: '' }))
-    const answer = paneOnly(WITH_ACTIONS, 'evicted')
+    const answer = WITH_ACTIONS
     const message = await mountMessage($, answer, 'evicted')
     await message.press({ key: 'evicted-action-0' })
-    for (let i = 0; i < 200; i++) await mountMessage($, paneOnly(WITH_ACTIONS, `newer ${i}`))
+    for (let i = 0; i < 200; i++) await mountMessage($, withTag(WITH_ACTIONS, `newer ${i}`))
     await $.turn.complete(completeTurn({ answer }))
 
     const pane = await mountPane($)
@@ -1033,10 +1115,24 @@ describe('the /topics pane', () => {
 
   test('still shares with the message of an answer after 199 newer ones', async ($, on) => {
     on('turn.complete', () => ({ text: '' }))
-    const answer = paneOnly(WITH_ACTIONS, 'kept')
+    const answer = WITH_ACTIONS
     const message = await mountMessage($, answer, 'kept')
     await message.press({ key: 'kept-action-0' })
-    for (let i = 0; i < 199; i++) await mountMessage($, paneOnly(WITH_ACTIONS, `kept newer ${i}`))
+    for (let i = 0; i < 199; i++) await mountMessage($, withTag(WITH_ACTIONS, `kept newer ${i}`))
+    await $.turn.complete(completeTurn({ answer }))
+
+    const pane = await mountPane($)
+    expect((await pane.find({ key: 'topics-action-0' }))?.text).toBe('1. [✔] Rodar npm test')
+  })
+
+  test('a message drawn again with the same answer starts over the count of newer ones', async ($, on) => {
+    on('turn.complete', () => ({ text: '' }))
+    const answer = WITH_ACTIONS
+    await mountMessage($, answer, 'old')
+    for (let i = 0; i < 100; i++) await mountMessage($, withTag(WITH_ACTIONS, `first ${i}`))
+    const fresh = await mountMessage($, answer, 'fresh')
+    for (let i = 0; i < 150; i++) await mountMessage($, withTag(WITH_ACTIONS, `then ${i}`))
+    await fresh.press({ key: 'fresh-action-0' })
     await $.turn.complete(completeTurn({ answer }))
 
     const pane = await mountPane($)
@@ -1045,7 +1141,7 @@ describe('the /topics pane', () => {
 
   test('shares with the newest message of an answer, even after an older one with the same text redraws', async ($, on) => {
     on('turn.complete', () => ({ text: '' }))
-    const answer = paneOnly(WITH_ACTIONS, 'twice')
+    const answer = WITH_ACTIONS
     const older = await mountMessage($, answer, 'older')
     await older.press({ key: 'older-action-0' })
     await $.turn.complete(completeTurn({ answer }))

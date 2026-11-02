@@ -287,8 +287,7 @@ function startSpinner($: EngineInterface, s: State) {
   })
 }
 
-export const planAlertLevels = (planAlert: number): number[] =>
-  [...new Set([75, planAlert, 100])].filter((level) => level > 0 && level <= 100).sort((a, b) => a - b)
+export const planAlertLevels = (planAlert: number): number[] => [...new Set([75, planAlert, 100])].sort((a, b) => a - b)
 
 /** Level keys are kind@resetsAt@level, so one prefix matches a kind and a longer one a window. */
 const kindKeyPrefix = (kind: string): string => `${kind}@`
@@ -465,8 +464,8 @@ export const register: Register = (on, options) => {
       if (endText && isBackground) s.failedAgentCount++
       // An agent error always sends a notice; an interruption or refusal, only in the background.
       const hasNotifiedEnd = Boolean(endText && (e.reason === 'error' || isBackground))
-      if (hasNotifiedEnd) {
-        await sendNotice($, s, endText!.replace('{}', who), { timeoutMs: 10000, isAboutBackgroundAgents: isBackground })
+      if (endText && hasNotifiedEnd) {
+        await sendNotice($, s, endText.replace('{}', who), { timeoutMs: 10000, isAboutBackgroundAgents: isBackground })
       }
       // The list may lag behind the end: this one no longer counts as active.
       s.finishedAgentIds.add(e.agentId)

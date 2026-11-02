@@ -1,6 +1,5 @@
 // Also covers what install does the same way; run without a terminal.
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { describe, test } from 'vitest'
@@ -8,11 +7,11 @@ import {
   ADDED_MARKETPLACE,
   assertCalledBefore,
   CLI,
-  binDir,
   PLAIN_MOD,
   claudeCalls,
   fakeClaude,
   home,
+  installedMods,
   addOldSkill,
   runCli,
   skillPath,
@@ -25,7 +24,7 @@ useTempHome()
 describe('update', { skip: process.platform === 'win32' }, () => {
   test('refreshes its own mods and leaves the rest alone', () => {
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"${PLAIN_MOD}@claude-config"},{"id":"other@elsewhere"}]'`,
+      'plugin list --json': installedMods(PLAIN_MOD, 'other@elsewhere'),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
     })
 
@@ -53,7 +52,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     /** @param {string} newVersion */
     const refreshTo = (newVersion) => {
       fakeClaude({
-        'plugin list --json': `echo '[{"id":"${PLAIN_MOD}@claude-config"}]'`,
+        'plugin list --json': installedMods(PLAIN_MOD),
         'plugin marketplace list --json': ADDED_MARKETPLACE,
         [`plugin update ${PLAIN_MOD}@claude-config --json`]: `echo '{"oldVersion":"abc","newVersion":"${newVersion}"}'`,
       })
@@ -70,7 +69,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
 
   test('counts a refresh reply that is not JSON as a change', () => {
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"${PLAIN_MOD}@claude-config"}]'`,
+      'plugin list --json': installedMods(PLAIN_MOD),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
       [`plugin update ${PLAIN_MOD}@claude-config --json`]: 'echo not json',
     })
@@ -79,6 +78,32 @@ describe('update', { skip: process.platform === 'win32' }, () => {
 
     assert.equal(status, 0, output)
     assert.match(output, /reload-plugins/)
+  })
+
+  test('counts a refresh reply of null as a change', () => {
+    fakeClaude({
+      'plugin list --json': installedMods(PLAIN_MOD),
+      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      [`plugin update ${PLAIN_MOD}@claude-config --json`]: 'echo null',
+    })
+
+    const { status, output } = runCli(['update'])
+
+    assert.equal(status, 0, output)
+    assert.match(output, /reload-plugins/)
+  })
+
+  test('asks for /reload-plugins when uninstalling the earlier name is the only change', () => {
+    fakeClaude({
+      'plugin list --json': installedMods('passos', 'steps'),
+      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin update steps@claude-config --json': `echo '{"oldVersion":"a","newVersion":"a"}'`,
+    })
+
+    const { status, output } = runCli(['update'])
+
+    assert.equal(status, 0, output)
+    assert.match(output, /and \/reload-plugins/)
   })
 
   test('replaces the skills copied by earlier versions with datalogix', () => {
@@ -98,7 +123,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
 
   test('only removes the old skills when datalogix is already installed', () => {
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"datalogix@claude-config"}]'`,
+      'plugin list --json': installedMods('datalogix'),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
     })
     addOldSkill('review')
@@ -126,7 +151,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
 
   test('does not reinstall the new name of a renamed mod already there', () => {
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"passos@claude-config"},{"id":"steps@claude-config"}]'`,
+      'plugin list --json': installedMods('passos', 'steps'),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
     })
 
@@ -141,7 +166,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
 
   test('keeps a renamed mod when the marketplace update fails', () => {
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"passos@claude-config"}]'`,
+      'plugin list --json': installedMods('passos'),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
       'plugin marketplace update claude-config': 'echo offline >&2; exit 1',
     })
@@ -155,9 +180,9 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     assert.match(output, /kept: passos/)
   })
 
-  test('neither reads nor configures the options', () => {
+  test('without a terminal, neither reads nor configures the options', () => {
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"status@claude-config"}]'`,
+      'plugin list --json': installedMods('status'),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
     })
 
@@ -170,7 +195,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
   // Root writes through the read-only modes below.
   test.skipIf(process.getuid?.() === 0)('still refreshes the mods when an old skill cannot be removed', () => {
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"datalogix@claude-config"},{"id":"steps@claude-config"}]'`,
+      'plugin list --json': installedMods('datalogix', PLAIN_MOD),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
     })
     addOldSkill('review')
@@ -182,16 +207,39 @@ describe('update', { skip: process.platform === 'win32' }, () => {
       const { status, output } = runCli(['update'])
 
       assert.equal(status, 1)
+      assert.ok(fs.existsSync(path.join(skillPath('review'), 'SKILL.md')), 'removed something before failing')
       assert.ok(fs.existsSync(skillPath('review')))
       assert.match(output, /could not remove ~\/\.claude\/skills\/review/)
       assert.match(output, /Finished with errors/)
-      assert.ok(claudeCalls().includes('plugin update steps@claude-config --json'))
+      assert.ok(claudeCalls().includes(`plugin update ${PLAIN_MOD}@claude-config --json`))
     } finally {
       fs.chmodSync(skills, 0o755)
     }
-    // The marker went last, so the next run still knows the folder and removes
-    // it ("only removes the old skills when datalogix is already installed").
+    // It failed before removing anything, so the next run still knows the folder and removes it.
     assert.ok(fs.existsSync(path.join(skillPath('review'), '.claude-config')))
+  })
+
+  // Root writes through the read-only mode below.
+  test.skipIf(process.getuid?.() === 0)('keeps the marker of an old skill removed only halfway', () => {
+    fakeClaude({
+      'plugin list --json': installedMods('datalogix'),
+      'plugin marketplace list --json': ADDED_MARKETPLACE,
+    })
+    addOldSkill('review')
+    const locked = path.join(skillPath('review'), 'locked')
+    fs.mkdirSync(locked)
+    fs.writeFileSync(path.join(locked, 'SKILL.md'), '')
+    fs.chmodSync(locked, 0o555)
+
+    try {
+      const { status, output } = runCli(['update'])
+
+      assert.equal(status, 1)
+      assert.match(output, /could not remove ~\/\.claude\/skills\/review/)
+      assert.ok(fs.existsSync(path.join(skillPath('review'), '.claude-config')))
+    } finally {
+      fs.chmodSync(locked, 0o755)
+    }
   })
 
   // Root reads through the mode below too.
@@ -226,7 +274,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
   })
 
   test('without the marketplace, removes the old skills when datalogix is installed', () => {
-    fakeClaude({ 'plugin list --json': `echo '[{"id":"datalogix@claude-config"}]'` })
+    fakeClaude({ 'plugin list --json': installedMods('datalogix') })
     addOldSkill('review')
     fs.mkdirSync(skillPath('foreign'))
 
@@ -257,7 +305,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
       JSON.stringify({ pluginConfigs: { 'status@claude-config': { options: { notificar: 'nunca' } } } }),
     )
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"status@claude-config"}]'`,
+      'plugin list --json': installedMods('status'),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
     })
 
@@ -268,6 +316,23 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     assert.ok(output.includes(path.join(configDir, 'settings.json')), output)
   })
 
+  test('looks for the old skills in ~/.claude even with CLAUDE_CONFIG_DIR set', () => {
+    const configDir = path.join(tmpDir, 'config')
+    fs.mkdirSync(path.join(configDir, 'skills/foreign'), { recursive: true })
+    fs.writeFileSync(path.join(configDir, 'skills/foreign/.claude-config'), '')
+    fakeClaude({
+      'plugin list --json': installedMods('datalogix'),
+      'plugin marketplace list --json': ADDED_MARKETPLACE,
+    })
+    addOldSkill('review')
+
+    const { status, output } = runCli(['update'], CLI, { CLAUDE_CONFIG_DIR: configDir })
+
+    assert.equal(status, 0, output)
+    assert.ok(!fs.existsSync(skillPath('review')))
+    assert.ok(fs.existsSync(path.join(configDir, 'skills/foreign')))
+  })
+
   test('shows a CLAUDE_CONFIG_DIR that only starts like HOME in full', () => {
     const configDir = `${home}-x`
     fs.mkdirSync(configDir)
@@ -276,7 +341,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
       JSON.stringify({ pluginConfigs: { 'status@claude-config': { options: { notificar: 'nunca' } } } }),
     )
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"status@claude-config"}]'`,
+      'plugin list --json': installedMods('status'),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
     })
 
@@ -289,12 +354,16 @@ describe('update', { skip: process.platform === 'win32' }, () => {
 
   test('ignores a settings.json it cannot read the options from', () => {
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"status@claude-config"}]'`,
+      'plugin list --json': installedMods('status'),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
     })
     fs.mkdirSync(path.join(home, '.claude'))
 
-    for (const settings of ['{', JSON.stringify({ pluginConfigs: { 'status@claude-config': { options: 'x' } } })]) {
+    for (const settings of [
+      '{',
+      JSON.stringify({ pluginConfigs: { 'status@claude-config': { options: null } } }),
+      JSON.stringify({ pluginConfigs: { 'status@claude-config': { options: 'x' } } }),
+    ]) {
       fs.writeFileSync(path.join(home, '.claude/settings.json'), settings)
 
       const { status, output } = runCli(['update'])
@@ -306,15 +375,12 @@ describe('update', { skip: process.platform === 'win32' }, () => {
 
   test('fails a claude call that hangs and still refreshes the mods', () => {
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"${PLAIN_MOD}@claude-config"}]'`,
+      'plugin list --json': installedMods(PLAIN_MOD),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
       // exec, so the timeout kills sleep itself and no child keeps the output open
       'plugin marketplace update claude-config': 'exec /bin/sleep 10',
     })
 
-    // The limit also covers the calls that must not hang, and the first run of a new script can take a while: it goes
-    // ahead of the limit, so only the call that hangs reaches it.
-    spawnSync(path.join(binDir, 'claude'), ['--version'])
     const { status, output } = runCli(['update'], CLI, { CLAUDE_CONFIG_TIMEOUT_MS: '3000' })
 
     assert.equal(status, 1, output)
@@ -365,7 +431,7 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
     'still refreshes the mods when the marketplace update fails, ending with exit code 1 (%s)',
     (command) => {
       fakeClaude({
-        'plugin list --json': `echo '[{"id":"${PLAIN_MOD}@claude-config"}]'`,
+        'plugin list --json': installedMods(PLAIN_MOD),
         'plugin marketplace list --json': ADDED_MARKETPLACE,
         'plugin marketplace update claude-config': 'echo offline >&2; exit 1',
       })
@@ -394,7 +460,7 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
 
   test.each(COMMANDS)('replaces the mods under their earlier names (%s)', (command) => {
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"passos@claude-config"},{"id":"topicos@claude-config"},{"id":"passos@other"}]'`,
+      'plugin list --json': installedMods('passos', 'topicos', 'passos@other'),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
     })
 
@@ -411,7 +477,7 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
 
   test.each(COMMANDS)('keeps a mod under its earlier name when the new one fails to install (%s)', (command) => {
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"passos@claude-config"}]'`,
+      'plugin list --json': installedMods('passos'),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
       'plugin install steps@claude-config': 'echo "not found" >&2; exit 1',
     })
@@ -425,7 +491,7 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
 
   test.each(COMMANDS)('ends with exit code 1 when a mod under its earlier name fails to uninstall (%s)', (command) => {
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"passos@claude-config"},{"id":"steps@claude-config"}]'`,
+      'plugin list --json': installedMods('passos', 'steps'),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
       'plugin uninstall --keep-data passos@claude-config': 'echo busy >&2; exit 1',
     })
@@ -446,7 +512,7 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
       }),
     )
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"status@claude-config"}]'`,
+      'plugin list --json': installedMods('status'),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
     })
 

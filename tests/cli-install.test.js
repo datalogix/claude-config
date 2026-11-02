@@ -13,6 +13,7 @@ import {
   claudeCalls,
   fakeClaude,
   home,
+  installedMods,
   addOldSkill,
   runCli,
   skillPath,
@@ -40,43 +41,81 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.ok(!calls.some((call) => call.startsWith('plugin update ')))
   })
 
-  test('removes the skills copied by earlier versions once datalogix is installed', () => {
-    fakeClaude()
-    // Removed: a copy with the marker (review), and links into a clone of this
-    // marketplace, absolute (issue) and relative (pr). Kept: a link into a clone
-    // of another marketplace, a folder without the marker, a broken link and a
-    // plain file.
-    addOldSkill('review')
-    const clone = path.join(tmpDir, 'clone')
-    fs.cpSync(path.join(ROOT, '.claude-plugin'), path.join(clone, '.claude-plugin'), { recursive: true })
-    fs.mkdirSync(path.join(clone, 'skills/issue'), { recursive: true })
-    fs.writeFileSync(path.join(clone, 'skills/issue/SKILL.md'), '')
-    fs.symlinkSync(path.join(clone, 'skills/issue'), skillPath('issue'))
-    fs.mkdirSync(path.join(clone, 'skills/pr'))
-    fs.symlinkSync(path.relative(path.dirname(skillPath('pr')), path.join(clone, 'skills/pr')), skillPath('pr'))
-    const otherClone = path.join(tmpDir, 'other-clone')
-    fs.mkdirSync(path.join(otherClone, '.claude-plugin'), { recursive: true })
-    fs.writeFileSync(path.join(otherClone, '.claude-plugin/marketplace.json'), JSON.stringify({ name: 'other' }))
-    fs.mkdirSync(path.join(otherClone, 'skills/review'), { recursive: true })
-    fs.symlinkSync(path.join(otherClone, 'skills/review'), skillPath('other-link'))
-    fs.mkdirSync(skillPath('foreign'))
-    fs.symlinkSync(path.join(tmpDir, 'nowhere'), skillPath('foreign-link'))
-    fs.writeFileSync(skillPath('notes.md'), '')
+  describe('once datalogix is installed, among the skills copied by earlier versions', () => {
+    const lstatOrUndefined = (/** @type {string} */ file) => fs.lstatSync(file, { throwIfNoEntry: false })
 
-    const { status, output } = runCli(['install'])
+    /**
+     * @param {string} name
+     * @param {string} marketplaceName
+     * @returns {string} the skill folder inside a new clone of that marketplace
+     */
+    const addClone = (name, marketplaceName) => {
+      const clone = path.join(tmpDir, 'clone')
+      fs.mkdirSync(path.join(clone, '.claude-plugin'), { recursive: true })
+      fs.writeFileSync(path.join(clone, '.claude-plugin/marketplace.json'), JSON.stringify({ name: marketplaceName }))
+      const folder = path.join(clone, 'skills', name)
+      fs.mkdirSync(folder, { recursive: true })
+      fs.writeFileSync(path.join(folder, 'SKILL.md'), '')
+      fs.mkdirSync(path.dirname(skillPath(name)), { recursive: true })
+      return folder
+    }
 
-    assert.equal(status, 0, output)
-    const calls = claudeCalls()
-    assert.ok(calls.includes('plugin install datalogix@claude-config'))
-    assert.ok(!fs.existsSync(skillPath('review')))
-    assert.throws(() => fs.lstatSync(skillPath('issue')))
-    assert.throws(() => fs.lstatSync(skillPath('pr')), 'the relative link was kept')
-    assert.ok(fs.existsSync(path.join(clone, 'skills/issue/SKILL.md')), 'the clone was removed through the link')
-    assert.ok(fs.lstatSync(skillPath('other-link')).isSymbolicLink())
-    assert.ok(fs.existsSync(skillPath('foreign')))
-    assert.ok(fs.lstatSync(skillPath('foreign-link')).isSymbolicLink())
-    assert.ok(fs.existsSync(skillPath('notes.md')))
-    assert.match(output, /removed: ~\/\.claude\/skills\/review \(skills now ship in the datalogix mod\)/)
+    test('removes a copy with the marker', () => {
+      fakeClaude()
+      addOldSkill('review')
+
+      const { status, output } = runCli(['install'])
+
+      assert.equal(status, 0, output)
+      assert.ok(claudeCalls().includes('plugin install datalogix@claude-config'))
+      assert.ok(!lstatOrUndefined(skillPath('review')))
+      assert.match(output, /removed: ~\/\.claude\/skills\/review \(skills now ship in the datalogix mod\)/)
+    })
+
+    test.each([
+      ['an absolute link', (/** @type {string} */ folder) => folder],
+      ['a relative link', (/** @type {string} */ folder) => path.relative(path.dirname(skillPath('pr')), folder)],
+    ])('removes %s into a clone of this marketplace, not the clone', (_, target) => {
+      fakeClaude()
+      const folder = addClone('pr', 'claude-config')
+      fs.symlinkSync(target(folder), skillPath('pr'))
+
+      const { status, output } = runCli(['install'])
+
+      assert.equal(status, 0, output)
+      assert.ok(!lstatOrUndefined(skillPath('pr')))
+      assert.ok(fs.existsSync(path.join(folder, 'SKILL.md')), 'the clone was removed through the link')
+    })
+
+    test.each([
+      [
+        'a link into a clone of another marketplace',
+        () => fs.symlinkSync(addClone('review', 'other'), skillPath('review')),
+      ],
+      ['a folder without the marker', () => fs.mkdirSync(skillPath('review'), { recursive: true })],
+      [
+        'a broken link',
+        () => {
+          fs.mkdirSync(path.dirname(skillPath('review')), { recursive: true })
+          fs.symlinkSync(path.join(tmpDir, 'nowhere'), skillPath('review'))
+        },
+      ],
+      [
+        'a plain file',
+        () => {
+          fs.mkdirSync(path.dirname(skillPath('review')), { recursive: true })
+          fs.writeFileSync(skillPath('review'), '')
+        },
+      ],
+    ])('keeps %s', (_, addSkill) => {
+      fakeClaude()
+      addSkill()
+
+      const { status, output } = runCli(['install'])
+
+      assert.equal(status, 0, output)
+      assert.ok(lstatOrUndefined(skillPath('review')))
+    })
   })
 
   test('skips the mods and keeps the old skills when the claude CLI is missing', () => {
@@ -117,6 +156,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     ['no output', 'true'],
     ['items that are not objects', "echo '[null, 1]'"],
     ['items without the field they need', `echo '[{"other":1}]'`],
+    ['items whose field is not text', `echo '[{"id":1,"name":1}]'`],
   ])('with claude replying %s', (_, reply) => {
     test('fails on the marketplace list, adding nothing', () => {
       fakeClaude({ 'plugin marketplace list --json': reply })
@@ -156,9 +196,30 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.ok(!claudeCalls().some((call) => call.startsWith('plugin install')))
   })
 
+  test('does not suggest git ls-remote when the clone cannot be added with --link', () => {
+    fakeClaude({ [`plugin marketplace add ${ROOT}`]: 'echo denied >&2; exit 1' })
+
+    const { status, output } = runCli(['install', '--link'])
+
+    assert.equal(status, 1)
+    assert.match(output, /mods skipped \(/)
+    assert.doesNotMatch(output, /git ls-remote/)
+  })
+
+  test('refreshes the mods already installed when the marketplace was just added', () => {
+    fakeClaude({ 'plugin list --json': installedMods(PLAIN_MOD) })
+
+    const { status, output } = runCli(['install'])
+
+    assert.equal(status, 0, output)
+    const calls = claudeCalls()
+    assert.ok(calls.includes('plugin marketplace add datalogix/claude-config'))
+    assert.ok(calls.includes(`plugin update ${PLAIN_MOD}@claude-config --json`))
+  })
+
   test('warns about a mod also loaded inline, even when already installed', () => {
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"${PLAIN_MOD}@claude-config"},{"id":"${PLAIN_MOD}@inline"}]'`,
+      'plugin list --json': installedMods(PLAIN_MOD, `${PLAIN_MOD}@inline`),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
     })
 
@@ -170,7 +231,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
 
   test('warns about a mod also loaded inline when the marketplace cannot be added', () => {
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"${PLAIN_MOD}@claude-config"},{"id":"${PLAIN_MOD}@inline"}]'`,
+      'plugin list --json': installedMods(PLAIN_MOD, `${PLAIN_MOD}@inline`),
       'plugin marketplace add datalogix/claude-config': 'echo denied >&2; exit 1',
     })
 
@@ -182,7 +243,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
 
   test('does not warn about a mod loaded inline that failed to install', () => {
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"${PLAIN_MOD}@inline"}]'`,
+      'plugin list --json': installedMods(`${PLAIN_MOD}@inline`),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
       [`plugin install ${PLAIN_MOD}@claude-config`]: 'echo broken >&2; exit 1',
     })
@@ -228,7 +289,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
 
   test('neither updates the marketplace nor refreshes the mods when it comes from another source', () => {
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"${PLAIN_MOD}@claude-config"}]'`,
+      'plugin list --json': installedMods(PLAIN_MOD),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
     })
 
@@ -244,7 +305,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
 
   test('neither updates a marketplace added from a clone nor refreshes its mods when installing from GitHub', () => {
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"${PLAIN_MOD}@claude-config"}]'`,
+      'plugin list --json': installedMods(PLAIN_MOD),
       'plugin marketplace list --json': `echo '[{"name":"claude-config","path":"${tmpDir}"}]'`,
     })
 
@@ -255,6 +316,34 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     const calls = claudeCalls()
     assert.ok(!calls.includes('plugin marketplace update claude-config'))
     assert.ok(!calls.some((call) => call.startsWith('plugin update ')))
+  })
+
+  test.each([
+    ['repo', '"repo":"other/claude-config"'],
+    ['git URL', '"source":"git","url":"https://github.com/other/claude-config.git"'],
+  ])('neither updates nor refreshes when the %s is another GitHub repository', (_, source) => {
+    fakeClaude({
+      'plugin list --json': installedMods(PLAIN_MOD),
+      'plugin marketplace list --json': `echo '[{"name":"claude-config",${source}}]'`,
+    })
+
+    const { status, output } = runCli(['install'])
+
+    assert.equal(status, 0, output)
+    assert.match(output, /; not updated/)
+    const calls = claudeCalls()
+    assert.ok(!calls.includes('plugin marketplace update claude-config'))
+    assert.ok(!calls.some((call) => call.startsWith('plugin update ')))
+  })
+
+  test('warns when --link finds the marketplace added from a path that no longer exists', () => {
+    const gone = path.join(tmpDir, 'gone')
+    fakeClaude({ 'plugin marketplace list --json': `echo '[{"name":"claude-config","path":"${gone}"}]'` })
+
+    const { status, output } = runCli(['install', '--link'])
+
+    assert.equal(status, 0, output)
+    assert.match(output, /; not updated/)
   })
 
   test('warns when --link finds the marketplace added from another clone', () => {
@@ -366,7 +455,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.match(output, /already added from/)
   })
 
-  test('only notes the marketplace already added from the requested source', () => {
+  test('notes and updates the marketplace already added from the requested source', () => {
     fakeClaude({ 'plugin marketplace list --json': ADDED_MARKETPLACE })
 
     const { status, output } = runCli(['install'])
@@ -378,7 +467,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
 
   test('updates the marketplace and refreshes the mods already installed', () => {
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"${PLAIN_MOD}@claude-config"}]'`,
+      'plugin list --json': installedMods(PLAIN_MOD),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
     })
 
@@ -398,7 +487,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
 
   test('ends with exit code 1 when an installed mod fails to refresh', () => {
     fakeClaude({
-      'plugin list --json': `echo '[{"id":"${PLAIN_MOD}@claude-config"}]'`,
+      'plugin list --json': installedMods(PLAIN_MOD),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
       [`plugin update ${PLAIN_MOD}@claude-config --json`]: 'echo broken >&2; exit 1',
     })
@@ -451,6 +540,16 @@ describe('arguments', () => {
     }
   })
 
+  test('shows the usage for --help after a command, without running it', () => {
+    fakeClaude()
+
+    const { status, output } = runCli(['update', '--help'])
+
+    assert.equal(status, 0)
+    assert.match(output, /Usage:/)
+    assert.equal(fs.existsSync(path.join(tmpDir, 'calls')), false)
+  })
+
   test('rejects an unknown command', () => {
     const { status, output } = runCli(['instal'])
 
@@ -469,7 +568,7 @@ describe('arguments', () => {
     ['update', '--link'],
     ['install', '--force'],
     ['update', ''],
-  ])('rejects a flag the command does not take (%s %s)', (command, flag) => {
+  ])('rejects a flag the command does not take (%s "%s")', (command, flag) => {
     const { status, output } = runCli([command, flag])
 
     assert.equal(status, 1)

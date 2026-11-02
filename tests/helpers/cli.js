@@ -62,12 +62,13 @@ export function fakeClaude(replies = {}) {
     .join('\n')
   // Shell builtins only: PATH holds just the fake claude.
   const logStdinScript = `case "$*" in *--values-stdin) while IFS= read -r line || [ -n "$line" ]; do printf '%s\\n' "$line"; done >> "${path.join(tmpDir, 'stdin')}" ;; esac`
-  const file = path.join(binDir, 'claude')
+  // Sourced by fake-claude, always the same executable: macOS assesses each new one on its first run.
   fs.writeFileSync(
-    file,
-    `#!/bin/sh\necho "$*" >> "${path.join(tmpDir, 'calls')}"\n${logStdinScript}\ncase "$*" in\n${cases}\nesac\n`,
+    path.join(tmpDir, 'fake-claude.sh'),
+    `echo "$*" >> "${path.join(tmpDir, 'calls')}"\n${logStdinScript}\ncase "$*" in\n${cases}\nesac\n`,
   )
-  fs.chmodSync(file, 0o755)
+  fs.rmSync(path.join(binDir, 'claude'), { force: true })
+  fs.symlinkSync(path.join(ROOT, 'tests/helpers/fake-claude'), path.join(binDir, 'claude'))
 }
 
 export function claudeCalls() {
@@ -104,11 +105,25 @@ export function assertCalledBefore(first, second) {
  * @returns {{ status: number | null, output: string }} stdout followed by stderr in `output`
  */
 export function runCli(args, cli = CLI, env = {}) {
+  // Without HOME the CLI would fall back to the real one.
+  assert.ok(home, 'call useTempHome() first')
   const result = spawnSync(process.execPath, [cli, ...args], {
     encoding: 'utf8',
     env: { HOME: home, PATH: binDir, ...env },
+    // testTimeout does not stop synchronous code, so a CLI that hangs would hold the whole run.
+    timeout: 60_000,
   })
   return { status: result.status, output: result.stdout + result.stderr }
+}
+
+/**
+ * Reply to "plugin list --json".
+ *
+ * @param {string[]} names a name without `@` is a mod of this marketplace
+ */
+export function installedMods(...names) {
+  const ids = names.map((name) => ({ id: name.includes('@') ? name : `${name}@claude-config` }))
+  return `echo '${JSON.stringify(ids)}'`
 }
 
 /** @param {string} name */

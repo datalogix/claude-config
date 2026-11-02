@@ -1,0 +1,3 @@
+#!/bin/sh
+# HOME is <tmpDir>/home (useTempHome); the replies are in <tmpDir>/fake-claude.sh (fakeClaude).
+. "${HOME%/home}/fake-claude.sh"

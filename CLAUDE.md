@@ -93,8 +93,10 @@ node bin/cli.js install --link            # install from this clone: mods load i
   (`checkClaudeCli`); any other failure of it means the CLI is not installed, which only warns and skips the mods.
 - `tests/cli-install.test.js` and `tests/cli-update.test.js` run the real CLI without a TTY, with a temporary `HOME`
   and a fake `claude` shell script on `PATH` that logs its arguments; `tests/cli-interactive.test.js` runs the
-  prompts in process, with `@clack/prompts` mocked. The shared setup is in `tests/helpers/cli.js` (`useTempHome`,
-  `fakeClaude`, `runCli`). New installer behavior is tested the same way; pure helpers (`bin/options.js`,
+  prompts in process, with `@clack/prompts` mocked and the status mod's options fixed. The shared setup is in
+  `tests/helpers/cli.js` (`useTempHome`, `fakeClaude`, `installedMods`, `runCli`). The fake is one executable,
+  `tests/helpers/fake-claude`, which sources each test's replies: macOS assesses every new executable on its first
+  run, which took seconds per test. New installer behavior is tested the same way; pure helpers (`bin/options.js`,
   `bin/quote.js`) are unit-tested directly (`tests/options.test.js`, `tests/quote.test.js`).
 
 ### Mods (`mods/<name>/`)

@@ -8,10 +8,10 @@ import {
   isRadioPart,
   isSameTitle,
   parseAnswer,
+  plainText,
   previewOf,
   questionOf,
   stanceOf,
-  stripBackticks,
   submitText,
   toggle,
   toggleChecked,
@@ -117,7 +117,7 @@ const renderTopicHeader = (
   onToggle: () => unknown,
   hotkey?: string,
 ) => {
-  const label = stripBackticks(title)
+  const label = plainText(title)
   return (
     <Box>
       <Button key={key} plain hotkey={hotkey} label={`${isOpen ? '▾' : '▸'} ${label}`} onPress={onToggle} />
@@ -237,7 +237,7 @@ const renderActions = (
         const isExplained = state.explainedItems.includes(i)
         const previous = actions.parts[p - 1]
         const lacksQuestion = item.isRadio && numbers[p]! > 0 && questionOf(previous) === undefined
-        const text = stripBackticks(withoutStanceMark(item.text))
+        const text = plainText(withoutStanceMark(item.text))
         const hasGapAbove = item.isRadio
           ? lacksQuestion
           : !(previous && 'item' in previous && !isRadioPart(actions, p - 1))
@@ -281,7 +281,7 @@ const renderActions = (
                 <Button
                   key={`${itemKey}-explanation`}
                   plain
-                  label={`${isExplained ? '▾' : '▸'} explicação: ${stripBackticks(explanationTopic.title)}`}
+                  label={`${isExplained ? '▾' : '▸'} explicação: ${plainText(explanationTopic.title)}`}
                   onPress={() => state.toggleExplanation(i)}
                 />
               </Box>

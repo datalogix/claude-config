@@ -9,10 +9,10 @@ of that answer in the conversation, so checking or sending in one
 shows in the other. With the same answer in several messages, the
 pane follows the newest one, even after an older one redraws.
 
-A `## Pendências` topic (also written `## **Pendências**` or
-`## Pendências:`; the instruction puts it last, and with more than
-one the last is the list and the others stay as topics) becomes a
-list to answer in place:
+A `## Pendências` topic (also written `## **Pendências**`,
+``## `Pendências` `` or `## Pendências:`; the instruction puts it last,
+and with more than one the last is the list and the others stay as
+topics) becomes a list to answer in place:
 
 ```markdown
 ## Pendências
@@ -40,8 +40,8 @@ Which database?
   one does, so sending without touching the list approves it. The
   instruction keeps destructive, hard to undo or outward-facing actions
   out of `(recomendo)`
-- indented lines below an item are its details (an indented code block
-  is kept whole); the instruction asks for only what is specific to that
+- indented lines below an item are its details (an indented fenced code
+  block is kept whole); the instruction asks for only what is specific to that
   item, so the shared context is not repeated under every item
 - `ver: <topic title>` becomes a button that opens that topic next to
   the item; the title is matched ignoring case, accents, backticks and

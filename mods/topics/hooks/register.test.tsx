@@ -360,6 +360,12 @@ describe('the Pendências list', () => {
     expect(parsed.actions?.items.map((i) => i.text)).toEqual(['Segundo'])
     expect(parsed.topics.map((t) => t.title)).toEqual(['Pendências', 'Outro'])
   })
+
+  test('a title in backticks is the list too', () => {
+    const parsed = parseAnswer('## `Pendências`\n- [ ] A')
+    expect(parsed.actions?.items.map((i) => i.text)).toEqual(['A'])
+    expect(parsed.topics).toEqual([])
+  })
 })
 
 describe('previewOf', () => {
@@ -399,6 +405,17 @@ describe('previewOf', () => {
     expect(previewOf('Use o padrão src/*.ts ou 2*3 linhas')).toBe('Use o padrão src/*.ts ou 2*3 linhas')
     expect(previewOf('Use *isso* e ***aquilo***.')).toBe('Use isso e aquilo.')
     expect(previewOf('_ênfase_ e __forte__')).toBe('ênfase e forte')
+  })
+
+  test('keeps what a code span holds as written', () => {
+    expect(previewOf('Edite `__init__.py` e rode')).toBe('Edite __init__.py e rode')
+    expect(previewOf('Use `src/*.ts` e `lib/*.js` no glob')).toBe('Use src/*.ts e lib/*.js no glob')
+    expect(previewOf('Ver `foo_` e `_bar`')).toBe('Ver foo_ e _bar')
+    expect(previewOf('**usar `foo*`** agora')).toBe('usar foo* agora')
+  })
+
+  test('drops a backtick left unpaired', () => {
+    expect(previewOf('Um ` solto')).toBe('Um  solto')
   })
 })
 
@@ -661,7 +678,7 @@ describe('in the conversation', () => {
       '## **Escolha do banco**\nx\n## Pendências\n- [ ] Fazer\n  ver: Escolha do banco',
       'bold',
     )
-    expect((await ui.find({ key: 'bold-action-0-explanation' }))?.text).toBe('▸ explicação: **Escolha do banco**')
+    expect((await ui.find({ key: 'bold-action-0-explanation' }))?.text).toBe('▸ explicação: Escolha do banco')
   })
 
   test('"ver:" matches a title ignoring case, accents and backticks, the first one winning', async ($) => {
@@ -683,6 +700,15 @@ describe('in the conversation', () => {
   test('button labels drop code backticks', async ($) => {
     const ui = await mountMessage($, '## O `config.php`\nX.\n## Outro\nY.', 'ticks')
     expect((await ui.find({ key: 'ticks-topic-0' }))?.text).toBe('▸ O config.php')
+  })
+
+  test('button labels drop emphasis, not what looks like it inside code or a word', async ($) => {
+    const text =
+      '## **Banco** de _dados_\nX.\n## O `__init__.py` e user_id\nY.\n## Pendências\n- ( ) (recomendo) **Foo** bar'
+    const ui = await mountMessage($, text, 'bold-labels')
+    expect((await ui.find({ key: 'bold-labels-topic-0' }))?.text).toBe('▸ Banco de dados')
+    expect((await ui.find({ key: 'bold-labels-topic-1' }))?.text).toBe('▸ O __init__.py e user_id')
+    expect((await ui.find({ key: 'bold-labels-action-0' }))?.text).toBe('(●) recomendo: Foo bar')
   })
 })
 

@@ -61,13 +61,31 @@ const normalizeTitle = (t: string) =>
     .replace(/[\u0300-\u036f]/g, '')
     .trim()
     .toLowerCase()
+const withoutTitleMarks = (t: string) => t.replace(/[`*_]/g, '')
 const isActionsTitle = (title: string) =>
-  normalizeTitle(title.replace(/[*_]/g, '').replace(/:\s*$/, '')) === normalizeTitle(ACTIONS_TITLE)
+  normalizeTitle(withoutTitleMarks(title).replace(/:\s*$/, '')) === normalizeTitle(ACTIONS_TITLE)
 
-/** For button labels, which do not draw markdown. */
-export const stripBackticks = (t: string) => t.replace(/`/g, '')
+/** Stands in for a code span while emphasis comes off; a private use character, so no answer writes it. */
+const CODE_MARK = ''
 
-const plainTitle = (t: string) => normalizeTitle(stripBackticks(t).replace(/[*_]/g, ''))
+/** For button labels and previews, which do not draw markdown. What a code span holds stays as written. */
+export const plainText = (t: string) => {
+  const spans: string[] = []
+  return (
+    t
+      .replace(
+        /(`+)(.*?)(?<!`)\1(?!`)/g,
+        (_, _ticks, code: string) => `${CODE_MARK}${spans.push(code) - 1}${CODE_MARK}`,
+      )
+      .replace(/`/g, '')
+      // Emphasis pairs only: a lone * (2 * 3), globs (src/*.ts) and underscores inside words (user_id) stay.
+      .replace(/(?<![\p{L}\p{N}*])(\*{1,3})(?=[^\s*])(.+?)(?<=[^\s*])\1(?![\p{L}\p{N}*])/gu, '$2')
+      .replace(/(?<![\p{L}\p{N}])_+|_+(?![\p{L}\p{N}])/gu, '')
+      .replace(new RegExp(`${CODE_MARK}(\\d+)${CODE_MARK}`, 'g'), (_, i: string) => spans[Number(i)]!)
+  )
+}
+
+const plainTitle = (t: string) => normalizeTitle(withoutTitleMarks(t))
 
 export const isSameTitle = (a: string, b: string) => plainTitle(a) === plainTitle(b)
 
@@ -173,13 +191,7 @@ export const parseAnswer = (text: string): ParsedAnswer => {
 export const previewOf = (body: string): string => {
   const codeLineKind = createCodeBlockTracker()
   const line = body.split('\n').find((l) => !codeLineKind(l) && l.trim()) ?? ''
-  const clean = line
-    .replace(/^\s*(>\s*)*((#+|[-*+]|\d+[.)])\s+)?/, '')
-    .replace(/`/g, '')
-    // Emphasis pairs only: a lone * (2 * 3), globs (src/*.ts) and underscores inside words (user_id) stay.
-    .replace(/(?<![\p{L}\p{N}*])(\*{1,3})(?=[^\s*])(.+?)(?<=[^\s*])\1(?![\p{L}\p{N}*])/gu, '$2')
-    .replace(/(?<![\p{L}\p{N}])_+|_+(?![\p{L}\p{N}])/gu, '')
-    .trim()
+  const clean = plainText(line.replace(/^\s*(>\s*)*((#+|[-*+]|\d+[.)])\s+)?/, '')).trim()
   // By code point, so an emoji is not cut in half.
   const chars = [...clean]
   return chars.length > PREVIEW_MAX ? `${chars.slice(0, PREVIEW_MAX - 1).join('')}…` : clean

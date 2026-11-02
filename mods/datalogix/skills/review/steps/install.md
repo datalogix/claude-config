@@ -11,9 +11,11 @@ pegam isso.
   existir uma sandbox (sessão interrompida), pergunte antes de apagá-la.
 - Pacote como o Composer entregaria (respeitando `export-ignore`),
   extraído em `<sandbox>/package/`:
-  `mkdir -p <sandbox>/package`, `ref=$(git stash create)` e depois
-  `git archive --worktree-attributes --format=tar "${ref:-HEAD}" |
-  tar -x -C <sandbox>/package`. Inclui mudanças não commitadas em
+  `mkdir -p <sandbox>/package` e, numa única chamada do shell (a
+  variável não passa para a seguinte e o `HEAD` entraria sem aviso),
+  `ref=$(git stash create); git archive --worktree-attributes
+  --format=tar "${ref:-HEAD}" | tar -x -C <sandbox>/package`. Inclui
+  mudanças não commitadas em
   arquivos versionados (com árvore limpa, `git stash create` não
   imprime nada e o `HEAD` é usado). Arquivos novos ainda não
   adicionados ao git NÃO entram: se houver (`git status --porcelain`

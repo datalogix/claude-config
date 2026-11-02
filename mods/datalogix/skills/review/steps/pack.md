@@ -26,6 +26,10 @@ sobre o código-fonte e não pegam `exports`, `files` ou tipos errados.
   rede ou falhar, pare e me avise.
 
 ## Conferir
+Rode tudo com `cd <sandbox>/app && ...` na mesma chamada: na raiz do
+projeto, o Node resolveria o nome da lib pelo próprio `exports`, e o
+teste passaria sem olhar o que foi instalado.
+
 1. Cada entrada do `exports`:
    - ESM: `node --input-type=module -e "import * as m from '<entrada>';
      console.log(Object.keys(m))"`

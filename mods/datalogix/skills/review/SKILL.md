@@ -61,8 +61,8 @@ skills ou tags novas, descubra e registre:
   - aplicação Nuxt/Next (`types/web-app.md`): tem `nuxt.config.*` ou
     `next.config.*` na raiz, sem `composer.json`
   - lib JS/TS (`types/library.md`): tem `package.json`, sem
-    `composer.json` nem config de Nuxt/Next, com `exports`, `main` ou
-    `module` e sem `private: true`
+    `composer.json` nem config de Nuxt/Next, com `exports`, `main`,
+    `module` ou `bin` e sem `private: true`
   Na dúvida (monorepo com workspaces, app Vite sem framework, nenhum
   dos quatro), pergunte. Depois leia o arquivo do tipo e faça o
   reconhecimento extra que ele pede (estágio, requisitos de testes).
@@ -187,8 +187,9 @@ Mostre o perfil em poucas linhas, incluindo tipo e estágio.
      modo nunca marca etapa da revisão completa como feita
 - Salve ao fim de CADA passo, para eu poder parar e retomar com
   `/datalogix:review`.
-- Se algo verificado mudou desde o commit registrado
-  (`git diff --name-only <commit> -- <caminho>`), reanalise só o que mudou.
+- Se algo verificado mudou desde o commit registrado (`git -c
+  core.quotePath=false diff --name-only <commit> -- <caminho>`),
+  reanalise só o que mudou.
 
 ## 4. Linha de base e plano
 `help` e `status` não rodam nada disto: só leem os arquivos e o progresso.
@@ -196,7 +197,9 @@ Mostre o perfil em poucas linhas, incluindo tipo e estágio.
 - **Branch com data**: antes da linha de base, siga o item "Branch com
   data" do passo 1 de `${CLAUDE_SKILL_DIR}/../commit/SKILL.md`, com o
   assunto tirado do que será revisado, salvo em `report`, que não
-  altera nada. Registre a resposta em "Decisões do projeto", para não
+  altera nada. A pergunta, se houver, vai numa mensagem própria,
+  terminada em `## Pendências` mesmo sem o mod `topics`, e espera a
+  resposta. Registre a resposta em "Decisões do projeto", para não
   perguntar de novo sobre a mesma branch.
 - **Verificação PHP**: suíte PHP e ferramentas PHP existentes (Pint em
   modo `--test`, com `--blade` se houver views Blade e o Pint for 1.30+,
@@ -283,8 +286,11 @@ Um passo é uma etapa, uma pasta ou uma parte de pasta.
    - Se um arquivo tiver mudanças de mais de um commit, diga quais
      trechos vão em cada.
    - Pergunte quais fazer: um `- [ ] <título do commit>` por commit
-     sugerido, todos desmarcados, com os arquivos recuados abaixo;
-     com mais de um, também `- [ ] Fazer tudo em um commit só`; e
+     sugerido, todos desmarcados, com os arquivos recuados abaixo
+     (novos com "(novo)", apagados com "(apagado)" e, de um arquivo
+     renomeado, os dois caminhos); com mais de um, também
+     `- [ ] Fazer tudo em um commit só`, com o detalhe "ignora os
+     outros commits"; e
      `- [ ] Seguir para a próxima etapa depois dos commits`. Sem o
      formato da seção 7, aceite em texto (ex.: "commita 1 e 2 e
      segue").
@@ -303,10 +309,13 @@ Um passo é uma etapa, uma pasta ou uma parte de pasta.
    - Antes, faça só as checagens de estado do passo 1 dele (o item
      "Branch com data" já foi resolvido na seção 4): sem
      repositório git ou com merge, rebase, cherry-pick ou revert em
-     andamento, pare; anote se é o primeiro commit e se a branch
-     atual é a padrão, para os avisos da prévia. Se houver algo em
-     stage, não siga: diga e deixe para eu rodar
-     `/datalogix:commit`.
+     andamento, pare; anote se é o primeiro commit, se a branch
+     atual é a padrão e se o HEAD está destacado, para os avisos da
+     prévia. Se houver algo em stage, não siga: diga e deixe para
+     eu rodar `/datalogix:commit`.
+   - O item "Listas de arquivos" do passo 1 dele também vale: leia
+     com ele os caminhos dos commits sugeridos e escreva-os no
+     comando como ele manda.
    - Só entram arquivos dos commits sugeridos. A prévia, a
      confirmação e os avisos são os dele; nenhum commit é feito sem
      a minha confirmação.
@@ -416,10 +425,11 @@ das respostas acima:
   aplicado depois que essa pergunta for respondida;
 - minha resposta chega como a lista marcada.
 
-Pergunte NA HORA e espere apenas quando não der para seguir: linha de
-base falhando, `CLAUDE.md` ausente, idioma dos commits em dúvida
-(seção 2), requisito de testes ausente (arquivo do tipo), skill sem
-etapa clara, teste existente que parece errado, checagem de git falhando, ou ação irreversível ou não
+Pergunte NA HORA e espere apenas quando não der para seguir: branch
+com data (seção 4), linha de base falhando, `CLAUDE.md` ausente,
+idioma dos commits em dúvida (seção 2), requisito de testes ausente
+(arquivo do tipo), skill sem etapa clara, teste existente que parece
+errado, checagem de git falhando, ou ação irreversível ou não
 aprovada (apagar arquivos, editar migration, mudar versão mínima,
 quebrar API pública).
 

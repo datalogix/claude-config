@@ -34,7 +34,10 @@ Analise:
 - **Metadados**: `private: true` se não é publicado no npm (sempre nas
   aplicações Nuxt/Next), `type: "module"` coerente com os configs,
   `engines` se o projeto depende de uma versão do Node.
-- **Publicação (só lib JS/TS)**:
+- **Publicação (só lib JS/TS)**: numa lib instalada por git, sem
+  publicação (`private: true`), valem só `files`, `license`,
+  `repository` e `description`; os demais itens abaixo não se
+  aplicam:
   - `exports` em todas as entradas, com a condição `types` primeiro e
     `import`/`require` batendo com os formatos do build; `main`,
     `module` e `types` só como fallback, coerentes com o `exports`

@@ -39,8 +39,9 @@ check its skills.
     `library`, `web-app`)
   - `steps/` — one checklist per review step, plus extra checklists
     (`http`, `jobs`) applied in the `code` step; the JS types use
-    `code-js` and `production-js` for their `code` and `production`
-    steps, and `pack` instead of `install`
+    `code-js` for their `code` step, Nuxt/Next applications also
+    `production-js` for `production`, and libraries `pack` where
+    Laravel packages use `install`
   - `modes/` — focus modes (`docs`, `naming`, `tests`, `deps`) and the
     `report` mode
   - `templates/LICENSE` — license model for packages; must match the

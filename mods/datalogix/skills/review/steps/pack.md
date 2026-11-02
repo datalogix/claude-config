@@ -4,6 +4,16 @@ Objetivo: provar que alguém consegue instalar e usar a lib seguindo só
 o README, a partir do que o npm publicaria. Os testes do projeto rodam
 sobre o código-fonte e não pegam `exports`, `files` ou tipos errados.
 
+## Lib instalada por git
+Sem publicação (`private: true`, instalada com `npx github:...`),
+não use `npm pack`: ele recusa package.json sem `version` e essa
+instalação não precisa dele; não sugira acrescentá-lo só por isso.
+Troque os dois `npm pack` da Preparação por: em `<sandbox>/app`,
+`npm init -y` e `npm i --allow-git=root
+git+file://<caminho absoluto do projeto>#<commit>`, que só leva o
+que tem commit (avise se a árvore estiver suja). Confira a lista
+de arquivos em `node_modules/<nome>`, com os mesmos critérios.
+
 ## Preparação (tudo FORA do projeto)
 - Sandbox: `~/.claude/reviews/<id>/sandbox/` (`<sandbox>` abaixo).
   Use sempre o caminho absoluto: o shell volta à raiz do projeto a cada

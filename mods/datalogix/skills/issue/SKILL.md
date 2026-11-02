@@ -54,8 +54,8 @@ qualquer ordem." Não faça perguntas antes de receber o texto.
   em diante, `-R <owner/repo>` nos comandos é esse destino sempre
   que ele não for o diretório atual. Confirme que o `gh` está
   autenticado e enxerga o destino (`gh repo view [<owner/repo>]
-  --json nameWithOwner,visibility,isFork,parent`). Se falhar, diga
-  o motivo e pare; não tente configurar nada.
+  --json nameWithOwner,visibility,isFork,parent,defaultBranchRef`).
+  Se falhar, diga o motivo e pare; não tente configurar nada.
 - Leia o `CLAUDE.md` e o `README.md` da raiz do destino, se existirem.
   Se o destino não for o diretório atual, leia-os com
   `gh api repos/<owner/repo>/contents/<arquivo>
@@ -66,9 +66,11 @@ qualquer ordem." Não faça perguntas antes de receber o texto.
   idioma de issues e pull requests (ex.: `- Issues and pull
   requests: Portuguese`). Sem ela, ou sem `CLAUDE.md`, detecte pelos
   últimos títulos de commit da branch padrão do destino (`git log
-  <branch> -20 --no-merges --format=%s` ou, se o destino não for o
-  diretório atual, `gh api "repos/<owner/repo>/commits?per_page=20"
-  --jq '.[].commit.message | split("\n")[0]'`), ignorando o tipo do
+  origin/<branch> -20 --no-merges --format='%an: %s'`, ou `git log
+  <branch> ...` sem remoto, ou, se o destino não for o diretório
+  atual, `gh api "repos/<owner/repo>/commits?per_page=20" --jq
+  '.[].commit | .author.name + ": " + (.message | split("\n")[0])'`),
+  ignorando o tipo do
   Conventional Commits, merges e commits de bots (ex.: Dependabot).
   Com pelo menos 5 títulos e mais de três quartos deles num idioma,
   use-o sem perguntar e diga na prévia "Idioma: <idioma>, detectado
@@ -276,8 +278,13 @@ marcando as caixas e devolvendo a lista, nesta ordem:
    e enviar, comentar na issue parecida, como `- ( ) comentar na
    #<número> (<título>)` (uma linha por parecida), e cancelar.
 
+Ao propor dividir, antes de "O que fazer?", "Dividir a tarefa?",
+com `- ( ) Dividir em <n> issues e uma principal` e `- ( ) Fazer uma
+issue só`. Com a segunda, mostre a prévia de novo, com uma issue só.
+
 Todo label escolhido que não existe no destino aparece com
-"(novo)". Compare os nomes sem diferenciar maiúsculas, como o
+"(novo)"; `claude` e `claude-plan`, se não existirem, já vêm na
+lista como `claude (novo)` e `claude-plan (novo)`. Compare os nomes sem diferenciar maiúsculas, como o
 GitHub: se o usuário escrever `bug` e o destino tiver `Bug`, use
 `Bug`, sem "(novo)". Ao dividir, as escolhas valem para todas as
 partes, menos `rollback`, que vai só na principal para reverter o

@@ -20,9 +20,11 @@ describe('cmdLine through cmd.exe', { skip: process.platform !== 'win32' }, () =
       [
         'const args = JSON.stringify(process.argv.slice(2))',
         'const log = process.env.ARGS_LOG',
-        "if (log) require('node:fs').appendFileSync(log, args + '\\n')",
+        "const fs = require('node:fs')",
+        "if (log) fs.appendFileSync(log, args + '\\n')",
         // With a log it stands in for claude, whose lists hold objects: an empty one, not the arguments.
-        "process.stdout.write(log ? '[]' : args)",
+        "const reply = process.argv.includes('--values-stdin') ? fs.readFileSync(0, 'utf8') : log ? '[]' : args",
+        'process.stdout.write(reply)',
         '',
       ].join('\n'),
     )
@@ -61,6 +63,20 @@ describe('cmdLine through cmd.exe', { skip: process.platform !== 'win32' }, () =
 
     assert.equal(result.status, 0, result.stderr)
     assert.deepEqual(JSON.parse(result.stdout), args)
+  })
+
+  // Option answers never go through the arguments, so cmd must let stdin reach the program behind the shim.
+  test('passes stdin through to the program', () => {
+    const input = '{"label":"a b & c","token":"%PATH%!x!^"}'
+    const result = spawnSync(cmdLine('claude', ['plugin', 'configure', 'status@claude-config', '--values-stdin']), {
+      encoding: 'utf8',
+      input,
+      shell: true,
+      env: { ...process.env, PATH: `${binDir};${process.env.PATH}` },
+    })
+
+    assert.equal(result.status, 0, result.stderr)
+    assert.equal(result.stdout, input)
   })
 
   // Only claude.cmd on PATH: Node cannot run it directly, so runClaude must fall back to cmd.

@@ -159,9 +159,11 @@ node bin/cli.js install --link            # install from this clone: mods load i
   (`gh run rerun --failed`); it never commits, pushes or comments.
 - These skills end their previews and questions with a `## Pendências` list in the format `topics` parses
   (`mods/topics/hooks/parse.ts`), and `/datalogix:review` uses the same format when `topics` is active (its
-  `SKILL.md` section 7); keep them in sync. `tests/skills.test.js` runs every item written in a code span in a
-  `SKILL.md` through `parseActions`, and checks that pr and commit still find the issue skill's step 2 and its
-  "Idioma" item, and that review still finds the commit skill's step 2.
+  `SKILL.md` section 7); keep them in sync. `tests/skills.test.js` runs every item written in a code span in the
+  skills' Markdown files through `parseActions` and refuses one outside a span. It also checks that pr still finds
+  the issue skill's step 2; that pr, commit and review find its "Idioma" item; that pr and review find the commit
+  skill's "Branch com data" item; that review finds the commit skill's step 2 and hands it its groups; and that the
+  supporting files review names exist.
 - `/datalogix:issue`, `/datalogix:pr` and `/datalogix:commit` take the language of issues, pull requests and commits
   from a `- Issues and pull requests: <language>` line in the target project's `CLAUDE.md` (pr and commit by
   following the "Idioma" item of the issue skill's step 2). Without it they detect the language from the default

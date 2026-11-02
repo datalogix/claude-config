@@ -12,6 +12,7 @@ describe('quoteForCmd', () => {
     ['doubles every backslash before an inner quote', 'a\\\\"', '^^^"a\\\\\\\\\\^^^"^^^"'],
     ['escapes carets, parentheses and redirections twice', '^(<>)', '^^^"^^^^^^^(^^^<^^^>^^^)^^^"'],
     ['doubles a trailing backslash so it does not escape the closing quote', 'C:\\dir\\', '^^^"C:\\dir\\\\^^^"'],
+    ['escapes brackets, separators, globs and backticks twice', '[];,*?`', '^^^"^^^[^^^]^^^;^^^,^^^*^^^?^^^`^^^"'],
     ['leaves backslashes elsewhere alone', 'C:\\a\\b', '^^^"C:\\a\\b^^^"'],
     ['keeps an empty argument as an empty pair of quotes', '', '^^^"^^^"'],
   ])('%s', (_, input, expected) => {

@@ -4,11 +4,11 @@ import assert from 'node:assert/strict'
 import { test } from 'vitest'
 import {
   answerFor,
-  optionChanges,
   configuredKeys,
   currentValues,
   defaultChoice,
   initialValue,
+  optionChanges,
   valuesToStore,
 } from '../bin/options.js'
 
@@ -52,8 +52,8 @@ test('takes as untouched what a boolean question starts from, whatever its defau
 })
 
 test('takes as untouched the choice a select starts from when its default is not one of them', () => {
-  const userConfig = { pick: { type: 'string', default: 'z', options: ['a', 'b'] } }
-  assert.deepEqual(valuesToStore(userConfig, { pick: 'a' }, new Set()), {})
+  const select = { pick: { type: 'string', default: 'z', options: ['a', 'b'] } }
+  assert.deepEqual(valuesToStore(select, { pick: 'a' }, new Set()), {})
 })
 
 test('an answer changed from the current value is a change', () => {
@@ -87,6 +87,10 @@ test('a configured option starts from its current value', () => {
   assert.equal(initialValue({ default: 30 }, undefined, true), '30')
 })
 
+test('a configured empty text starts empty, not from the default', () => {
+  assert.equal(initialValue({ default: 'x' }, '', true), '')
+})
+
 test('an unconfigured option starts from the default, not the installed one', () => {
   assert.equal(initialValue({ default: 60 }, '30', false), '60')
   assert.equal(initialValue({}, undefined, false), '')
@@ -112,13 +116,13 @@ test('an answer for an option outside the userConfig is stored only when not emp
 })
 
 test('reads the current values as text, leaving out empty ones but free text', () => {
-  const userConfig = {
+  const options = {
     minSeconds: { type: 'number' },
     label: { type: 'string' },
     notify: { type: 'string', options: ['always'] },
   }
   const inputs = { minSeconds: 30, excerpt: false, label: '', notify: '', token: null }
-  assert.deepEqual(currentValues(inputs, userConfig), { minSeconds: '30', excerpt: 'false', label: '' })
+  assert.deepEqual(currentValues(inputs, options), { minSeconds: '30', excerpt: 'false', label: '' })
   // A sensitive text starts empty, so an empty value there is no value.
   assert.deepEqual(currentValues({ secret: '' }, { secret: { type: 'string', sensitive: true } }), {})
 })
@@ -156,6 +160,10 @@ test('a null default counts as no default everywhere', () => {
 
 test('starts a select from its default when it is one of the choices', () => {
   assert.equal(defaultChoice({ type: 'string', default: 'b', options: ['a', 'b'] }), 'b')
+})
+
+test('a select without choices starts empty', () => {
+  assert.equal(defaultChoice({ type: 'string', options: [] }), '')
 })
 
 test('starts a select from its first choice when the default is not one of them', () => {

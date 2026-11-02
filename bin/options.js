@@ -42,7 +42,7 @@ function isFreeText(option) {
  * @returns {Record<string, string> | undefined}
  */
 export function currentValues(inputs, userConfig) {
-  if (inputs === null || typeof inputs !== 'object') {
+  if (inputs === null || typeof inputs !== 'object' || Array.isArray(inputs)) {
     return undefined
   }
   return Object.fromEntries(

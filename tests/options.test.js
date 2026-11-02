@@ -127,6 +127,7 @@ test('has no current values when the reply has no inputs object', () => {
   assert.equal(currentValues(null, {}), undefined)
   assert.equal(currentValues('x', {}), undefined)
   assert.equal(currentValues(undefined, {}), undefined)
+  assert.equal(currentValues(['x'], {}), undefined)
 })
 
 test('an empty answer clears free text and keeps the starting value of the rest', () => {

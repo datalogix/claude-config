@@ -61,7 +61,8 @@ const FORMAT_INSTRUCTION = [
   '`- [ ] (recomendo) ação`, `- ( ) (avalie) opção`. A caixa com `(recomendo)` já aparece marcada e pode ser enviada',
   'sem o usuário tocar nela, então uma ação destrutiva, difícil de desfazer ou visível para outras pessoas nunca leva',
   '`(recomendo)`: use `(avalie)`.',
-  'Uma caixa escrita já marcada (`[x]`, `(x)`) aparece ao usuário desmarcada, só como sugestão: na resposta dele,',
+  'Uma caixa escrita já marcada (`[x]`, `(x)`), salvo com `(recomendo)`, aparece ao usuário desmarcada, só como',
+  'sugestão: na resposta dele,',
   'uma caixa desmarcada quer dizer só que ele não a marcou, nunca que recusou; a que tinha `(recomendo)` e volta',
   'desmarcada foi desmarcada por ele.',
   'Logo abaixo de cada caixa, em linhas recuadas com dois espaços, diga só o que aquela opção tem de próprio: o que',
@@ -454,7 +455,12 @@ const actionsStateOf = async (
     explainedItems: await read($, explainedItems),
     isSent: await read($, isSent),
     isAnswering: await read($, isAnsweringAtom),
-    toggleItem: (i) => update($, checkedItems, (list) => toggleChecked(actions, list ?? defaultChecked(actions), i)),
+    // While Claude answers, a check would freeze the list and a (recomendo) written later would start unchecked. Once
+    // sent, the screen keeps showing what was sent.
+    toggleItem: async (i) => {
+      if ((await read($, isAnsweringAtom)) || (await read($, isSent))) return
+      await update($, checkedItems, (list) => toggleChecked(actions, list ?? defaultChecked(actions), i))
+    },
     toggleExplanation: (i) => update($, explainedItems, (list) => toggle(list, i)),
     // Reads the state at press time: the drawing it came from may be older than the last check or send.
     submit: async () => {

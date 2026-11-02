@@ -789,6 +789,36 @@ describe('sending the items', () => {
     expect(await ui.find({ key: 'busy-actions-submit' })).toBeDefined()
   })
 
+  test('while Claude answers, a press does not check, so a (recomendo) written later still starts checked', async ($, on) => {
+    on('turn.start', ($, e) => ({ turnId: e.turnId }))
+    on('turn.complete', () => ({ text: '' }))
+    await $.turn.start(startTurn())
+    const ui = await mountMessage($, '## Pendências\n- [ ] A', 'streaming')
+
+    await ui.press({ key: 'streaming-action-0' })
+    expect((await ui.find({ key: 'streaming-action-0' }))?.text).toBe('1. [ ] A')
+
+    await ui.redraw({ text: '## Pendências\n- [ ] A\n- [ ] (recomendo) B', isFirstOfReply: true })
+    expect((await ui.find({ key: 'streaming-action-1' }))?.text).toBe('2. [✔] recomendo: B')
+
+    await $.turn.complete(completeTurn({ answer: '## Pendências\n- [ ] A\n- [ ] (recomendo) B' }))
+    await ui.press({ key: 'streaming-action-0' })
+    expect((await ui.find({ key: 'streaming-action-0' }))?.text).toBe('1. [✔] A')
+  })
+
+  test('after sending, a press does not change what was sent', async ($, on) => {
+    on('prompt.submit', () => ({ text: '' }) as never)
+    const ui = await mountMessage($, WITH_ACTIONS, 'frozen')
+    await ui.press({ key: 'frozen-action-0' })
+    await ui.press({ key: 'frozen-actions-submit' })
+
+    await ui.press({ key: 'frozen-action-1' })
+    await ui.press({ key: 'frozen-action-0' })
+
+    expect((await ui.find({ key: 'frozen-action-0' }))?.text).toBe('1. [✔] Rodar npm test')
+    expect((await ui.find({ key: 'frozen-action-1' }))?.text).toBe('2. [ ] Já aprovado')
+  })
+
   test('an agent turn neither blocks sending nor replaces the last answer', async ($, on) => {
     on('turn.start', ($, e) => ({ turnId: e.turnId }))
     on('turn.complete', () => ({ text: '' }))

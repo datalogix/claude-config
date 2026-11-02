@@ -51,9 +51,12 @@ Which database?
   first alternative of a group
 - a box the answer wrote checked (`[x]`, `(x)`) starts unchecked, marked
   "sugerido" (not when it also has a stance): writing `[x]` never
-  checks anything; the format instruction tells Claude that such a box
-  coming back unchecked only means it was not checked
+  checks anything, though `(recomendo)` still does; the format
+  instruction tells Claude that such a box coming back unchecked only
+  means it was not checked
 - "enviar pendências" sends the list back as a message: the boxes as
   checked on screen, each preceded by its question (the line of text
   right before it) and no other loose text; it shows up once Claude
   finishes answering
+- the boxes do not change while Claude answers, or once the list was
+  sent

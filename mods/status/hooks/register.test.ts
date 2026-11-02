@@ -521,6 +521,64 @@ test('an agent that ended a run and is held on its own work does not read as don
   expect(notifications).toEqual([])
 })
 
+test('a long run of an agent still held on its own work does not say it finished', async ($, on) => {
+  const { notifications, agents } = setup(on)
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  agents.push(agent('bg', 'Revisar'))
+  await $.agent.spawn({ prompt: 'x', description: 'Revisar' } as never)
+  await $.turn.complete(turnComplete(5_000))
+
+  agents[0] = agent('bg', 'Revisar', 'waiting')
+  await $.turn.complete(turnComplete(40_000, { agentId: 'bg', turnId: 't2' }))
+
+  expect(notifications).toEqual([])
+})
+
+test('an idle agent does not count as running', async ($, on) => {
+  const { agents, lastStatus } = setup(on)
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  agents.push(agent('bg', 'Revisar', 'idle'))
+  await $.agent.spawn({ prompt: 'x', description: 'Revisar' } as never)
+  await $.turn.complete(turnComplete(5_000))
+
+  expect(lastStatus()).toBe('✅ pronto em 5s')
+})
+
+test('an agent that ends while the notice of the answer goes out still gets the final notice', async ($, on) => {
+  let reachNotify = () => {}
+  const isNotifying = new Promise<void>((resolve) => (reachNotify = resolve))
+  let releaseNotify = () => {}
+  const isReleased = new Promise<void>((resolve) => (releaseNotify = resolve))
+  let notifyCount = 0
+  const { toasts, agents } = setup(on, {
+    notify: (async () => {
+      if (++notifyCount === 1) {
+        reachNotify()
+        await isReleased
+      }
+      return { value: { isSent: true, channel: 'terminal_bell' } }
+    }) as never,
+  })
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  agents.push(agent('bg', 'Revisar'))
+  await $.agent.spawn({ prompt: 'x', description: 'Revisar' } as never)
+  const answerEnd = $.turn.complete(turnComplete(40_000))
+  await isNotifying
+
+  agents.length = 0
+  await $.turn.complete(turnComplete(1_000, { agentId: 'bg', turnId: 't2' }))
+  releaseNotify()
+  await answerEnd
+
+  expect(toasts).toEqual([
+    '✅ Claude terminou em 40s — 1 agente segue em segundo plano',
+    '✅ Os agentes em segundo plano terminaram',
+  ])
+})
+
 const launchWorkflow = (on: On, taskId: string, workflowName?: string) =>
   on('tool.call', { tool: 'Workflow' }, () => ({ result: { status: 'async_launched', taskId, workflowName } }) as never)
 
@@ -561,7 +619,7 @@ test('the notice of the end of a workflow takes it off the status', async ($, on
   expect(statuses.length).toBe(countBefore)
 })
 
-test('the workflow ending does not end the wait for the agents, nor the other way around', async ($, on) => {
+test('the last agent sends its final notice even with a workflow still running', async ($, on) => {
   const { notifications, agents, lastStatus } = setup(on)
   launchWorkflow(on, 'w1', 'revisao')
 
@@ -575,25 +633,121 @@ test('the workflow ending does not end the wait for the agents, nor the other wa
   agents.length = 0
   await $.turn.complete(turnComplete(1_000, { agentId: 'bg', turnId: 't2' }))
   expect(lastStatus()).toBe('⠋ em segundo plano  │  🔀 workflow: revisao')
-  expect(notifications).toHaveLength(1)
+  expect(notifications.at(-1)).toBe('✅ Os agentes em segundo plano terminaram — 1 workflow segue')
 })
 
-test('Stop says which workflows are in flight, before or after the turn ends', async ($, on) => {
+test('a failed agent stays in the final notice and the status with a workflow still running', async ($, on) => {
+  const { notifications, agents, lastStatus } = setup(on)
+  launchWorkflow(on, 'w1', 'revisao')
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  agents.push(agent('a1', 'Revisar'), agent('a2', 'Testar'))
+  await $.agent.spawn({ prompt: 'x', description: 'Revisar' } as never)
+  await $.tool.call({ tool: 'Workflow', script: 'x' } as never)
+  await $.turn.complete(turnComplete(5_000))
+
+  await $.turn.complete(turnComplete(1_000, { agentId: 'a1', turnId: 't2', reason: 'error' }))
+  agents.length = 0
+  await $.turn.complete(turnComplete(1_000, { agentId: 'a2', turnId: 't3' }))
+
+  expect(notifications.at(-1)).toBe('⚠️ Os agentes em segundo plano terminaram, 1 com problema — 1 workflow segue')
+  expect(lastStatus()).toBe('⚠️ agentes terminaram, 1 com problema · ⠋ em segundo plano  │  🔀 workflow: revisao')
+
+  // The workflow's end sends no second notice about the agents.
+  await $.prompt.submit(notification('<task-id>w1</task-id>'))
+  expect(notifications).toHaveLength(2)
+})
+
+const stopHook = (on: On) => on('classic.Stop', () => ({}) as never)
+const stopInput = (background_tasks: unknown[]) => ({ stop_hook_active: false, background_tasks }) as never
+
+test('Stop after the turn ends says which workflows are in flight', async ($, on) => {
   const { lastStatus } = setup(on)
-  on('classic.Stop', () => ({}) as never)
-  const stop = (background_tasks: unknown[]) => $.classic.Stop({ stop_hook_active: false, background_tasks } as never)
+  stopHook(on)
 
   await $.turn.start({ text: 'oi', turnId: 't1' })
   await $.turn.complete(turnComplete(5_000))
   expect(lastStatus()).toBe('✅ pronto em 5s')
 
-  await stop([
-    { id: 'w2', type: 'workflow', status: 'running', description: 'desc', name: 'deploy' },
-    { id: 's1', type: 'shell', status: 'running', description: 'npm test' },
-  ])
+  await $.classic.Stop(
+    stopInput([
+      { id: 'w2', type: 'workflow', status: 'running', description: 'desc', name: 'deploy' },
+      { id: 's1', type: 'shell', status: 'running', description: 'npm test' },
+    ]),
+  )
   expect(lastStatus()).toBe('⠋ em segundo plano  │  🔀 workflow: deploy')
 
-  await stop([])
+  await $.classic.Stop(stopInput([]))
+  expect(lastStatus()).toBe('✅ pronto em 5s')
+})
+
+test('Stop before the turn ends counts in the notice of the answer, in the plural too', async ($, on) => {
+  const { toasts } = setup(on)
+  stopHook(on)
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  await $.classic.Stop(
+    stopInput([
+      { id: 'w1', type: 'workflow', status: 'running', description: 'a', name: 'revisao' },
+      { id: 'w2', type: 'workflow', status: 'running', description: 'b', name: 'deploy' },
+    ]),
+  )
+  await $.turn.complete(turnComplete(40_000))
+  expect(toasts).toEqual(['✅ Claude terminou em 40s — 2 workflows seguem em segundo plano'])
+})
+
+test('Stop with a workflow gone leaves the wait for the agents alone', async ($, on) => {
+  const { notifications, agents } = setup(on)
+  stopHook(on)
+  launchWorkflow(on, 'w1', 'revisao')
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  agents.push(agent('bg', 'Revisar'))
+  await $.agent.spawn({ prompt: 'x', description: 'Revisar' } as never)
+  await $.tool.call({ tool: 'Workflow', script: 'x' } as never)
+  await $.turn.complete(turnComplete(5_000))
+  await $.classic.Stop(stopInput([]))
+
+  agents.length = 0
+  await $.turn.complete(turnComplete(1_000, { agentId: 'bg', turnId: 't2' }))
+  expect(notifications).toEqual(['✅ Os agentes em segundo plano terminaram'])
+})
+
+test('a workflow without a name shows what stands in for it', async ($, on) => {
+  const { lastStatus } = setup(on)
+  stopHook(on)
+  launchWorkflow(on, 'w1')
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  await $.tool.call({ tool: 'Workflow', script: 'x' } as never)
+  await $.turn.complete(turnComplete(5_000))
+  expect(lastStatus()).toBe('⠋ em segundo plano  │  🔀 workflow: workflow')
+
+  const description = 'uma descrição bem longa de um workflow sem nome'
+  await $.classic.Stop(stopInput([{ id: 'w1', type: 'workflow', status: 'running', description }]))
+  expect(lastStatus()).toBe('⠋ em segundo plano  │  🔀 workflow: uma descrição bem longa de um…')
+})
+
+test('a Workflow call that failed does not count as running', async ($, on) => {
+  const { lastStatus } = setup(on)
+  on('tool.call', { tool: 'Workflow' }, () => ({ result: { taskId: 'w1' }, isError: true }) as never)
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  await $.tool.call({ tool: 'Workflow', script: 'x' } as never)
+  await $.turn.complete(turnComplete(5_000))
+
+  expect(lastStatus()).toBe('✅ pronto em 5s')
+})
+
+test('the notice of the end of a workflow during a turn takes it off the status', async ($, on) => {
+  const { lastStatus } = setup(on)
+  launchWorkflow(on, 'w1', 'revisao')
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  await $.tool.call({ tool: 'Workflow', script: 'x' } as never)
+  await $.prompt.submit(notification('<task-id>w1</task-id>'))
+  await $.turn.complete(turnComplete(5_000))
+
   expect(lastStatus()).toBe('✅ pronto em 5s')
 })
 
@@ -737,16 +891,33 @@ test('the next prompt clears the previous outcome and keeps the plan', async ($,
   expect(lastStatus()).toBe('📊 plano: 5h 10%')
 })
 
-test('a session started again drops the previous outcome', async ($, on) => {
-  const { lastStatus } = setup(on)
-  withUsage(on, [])
+const sessionEndInput = (reason: string) => ({ reason, sessionId: 's1', resume: {} }) as never
+
+for (const reason of ['clear', 'resume']) {
+  test(`a session ended by ${reason} drops the previous outcome and keeps the plan`, async ($, on) => {
+    const { lastStatus } = setup(on)
+    on('session.end', (_$, e) => ({ sessionId: e.sessionId }) as never)
+
+    await $.session.measure(measure([{ kind: 'five_hour', percentUsed: 10 }]))
+    await $.turn.start({ text: 'oi', turnId: 't1' })
+    await $.turn.complete(turnComplete(5_000))
+    expect(lastStatus()).toBe('✅ pronto em 5s  │  📊 plano: 5h 10%')
+
+    await $.session.end(sessionEndInput(reason))
+    expect(lastStatus()).toBe('📊 plano: 5h 10%')
+  })
+}
+
+test('a session that ends for good leaves the status alone', async ($, on) => {
+  const { statuses } = setup(on)
+  on('session.end', (_$, e) => ({ sessionId: e.sessionId }) as never)
 
   await $.turn.start({ text: 'oi', turnId: 't1' })
   await $.turn.complete(turnComplete(5_000))
-  expect(lastStatus()).toBe('✅ pronto em 5s')
+  const countBefore = statuses.length
 
-  await $.session.start(sessionStartInput)
-  expect(lastStatus()).toBeUndefined()
+  await $.session.end(sessionEndInput('prompt_input_exit'))
+  expect(statuses.length).toBe(countBefore)
 })
 
 test('a prompt sent during a turn leaves the status alone', async ($, on) => {
@@ -807,6 +978,15 @@ test('notify "agents" leaves the plan limit to the toast', { options: { notify: 
 
   expect(toasts).toEqual(['🛑 Você atingiu o limite do plano (semana)'])
   expect(notifications).toEqual([])
+})
+
+test('a notify outside its options counts as always', { options: { notify: 'x' } }, async ($, on) => {
+  const { notifications } = setup(on)
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  await $.turn.complete(turnComplete(60_000))
+
+  expect(notifications).toEqual(['✅ Claude terminou em 1min 00s'])
 })
 
 test('notify "never" leaves only the toast', { options: { notify: 'never' } }, async ($, on) => {
@@ -1034,6 +1214,7 @@ describe('formatWorkflows', () => {
     ['no workflows', [], undefined],
     ['one workflow', ['revisao'], '🔀 workflow: revisao'],
     ['two workflows', ['revisao', 'deploy'], '🔀 2 workflows'],
+    ['a long name, cut', ['x'.repeat(40)], `🔀 workflow: ${'x'.repeat(29)}…`],
   ]
   for (const [name, names, text] of cases) test(name, () => expect(formatWorkflows(names)).toBe(text))
 })
@@ -1067,6 +1248,9 @@ describe('excerpt', () => {
     ['O campo está_ativo foi removido', 'O campo está_ativo foi removido'],
     ['![logo](a.png) Feito', 'logo Feito'],
     ['<!-- nota -->\nFeito', 'Feito'],
+    ['<!-- a --> <!-- b -->\nFeito', 'Feito'],
+    ['<!-- a --> Feito <!-- b -->\nOutro', '<!-- a --> Feito <!-- b -->'],
+    [`${'a'.repeat(78)}😀 e mais texto`, `${'a'.repeat(78)}😀…`],
   ] as const) {
     test(`${JSON.stringify(answer)} is ${JSON.stringify(text)}`, () => expect(extractExcerpt(answer)).toBe(text))
   }

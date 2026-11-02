@@ -35,15 +35,25 @@ export const formatTimeLeft = (ms: number): string => {
   return `${Math.floor(h / 24)}d ${h % 24}h`
 }
 
-const AGENT_NAME_MAX = 30
+/** By code points, so an emoji is not cut in half. */
+const truncate = (text: string, max: number): string => {
+  const chars = [...text]
+  return chars.length > max
+    ? `${chars
+        .slice(0, max - 1)
+        .join('')
+        .trimEnd()}…`
+    : text
+}
+
+const NAME_MAX = 30
+
+/** Short, so the plan is not pushed out of the status line; notices use the full name. */
+const shortName = (name: string): string => truncate(name, NAME_MAX)
 
 const agentName = (a: AgentInfo): string => a.description || a.name || a.type
 
-/** Short, so the plan is not pushed out of the status line; notices use the full name. */
-const shortAgentName = (a: AgentInfo): string => {
-  const name = agentName(a)
-  return name.length > AGENT_NAME_MAX ? `${name.slice(0, AGENT_NAME_MAX - 1).trimEnd()}…` : name
-}
+const shortAgentName = (a: AgentInfo): string => shortName(agentName(a))
 
 const EXCERPT_MAX = 80
 
@@ -76,7 +86,7 @@ const createCodeBlockTracker = () => {
 
 const THEMATIC_BREAK = /^\s*([-*_]\s*){3,}$/
 const TABLE_ROW = /^\s*\|/
-const HTML_COMMENT = /^\s*<!--.*-->\s*$/
+const HTML_COMMENT = /^\s*(<!--((?!-->).)*-->\s*)+$/
 
 /** Underscores inside words (snake_case) and a lone * (2 * 3) are kept. */
 export const extractExcerpt = (answer: string | undefined): string | undefined => {
@@ -94,8 +104,7 @@ export const extractExcerpt = (answer: string | undefined): string | undefined =
         .trim(),
     )
     .find(Boolean)
-  if (!line) return undefined
-  return line.length > EXCERPT_MAX ? `${line.slice(0, EXCERPT_MAX - 1).trimEnd()}…` : line
+  return line ? truncate(line, EXCERPT_MAX) : undefined
 }
 
 /** `{}` is replaced by who it was. */
@@ -112,7 +121,7 @@ const formatRemainingWorkflows = (count: number): string =>
 
 export const formatWorkflows = (names: string[]): string | undefined => {
   if (names.length === 0) return undefined
-  if (names.length === 1) return `🔀 workflow: ${names[0]}`
+  if (names.length === 1) return `🔀 workflow: ${shortName(names[0]!)}`
   return `🔀 ${names.length} workflows`
 }
 
@@ -163,7 +172,7 @@ type State = {
   workflows: Map<string, string> // running in the background, task id → name; $.agent.list() does not show them
   failedAgentCount: number // since the main turn started
   windows: SessionRateLimit[]
-  outcome?: string // how the last answer, or the background agents after it, ended
+  outcome?: { text: string; isSuccess: boolean } // how the last answer, or the background agents after it, ended
   isWaitingForAgents: boolean // answered with agents still running
   alertedLevelKeys: Set<string>
   windowsAtLimit: Map<string, string | undefined> // kind at 100% → resetsAt
@@ -178,10 +187,10 @@ const formatStatus = (s: State, now: number): string | undefined => {
     main = `${spinnerFrame} Claude está trabalhando… ${formatClock(now - s.mainTurnStartedAt)}`
   // A ✅ next to work still running would read as if everything had ended; the failures stay.
   else if (hasBackgroundWork(s))
-    main = [s.outcome?.startsWith('✅') ? undefined : s.outcome, `${spinnerFrame} em segundo plano`]
+    main = [s.outcome?.isSuccess ? undefined : s.outcome?.text, `${spinnerFrame} em segundo plano`]
       .filter(Boolean)
       .join(' · ')
-  else main = s.outcome
+  else main = s.outcome?.text
 
   const text = [
     main,
@@ -219,22 +228,28 @@ async function sendNotice($: EngineInterface, s: State, text: string, options: N
   }
 }
 
-/** @param hasNotifiedEnd the agent that just ended already sent a notice of its own failure */
+/**
+ * A workflow still running does not hold this back: its own end comes back as a new answer from Claude, so nothing
+ * would send this notice later.
+ *
+ * @param hasNotifiedEnd the agent that just ended already sent a notice of its own failure
+ */
 async function checkAgentsDone($: EngineInterface, s: State, agentCountBefore: number, hasNotifiedEnd: boolean) {
-  if (s.isWaitingForAgents && agentCountBefore > 0 && !hasBackgroundWork(s) && s.mainTurnStartedAt === undefined) {
+  if (s.isWaitingForAgents && agentCountBefore > 0 && s.agents.length === 0 && s.mainTurnStartedAt === undefined) {
     s.isWaitingForAgents = false
+    const workflowsSuffix = s.workflows.size > 0 ? ` — ${formatRemainingWorkflows(s.workflows.size)}` : ''
     if (s.failedAgentCount > 0) {
       const problems = `${s.failedAgentCount} com problema`
-      s.outcome = `⚠️ agentes terminaram, ${problems}`
+      s.outcome = { text: `⚠️ agentes terminaram, ${problems}`, isSuccess: false }
       // A summary of that one failure alone would repeat the notice just sent.
       if (!(hasNotifiedEnd && s.failedAgentCount === 1))
-        await sendNotice($, s, `⚠️ Os agentes em segundo plano terminaram, ${problems}`, {
+        await sendNotice($, s, `⚠️ Os agentes em segundo plano terminaram, ${problems}${workflowsSuffix}`, {
           timeoutMs: 10000,
           isAboutBackgroundAgents: true,
         })
     } else {
-      s.outcome = '✅ tudo pronto'
-      await sendNotice($, s, '✅ Os agentes em segundo plano terminaram', {
+      s.outcome = { text: '✅ tudo pronto', isSuccess: true }
+      await sendNotice($, s, `✅ Os agentes em segundo plano terminaram${workflowsSuffix}`, {
         timeoutMs: 8000,
         isAboutBackgroundAgents: true,
       })
@@ -345,11 +360,9 @@ export const register: Register = (on, options) => {
 
   on('session.start', async ($, e, next) => {
     const r = await next(e)
-    // /clear and resume start another conversation: the last outcome was of the one before.
-    s.outcome = undefined
     s.windows = (await $.session.usage()).rateLimits
     await showStatus($, s)
-    // /clear and resume start the session again in the same module: one interval only.
+    // Should the session start again in the same module: one interval only.
     s.refresher?.cancel()
     s.refresher = $.clock.every(REFRESH_MS, async () => {
       const now = await $.clock.now()
@@ -363,6 +376,15 @@ export const register: Register = (on, options) => {
       }
     })
     return r
+  })
+
+  // /clear and resume start another conversation, with no session.start: the last outcome was of the one before.
+  on('session.end', async ($, e, next) => {
+    if (e.reason === 'clear' || e.reason === 'resume') {
+      s.outcome = undefined
+      await showStatus($, s)
+    }
+    return next(e)
   })
 
   on('session.measure', async ($, e, next) => {
@@ -398,7 +420,6 @@ export const register: Register = (on, options) => {
       s.workflows = new Map(workflows.map((task) => [task.id, task.name ?? task.description]))
       // It may come after the main turn.complete, which then read the workflows before this.
       if (s.mainTurnStartedAt === undefined) {
-        s.isWaitingForAgents = hasBackgroundWork(s)
         if (hasBackgroundWork(s)) startSpinner($, s)
         await showStatus($, s)
       }
@@ -451,8 +472,10 @@ export const register: Register = (on, options) => {
       s.finishedAgentIds.add(e.agentId)
       await refreshAgents($, s, hasNotifiedEnd)
       const remaining = s.agents.length
+      // Held on its own background work, it has not ended and would count itself as remaining.
+      const isStillActive = s.agents.some((a) => a.id === e.agentId)
       // The last agent's end is the "tudo pronto" notice instead.
-      if (isBackground && !endText && remaining > 0 && e.durationMs >= minDurationMs) {
+      if (isBackground && !endText && !isStillActive && remaining > 0 && e.durationMs >= minDurationMs) {
         await sendNotice($, s, `✅ ${who} terminou — ${formatRemainingAgents(remaining)}`, {
           timeoutMs: 8000,
           isAboutBackgroundAgents: true,
@@ -467,6 +490,9 @@ export const register: Register = (on, options) => {
     const isAborted = e.reason === 'aborted'
     await refreshAgents($, s)
     const remaining = s.agents.length
+    // Before the notices, which wait on the user's hooks: an agent may end meanwhile. Even after Esc, agents that stay
+    // active still send a notice when they end.
+    s.isWaitingForAgents = remaining > 0
     const remainingWork = [
       remaining > 0 && formatRemainingAgents(remaining),
       s.workflows.size > 0 && formatRemainingWorkflows(s.workflows.size),
@@ -476,15 +502,15 @@ export const register: Register = (on, options) => {
     const remainingSuffix = remainingWork ? ` — ${remainingWork} em segundo plano` : ''
 
     if (e.reason === 'error') {
-      s.outcome = `❌ deu erro após ${duration}`
+      s.outcome = { text: `❌ deu erro após ${duration}`, isSuccess: false }
       await sendNotice($, s, `❌ Claude parou com erro após ${duration}${remainingSuffix}`, { timeoutMs: 10000 })
     } else if (e.reason === 'refusal') {
-      s.outcome = `⚠️ recusou após ${duration}`
+      s.outcome = { text: `⚠️ recusou após ${duration}`, isSuccess: false }
       await sendNotice($, s, `⚠️ Claude recusou a resposta após ${duration}${remainingSuffix}`, { timeoutMs: 10000 })
     } else if (isAborted) {
-      s.outcome = `⏹️ interrompido após ${duration}`
+      s.outcome = { text: `⏹️ interrompido após ${duration}`, isSuccess: false }
     } else {
-      s.outcome = `✅ pronto em ${duration}`
+      s.outcome = { text: `✅ pronto em ${duration}`, isSuccess: true }
       if (e.durationMs >= minDurationMs) {
         await sendNotice($, s, `✅ Claude terminou em ${duration}${remainingSuffix}`, {
           timeoutMs: 8000,
@@ -493,8 +519,6 @@ export const register: Register = (on, options) => {
       }
     }
 
-    // Even after Esc, agents that stay active still send a notice when they end.
-    s.isWaitingForAgents = hasBackgroundWork(s)
     if (!hasBackgroundWork(s)) stopSpinner(s)
     await showStatus($, s)
     return next(e)

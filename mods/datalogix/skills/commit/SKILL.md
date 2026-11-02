@@ -13,9 +13,8 @@ Argumentos: $ARGUMENTS
   `help <argumento>` explica em detalhe só aquele argumento.
 - Texto: observações para a mensagem, como o motivo da mudança ou
   o tipo desejado (ex.: "é um fix do cálculo do frete").
-- `grupos: <título> (<arquivos>); ...`: a divisão sugerida, como o
-  `/datalogix:review` a mostra, usada como ponto de partida no
-  passo 1.
+- `grupos: <título> (<arquivos>); ...`: uma divisão já decidida,
+  usada como ponto de partida no passo 1.
 
 Respostas às seções `## Pendências`, em todos os passos:
 - Cada caixa vale como chega na resposta: marcada é sim;
@@ -38,6 +37,8 @@ Respostas às seções `## Pendências`, em todos os passos:
   refs/remotes/origin/HEAD`, sem o `origin/`; se esse ref não
   existir, com ou sem remoto, `main` ou `master`. Se a branch atual
   for ela, avise na prévia que o commit vai direto nela.
+- HEAD destacado (`git branch --show-current` vazio): avise na
+  prévia que o commit não fica em nenhuma branch.
 - Branch com data: se o último segmento do nome da branch atual for
   só uma data (ex.: `review/2026-11-01`, `fix/20261101`), confirme
   se o nome fica, na primeira seção `## Pendências` que mostrar,
@@ -52,6 +53,16 @@ Respostas às seções `## Pendências`, em todos os passos:
     --heads origin <branch>` sai com 0), não pergunte: avise que o
     nome tem data e que trocá-lo exigiria apagar a branch remota,
     o que fecha um PR aberto dela, e siga. Nunca apague a remota.
+- Listas de arquivos: leia os caminhos com `git -c
+  core.quotePath=false status --porcelain -uall` e, no `git diff
+  --name-only`, com o mesmo `-c`; sem isso, acentos saem como
+  `\303\263` e o `git add` não os acha. Escreva cada caminho no
+  comando, como argumento próprio entre aspas, nunca numa variável
+  de shell: ela não passa de uma chamada para outra e, no zsh, não
+  se separa em palavras.
+- Com `grupos:` nos argumentos e algo em stage: avise que os grupos
+  valem só com o stage vazio, não os use na mensagem e siga com o
+  que está em stage.
 - Nada em stage (`git diff --cached --quiet` sai com 0):
   - Sem nenhuma mudança (`git status --porcelain` vazio), diga e
     pare.
@@ -92,9 +103,9 @@ Depois da resposta:
   fora destes commits, a menos que o `CLAUDE.md` tenha sido
   marcado; avise isso.
 - Com arquivos marcados, rode `git add -- <arquivo> ...` só com
-  eles. Com "Fazer tudo em um commit só", rode `git add --` com
-  todos os arquivos de `git status --porcelain -uall`; a pergunta
-  "Dividir o commit?" não aparece. Com grupos marcados, os commits
+  eles. Com "Fazer tudo em um commit só", rode `git add --` com os
+  arquivos da leitura que gerou a pergunta, não de um status novo;
+  a pergunta "Dividir o commit?" não aparece. Com grupos marcados, os commits
   são esses grupos, na ordem listada, e nada vai para o stage antes
   da confirmação (divisão, passo 4); a pergunta "Dividir o commit?"
   não se repete. Nunca use `git add -A`, `git add .` nem `git
@@ -150,7 +161,10 @@ Depois da resposta:
   e formatação à parte, se não forem necessárias para outra
   mudança. Um arquivo com mudanças de mais de um commit é dividido
   por trecho. Ordene de modo que cada commit faça sentido sozinho:
-  o que outro usa vem antes.
+  o que outro usa vem antes. Ao dividir por trecho, confira trecho a
+  trecho: o que usa algo (função, import, variável) trazido por
+  outro trecho vai no mesmo commit ou depois dele; se não der, junte
+  os commits.
 
 ## 4. Prévia
 Mostre, nesta ordem:
@@ -170,8 +184,8 @@ mostre numa prévia só todos os commits, na ordem em que serão
 feitos, cada um com seus arquivos (e o trecho de cada arquivo
 dividido), a mensagem exatamente como será enviada e, se for o caso:
 - "depende de: <commit>", quando usa algo que só um grupo não
-  marcado traz (ex.: chama uma função que só ele cria); o commit
-  pode não funcionar sozinho;
+  marcado ou um commit posterior traz (ex.: chama uma função que
+  só ele cria); o commit pode não funcionar sozinho;
 - "estado não testado", quando tem um arquivo dividido por trecho:
   esse conteúdo nunca existiu na cópia de trabalho, então os testes
   não rodaram nele;
@@ -196,9 +210,11 @@ alternativas marcada, ou a cada ajuste, mostre a prévia inteira de
 novo. Nenhum commit é feito antes da confirmação explícita.
 
 Na divisão:
-- Antes do primeiro commit, guarde a lista dos arquivos em stage e
-  tire todos do stage: `git restore --staged -- <arquivo> ...` ou,
-  sem nenhum commit ainda, `git rm --cached -q -- <arquivo> ...`.
+- Antes do primeiro commit, se houver algo em stage, guarde a lista
+  (`git diff --cached --name-only --no-renames`, que traz os dois
+  lados de um arquivo renomeado) e tire todos do stage: `git
+  restore --staged -- <arquivo> ...` ou, sem nenhum commit ainda,
+  `git rm --cached -q -- <arquivo> ...`.
   Nunca use `git reset --hard` nem `git checkout`. Nenhum tem
   mudanças fora do stage (passo 3), então a cópia de trabalho é o
   que estava em stage.
@@ -215,7 +231,9 @@ Na divisão:
     prévia. Arquivo novo, apagado, renomeado ou binário vai
     inteiro. Nunca altere a cópia de trabalho nem use `git add -p`.
 - Confira com `git diff --cached --stat` que o stage tem só o
-  commit da vez. Se um `git apply` falhar ou o stage não bater,
+  commit da vez. Num arquivo dividido, leia `git show :<arquivo>` e
+  confira que o conteúdo em stage não usa nada que só chega depois;
+  se usar, trate como um stage que não bate. Se um `git apply` falhar ou o stage não bater,
   tire do stage o que entrou para este commit, mostre o erro e
   pare, dizendo quais commits ficaram feitos.
 - Com a confirmação de todos, faça cada commit (passo 5) e siga
@@ -245,7 +263,8 @@ Na divisão:
 Com `help`, explique em poucas linhas, sem executar nada: o que o
 comando faz, os argumentos (`help`, observações, `grupos:`) e o
 fluxo (sem nada em stage, commits sugeridos por funcionalidade ou
-correção ou escolha dos arquivos, idioma, divisão por arquivo ou por trecho, prévia de
-todos os commits, confirmação de todos ou de um por vez, sem push).
+correção ou escolha dos arquivos, idioma, divisão por arquivo ou
+por trecho, prévia de todos os commits, confirmação de todos ou de
+um por vez, sem push).
 Com `help <argumento>`, explique só aquele argumento, com um
 exemplo.

@@ -117,6 +117,12 @@ test('the commit skill still takes the groups as an argument', () => {
   assert.ok(flat('commit/SKILL.md').includes('Com `grupos:` nos argumentos'))
 })
 
+test('the commit skill still reads paths safely', () => {
+  const commit = flat('commit/SKILL.md')
+  assert.ok(commit.includes('core.quotePath=false'))
+  assert.ok(commit.includes('--name-only --no-renames'))
+})
+
 describe('the supporting files of the review skill', () => {
   /** @param {string} file */
   const exists = (file) => fs.existsSync(new URL(`review/${file}`, skillsDir))

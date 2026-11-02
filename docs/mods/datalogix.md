@@ -92,7 +92,7 @@ check its skills.
   -A`, and cancelling unstages what it staged. `grupos: <title>
   (<files>); ...` starts from a split you give. The preview also
   points out files that look generated (`dist/`, `vendor/`, minified
-  files), a commit that depends on an unchecked one, and one whose
+  files), a commit that depends on an unchecked or later one, and one whose
   content, split by hunk, was never tested. It warns about changes left
   out of the commit, commits straight to
   the default branch and parts of the diff that look sensitive, asks

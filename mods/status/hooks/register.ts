@@ -125,12 +125,15 @@ export const formatWorkflows = (names: string[]): string | undefined => {
   return `🔀 ${names.length} workflows`
 }
 
-export const formatAgents = (agents: AgentInfo[]): string | undefined => {
+/** One name only, so the plan is not pushed out of the status line. */
+export const formatAgents = (agents: AgentInfo[], doneCount = 0, failedCount = 0): string | undefined => {
   if (agents.length === 0) return undefined
-  if (agents.length === 1) return `🤖 agente: ${shortAgentName(agents[0]!)}`
-  const names = agents.slice(0, 2).map(shortAgentName).join(', ')
-  const rest = agents.length > 2 ? ` +${agents.length - 2}` : ''
-  return `🤖 ${agents.length} agentes: ${names}${rest}`
+  const total = doneCount + agents.length
+  const name = shortAgentName(agents[0]!)
+  if (total === 1) return `🤖 agente: ${name}`
+  const failed = failedCount > 0 ? ` ⚠️${failedCount}` : ''
+  const rest = agents.length > 1 ? ` +${agents.length - 1}` : ''
+  return `🤖 ${doneCount}/${total}${failed}: ${name}${rest}`
 }
 
 /** Past its reset time, the usage claude reports is from before the reset until the next API response. */
@@ -171,6 +174,8 @@ type State = {
   finishedAgentIds: Set<string> // already ended, even if the list still shows them
   workflows: Map<string, string> // running in the background, task id → name; $.agent.list() does not show them
   failedAgentCount: number // since the main turn started
+  seenAgentIds: Set<string> // since the main turn started, with those it found running: the total of the progress
+  failedAgentIds: Set<string> // of seenAgentIds, also those in the foreground, which failedAgentCount leaves out
   windows: SessionRateLimit[]
   outcome?: { text: string; isSuccess: boolean } // how the last answer, or the background agents after it, ended
   isWaitingForAgents: boolean // answered with agents still running
@@ -194,7 +199,7 @@ const formatStatus = (s: State, now: number): string | undefined => {
 
   const text = [
     main,
-    formatAgents(s.agents),
+    formatAgents(s.agents, Math.max(0, s.seenAgentIds.size - s.agents.length), s.failedAgentIds.size),
     formatWorkflows([...s.workflows.values()]),
     formatPlan(s.windows, now, s.planAlert),
   ]
@@ -248,7 +253,8 @@ async function checkAgentsDone($: EngineInterface, s: State, agentCountBefore: n
           isAboutBackgroundAgents: true,
         })
     } else {
-      s.outcome = { text: '✅ tudo pronto', isSuccess: true }
+      // A failed or interrupted answer stays: the agents ending well says nothing about it.
+      if (!s.outcome || s.outcome.isSuccess) s.outcome = { text: '✅ tudo pronto', isSuccess: true }
       await sendNotice($, s, `✅ Os agentes em segundo plano terminaram${workflowsSuffix}`, {
         timeoutMs: 8000,
         isAboutBackgroundAgents: true,
@@ -268,7 +274,14 @@ async function refreshAgents($: EngineInterface, s: State, hasNotifiedEnd = fals
   s.agents = listed.filter(
     (a) => ACTIVE_STATUSES.has(a.status) && (a.status === 'waiting' || !s.finishedAgentIds.has(a.id)),
   )
+  for (const a of s.agents) s.seenAgentIds.add(a.id)
   await checkAgentsDone($, s, agentCountBefore, hasNotifiedEnd)
+}
+
+/** Agents still running stay in the count; those already ended belong to the progress before. */
+const startAgentProgress = (s: State) => {
+  s.seenAgentIds = new Set(s.agents.map((a) => a.id))
+  s.failedAgentIds = new Set()
 }
 
 const stopSpinner = (s: State) => {
@@ -351,6 +364,8 @@ export const register: Register = (on, options) => {
     finishedAgentIds: new Set(),
     workflows: new Map(),
     failedAgentCount: 0,
+    seenAgentIds: new Set(),
+    failedAgentIds: new Set(),
     windows: [],
     isWaitingForAgents: false,
     alertedLevelKeys: new Set(),
@@ -385,6 +400,7 @@ export const register: Register = (on, options) => {
       s.workflows = new Map()
       s.isWaitingForAgents = false
       s.failedAgentCount = 0
+      startAgentProgress(s)
       if (s.mainTurnStartedAt === undefined && !hasBackgroundWork(s)) stopSpinner(s)
       await showStatus($, s)
     }
@@ -411,7 +427,7 @@ export const register: Register = (on, options) => {
   on('tool.call', { tool: 'Workflow' }, async ($, e, next) => {
     const r = await next(e)
     if (r.result && !r.isError) {
-      s.workflows.set(r.result.taskId, r.result.workflowName ?? 'workflow')
+      s.workflows.set(r.result.taskId, r.result.workflowName || 'workflow')
       await showStatus($, s)
     }
     return r
@@ -421,7 +437,7 @@ export const register: Register = (on, options) => {
   on('classic.Stop', async ($, e, next) => {
     if (e.background_tasks) {
       const workflows = e.background_tasks.filter((task) => task.type === 'workflow')
-      s.workflows = new Map(workflows.map((task) => [task.id, task.name ?? task.description ?? 'workflow']))
+      s.workflows = new Map(workflows.map((task) => [task.id, task.name || task.description || 'workflow']))
       // It may come after the main turn.complete, which then read the workflows before this.
       if (s.mainTurnStartedAt === undefined) {
         if (hasBackgroundWork(s)) startSpinner($, s)
@@ -434,6 +450,7 @@ export const register: Register = (on, options) => {
   on('turn.start', async ($, e, next) => {
     if (e.agentId !== undefined) {
       s.finishedAgentIds.delete(e.agentId)
+      s.failedAgentIds.delete(e.agentId)
       await refreshAgents($, s)
       startSpinner($, s)
       return next(e)
@@ -443,6 +460,7 @@ export const register: Register = (on, options) => {
     s.outcome = undefined
     s.isWaitingForAgents = false
     s.failedAgentCount = 0
+    startAgentProgress(s)
     startSpinner($, s)
     await showStatus($, s)
     return next(e)
@@ -467,6 +485,10 @@ export const register: Register = (on, options) => {
       const endText = AGENT_END_TEXTS[e.reason]
       const isBackground = s.isWaitingForAgents
       if (endText && isBackground) s.failedAgentCount++
+      if (endText) {
+        s.seenAgentIds.add(e.agentId)
+        s.failedAgentIds.add(e.agentId)
+      }
       // An agent error always sends a notice; an interruption or refusal, only in the background.
       const hasNotifiedEnd = Boolean(endText && (e.reason === 'error' || isBackground))
       if (endText && hasNotifiedEnd) {

@@ -228,7 +228,7 @@ test('shows running agents by name', async ($, on) => {
 
   agents.push(agent('a2', 'Rodar testes'), agent('a3', 'Ler docs', 'pending'), agent('a4', 'Velho', 'completed'))
   await clock.advance(1_000)
-  expect(lastStatus()).toMatch(/│ {2}🤖 3 agentes: Procurar arquivos, Rodar testes \+1$/)
+  expect(lastStatus()).toMatch(/│ {2}🤖 0\/3: Procurar arquivos \+2$/)
 })
 
 test('an agent waiting for approval still counts as active', async ($, on) => {
@@ -493,6 +493,35 @@ test('an agent that starts again after ending shows up again', async ($, on) => 
   await $.turn.start({ text: '', turnId: 't3', agentId: 'a1' })
   await clock.advance(200)
   expect(lastStatus()).toMatch(/│ {2}🤖 agente: Explorar$/)
+})
+
+test('a failed answer stays in the status after the background agents end well', async ($, on) => {
+  const { agents, lastStatus } = setup(on)
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  agents.push(agent('bg', 'Revisar'))
+  await $.agent.spawn({ prompt: 'x', description: 'Revisar' } as never)
+  await $.turn.complete(turnComplete(3_000, { reason: 'error' }))
+
+  agents.length = 0
+  await $.turn.complete(turnComplete(1_000, { agentId: 'bg', turnId: 't2' }))
+
+  expect(lastStatus()).toBe('❌ deu erro após 3s')
+})
+
+test('a Workflow reply or a Stop task with an empty name shows what stands in for it', async ($, on) => {
+  const { lastStatus } = setup(on)
+  on('classic.Stop', () => ({}) as never)
+  launchWorkflow(on, 'w1', '')
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  await $.tool.call({ tool: 'Workflow', script: 'x' } as never)
+  await $.turn.complete(turnComplete(5_000))
+  expect(lastStatus()).toBe('⠋ em segundo plano  │  🔀 workflow: workflow')
+
+  const task = { id: 'w1', type: 'workflow', status: 'running', name: '', description: 'revisar' }
+  await $.classic.Stop({ stop_hook_active: false, background_tasks: [task] } as never)
+  expect(lastStatus()).toBe('⠋ em segundo plano  │  🔀 workflow: revisar')
 })
 
 test('a failed answer stays in the status next to the background agents', async ($, on) => {
@@ -952,6 +981,27 @@ for (const reason of ['clear', 'resume']) {
   })
 }
 
+test('the progress counts the agents that ended, and the next turn starts it over', async ($, on) => {
+  const { lastStatus, agents } = setup(on)
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  agents.push(agent('a1', 'Revisar'), agent('a2', 'Testar'), agent('a3', 'Docs'))
+  await $.agent.spawn({ prompt: 'x', description: 'Revisar' } as never)
+  await $.turn.complete(turnComplete(1_000))
+  expect(lastStatus()).toMatch(/🤖 0\/3: Revisar \+2$/)
+
+  agents.splice(0, 1)
+  await $.turn.complete(turnComplete(1_000, { agentId: 'a1', turnId: 't2' }))
+  expect(lastStatus()).toMatch(/🤖 1\/3: Testar \+1$/)
+
+  agents.splice(0, 1)
+  await $.turn.complete(turnComplete(1_000, { agentId: 'a2', turnId: 't3', reason: 'error' }))
+  expect(lastStatus()).toMatch(/🤖 2\/3 ⚠️1: Docs$/)
+
+  await $.turn.start({ text: 'mais', turnId: 't4' })
+  expect(lastStatus()).toMatch(/🤖 agente: Docs$/)
+})
+
 test('a session that ends for good leaves the status alone', async ($, on) => {
   const { statuses } = setup(on)
   on('session.end', (_$, e) => ({ sessionId: e.sessionId }) as never)
@@ -1236,6 +1286,15 @@ describe('formatTimeLeft', () => {
 })
 
 describe('formatAgents', () => {
+  test('counts the agents already done', () => {
+    expect(formatAgents([agent('a', 'A'), agent('b', 'B')], 3)).toBe('🤖 3/5: A +1')
+    expect(formatAgents([agent('a', 'A')], 1)).toBe('🤖 1/2: A')
+  })
+
+  test('marks the agents that failed', () => {
+    expect(formatAgents([agent('a', 'A'), agent('b', 'B')], 3, 1)).toBe('🤖 3/5 ⚠️1: A +1')
+  })
+
   const named = (name: string) => ({ id: 'n', name, type: 'Explore', status: 'running' }) as AgentInfo
   const cases: [string, AgentInfo[], string | undefined][] = [
     ['no agents', [], undefined],
@@ -1245,8 +1304,8 @@ describe('formatAgents', () => {
       '🤖 agente: Revisar todo o código do módu…',
     ],
     ['a name of exactly 30 characters', [agent('a', 'a'.repeat(30))], `🤖 agente: ${'a'.repeat(30)}`],
-    ['two agents', [agent('a', 'A'), agent('b', 'B')], '🤖 2 agentes: A, B'],
-    ['three agents', [agent('a', 'A'), agent('b', 'B'), agent('c', 'C')], '🤖 3 agentes: A, B +1'],
+    ['two agents', [agent('a', 'A'), agent('b', 'B')], '🤖 0/2: A +1'],
+    ['three agents', [agent('a', 'A'), agent('b', 'B'), agent('c', 'C')], '🤖 0/3: A +2'],
     ['the name without a description', [named('nome')], '🤖 agente: nome'],
     ['the type without a name', [{ id: 't', type: 'Explore', status: 'running' } as AgentInfo], '🤖 agente: Explore'],
   ]

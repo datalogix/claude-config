@@ -22,6 +22,11 @@ run until they are removed from `pluginConfigs` in `settings.json`
 (in `$CLAUDE_CONFIG_DIR`, or `~/.claude`). The excerpt starts
 off for everyone: both of its earlier names were on by default.
 
+With more than one agent since the last prompt, the status line shows the
+progress and one running agent, as in `🤖 2/5 ⚠️1: Revisar +2`: 2 of 5 ended,
+1 of them with a problem, and Revisar and 2 more still running. Agents still
+running when a new prompt starts stay in the count; the ended ones leave it.
+
 While agents or workflows run in the background, the status line shows
 them and no "pronto": an answer that succeeded is only reported again
 once they end. A failed or interrupted answer stays next to them. The

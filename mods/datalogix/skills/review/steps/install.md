@@ -57,4 +57,5 @@ Depois das correções aprovadas e da verificação completa do pacote,
 refaça a instalação do zero na sandbox para confirmar. Se eu pedir,
 repita com a versão MÍNIMA do Laravel suportada.
 
-A sandbox é apagada quando eu disser "próxima".
+A sandbox é apagada quando eu disser "próxima" ou, na etapa avulsa,
+ao fim dela.

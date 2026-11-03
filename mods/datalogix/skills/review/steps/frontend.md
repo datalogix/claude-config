@@ -46,8 +46,8 @@ tipos JS, "CSS", "JS/TS", a seção do framework ("Vue e Nuxt" ou
   pasta com JS/TS
 
 ## Vue e Nuxt
-- reatividade perdida: desestruturar `props` ou um `reactive` sem
-  `toRefs` (antes do Vue 3.5), `ref` substituído em vez de alterado
+- reatividade perdida: desestruturar um `reactive`, ou `props` antes do
+  Vue 3.5, sem `toRefs`; `ref` substituído em vez de alterado
 - `v-html` com dado não confiável; `v-for` sem `key` ou com o índice
   como `key` em lista que muda; `v-if` e `v-for` no mesmo elemento
 - props e emits tipados (`defineProps<...>()`, `defineEmits<...>()`),

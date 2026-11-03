@@ -10,8 +10,8 @@ passo e analise. Arquivos gerados ficam fora (`dist/`, `.nuxt/`,
   valores monetários.
 - **Tipos**: `any` evitável, `as` forçado, `!` (non-null) sem
   garantia, `@ts-ignore`/`@ts-expect-error` sem motivo, tipos
-  duplicados; `strict` ligado no `tsconfig.json` (desligado é item
-  "importante").
+  duplicados; com TS, `strict` ligado no `tsconfig.json` (desligado é
+  item "importante").
 - **Segurança**: validação de entrada nas bordas (dados de rede,
   formulário, arquivo, variável de ambiente), de preferência com
   schema (ex.: zod, valibot, se o projeto já usa um); `eval`/

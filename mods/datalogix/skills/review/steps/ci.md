@@ -15,12 +15,12 @@ gerais" como melhoria de `datalogix/workflows`, não como item do
 projeto.
 
 ## Pacote e aplicação Laravel
-- rode `npx github:datalogix/workflows#v2 check` na raiz do
-  projeto: só lê; precisa do Node 22.12+ e do `gh` logado. Se
+- rode `npx --allow-git=root github:datalogix/workflows#v2 check` na
+  raiz do projeto: só lê; precisa do Node 22.12+ e do `gh` logado. Se
   faltar algum deles, ou se o comando falhar porque a tag `v2`
   ainda não existe, anote e siga com as conferências abaixo. Cada
   "error" é item "importante" e cada "warn" é "sugestão"; a
-  correção é `npx github:datalogix/workflows#v2 setup`
+  correção é `npx --allow-git=root github:datalogix/workflows#v2 setup`
   (interativo: eu rodo) ou `protect` para o ruleset
 - sem o `datalogix.yml`, ou com ele chamando outra versão: item
   "importante" pedindo o `setup`

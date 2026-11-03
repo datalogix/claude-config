@@ -35,7 +35,8 @@
 - Next: cache do `fetch` e das rotas como a versão em uso define
   (o padrão mudou entre versões); `revalidate` e `dynamic` explícitos
   onde o dado muda
-- erros de hidratação no console do build ou dos testes
+- erros de hidratação nos testes de navegador, se houver; sem eles,
+  entra na pergunta agrupada do fim
 
 ## Build e deploy
 - rode o `build` e leia os avisos (chunks grandes, imports circulares,

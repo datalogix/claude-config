@@ -71,7 +71,7 @@ skills ou tags novas, descubra e registre:
   - lib JS/TS (`types/js-library.md`): tem `package.json`, sem
     `composer.json` nem config de Nuxt/Next, com `exports`, `main`,
     `module` ou `bin`, e sem `private: true`, ou com ele e instalada
-    por git (`npx github:...` no README)
+    por git (`npx --allow-git=root github:...` no README)
   Na dúvida (monorepo com workspaces, app Vite sem framework, nenhum
   dos quatro), pergunte. Depois leia o arquivo do tipo e faça o
   reconhecimento extra que ele pede (estágio, requisitos de testes).
@@ -272,8 +272,9 @@ modo.
    parte, os nomes dos arquivos das outras partes da pasta), o perfil,
    as "Decisões do projeto", as seções 6 (formato) e 7 (perguntas:
    decidir antes de perguntar) deste arquivo, e a regra de idioma
-   (seção 11) com o que o `CLAUDE.md` disser sobre idioma. Ele devolve
-   só o relatório.
+   (seção 11) com o que o `CLAUDE.md` disser sobre idioma; na etapa
+   `docs` e no passo 1 do modo `docs`, também a lista "Mudanças para
+   documentar". Ele devolve só o relatório.
    Antes de mostrar, confira o relatório: descarte itens que repetem
    uma "Decisão do projeto", que já foram recusados antes, ou cujo
    trecho citado não existe no arquivo; transforme em item as perguntas

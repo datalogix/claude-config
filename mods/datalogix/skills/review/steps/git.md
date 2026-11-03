@@ -36,7 +36,9 @@
     de fato vai no pacote (com o `.gitattributes` ainda não commitado)
 - aplicação e tipos JS: `export-ignore` não importa (o npm publica
   pelo `files` do package.json, etapa `npm`); foque em fim de linha e
-  binários
+  binários. Exceção: lib instalada por git, que o npm baixa do GitHub
+  como tarball, respeitando `export-ignore`: nada que o `files`, o
+  `exports` ou o `bin` usam pode estar excluído
 
 ## .editorconfig (obrigatório)
 - ausente: item "importante" que cria o padrão do Laravel

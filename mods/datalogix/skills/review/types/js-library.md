@@ -1,8 +1,9 @@
 # Regras para libs JS/TS
 
 Pacote publicado no npm (ou num registry privado), ou instalado por
-git (`private: true`, com `npx github:...`), sem Laravel: tem
-`package.json`, sem `composer.json` nem config de Nuxt/Next.
+git (`private: true`, com `npx --allow-git=root github:...`), sem
+Laravel: tem `package.json`, sem `composer.json` nem config de
+Nuxt/Next.
 
 ## Reconhecimento extra
 - **Estágio**: maior tag semver (`git tag --list --sort=-v:refname`,

@@ -3,7 +3,7 @@
 Só se existir `package.json`. Use o gerenciador do projeto (pelo
 lockfile: npm, pnpm, yarn ou bun). O CI de `datalogix/workflows` só
 conhece npm, pnpm e yarn: com o lockfile do bun, ele roda
-`npm install` sem lockfile, então numa aplicação isso é item
+`npm install` sem lockfile, então numa aplicação Laravel isso é item
 "importante". Rode, quando disponíveis: `outdated` e `audit` (ex.:
 `npm outdated`, `npm audit --omit=dev`, `npm audit`).
 Analise:
@@ -57,8 +57,8 @@ Analise:
   e o `build`, etapa `ci`):
   - `dev` e `build` (`vite`, `vite build`) se houver Vite; Nuxt:
     `nuxt dev`, `nuxt build` e `nuxt preview`; Next: `next dev`,
-    `next build` e `next start`; lib: `build` com a ferramenta dela
-    (ex.: `tsup`, `tsdown`, `unbuild`)
+    `next build` e `next start`; lib com etapa de build: `build` com a
+    ferramenta dela (ex.: `tsup`, `tsdown`, `unbuild`)
   - `lint`: `eslint . && prettier --check .` (o CI não roda `format`,
     então o Prettier entra pelo `lint`)
   - `format`: `prettier --write . && eslint . --fix`
@@ -66,8 +66,8 @@ Analise:
     do `npm init` (`no test specified`) conta como ausente
   - `typecheck`: `tsc --noEmit` (ou `vue-tsc --noEmit`) se houver TS;
     Nuxt: `nuxt typecheck`
-  - lint do Next: ESLint direto (`eslint .`), não o `next lint`, que
-    as versões novas removeram
+  - lint do Next: o mesmo `lint` acima, com o ESLint direto, não o
+    `next lint`, que as versões novas removeram
   - `lint`, `test` e `typecheck` só checam e terminam (nada de `--fix`
     nem watch: `vitest run`, não `vitest`)
   - com JS/TS próprio, o que faltar ou divergir é item "importante",

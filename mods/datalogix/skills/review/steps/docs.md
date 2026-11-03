@@ -25,10 +25,12 @@ Lib JS/TS:
 - o que a lib faz e para quem
 - requisitos: Node (batendo com o `engines`), `peerDependencies`,
   ambiente (Node, navegador)
-- instalação com npm (e pnpm/yarn se o projeto mostra), import de CSS
-  ou plugin a registrar, se houver
-- exemplo de uso rápido em ESM que funciona de verdade (confira contra
-  o código; a etapa `pack` o executa)
+- instalação com npm (e pnpm/yarn se o projeto mostra) ou, numa lib
+  instalada por git, o comando `npx --allow-git=root github:...`;
+  import de CSS ou plugin a registrar, se houver
+- exemplo de uso rápido que funciona de verdade, em ESM ou, numa lib
+  só com `bin`, o comando (confira contra o código; a etapa `pack` o
+  executa)
 - links para documentação detalhada, changelog, contribuição e
   licença, só os que existirem
 
@@ -58,8 +60,6 @@ Em todos: corrija ou remova trechos desatualizados.
   estrutura, a menos que eu aprove mudar
 - links relativos, sem nenhum quebrado
 - idioma: seção 11 do `SKILL.md`
-- ao final, marque como "documentado" na lista "Mudanças para
-  documentar" o que foi coberto; não apague: o fechamento usa a lista
 
 ## CLAUDE.md
 - reflete o projeto atual: domínio, stack (versões, runner de testes,
@@ -77,3 +77,7 @@ Em todos: corrija ou remova trechos desatualizados.
 - cada `SKILL.md` com `name` e `description` claros, dizendo quando
   usar; conteúdo enxuto, sem repetir o README
 - nada que contradiga outra skill, guideline ou o `CLAUDE.md`
+
+## Ao aplicar
+Marque como "documentado" na lista "Mudanças para documentar" o que
+foi coberto; não apague: o fechamento usa a lista.

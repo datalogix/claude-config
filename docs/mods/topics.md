@@ -6,7 +6,8 @@ has two or more of them or a `## Pendências` list (also in the ctrl+o
 transcript), with a one-line preview. Titles, boxes and previews are
 drawn as plain text: emphasis marks and backticks come off and what a
 code span holds stays as written; the list sent back keeps the original
-text. `/topics` opens the last
+text. The thin rule after a title is drawn on the terminal only. `/topics`
+opens the last
 answer in a keyboard-driven pane (Tab, arrows, 1–9 for the topics,
 a/f to open or close all); its boxes and its send button are the ones
 of that answer in the conversation, so checking or sending in one

@@ -321,6 +321,7 @@ describe('the item marks', () => {
   for (const text of [
     'A (recomendado)',
     'A (recomendada).',
+    '(recomendo). A',
     'A (recomendado)!',
     'A (RECOMENDADO)',
     'A **(recomendado)**',
@@ -440,6 +441,18 @@ describe('previewOf', () => {
     expect(previewOf('Use `src/*.ts` e `lib/*.js` no glob')).toBe('Use src/*.ts e lib/*.js no glob')
     expect(previewOf('Ver `foo_` e `_bar`')).toBe('Ver foo_ e _bar')
     expect(previewOf('**usar `foo*`** agora')).toBe('usar foo* agora')
+  })
+
+  test('drops bold that starts with a dot or a slash, and keeps a glob', () => {
+    expect(previewOf('**.env.example** novo')).toBe('.env.example novo')
+    expect(previewOf('**/etc/hosts** novo')).toBe('/etc/hosts novo')
+    expect(previewOf('Veja **/*.ts e *.md')).toBe('Veja **/*.ts e *.md')
+  })
+
+  test('keeps what follows a stance mark as written', () => {
+    expect(withoutStanceMark('(recomendo) .env fora do pacote')).toBe('.env fora do pacote')
+    expect(withoutStanceMark('(avalie) --force no push')).toBe('--force no push')
+    expect(withoutStanceMark('(recomendo) -x flag')).toBe('-x flag')
   })
 
   test('drops a backtick left unpaired', () => {
@@ -785,6 +798,21 @@ describe('sending the items', () => {
     expect(sent).toEqual([])
   })
 
+  test('a pane press drawn before another answer landed does not check', async ($, on) => {
+    on('turn.complete', () => ({ text: '' }))
+    const between = pressAfter(on)
+    await $.turn.complete(completeTurn({ answer: withTag(WITH_ACTIONS, 'before') }))
+    const pane = await mountPane($)
+
+    const answer = '## Pendências\n- [ ] (recomendo) A\n- [ ] B'
+    between.run = () => $.turn.complete(completeTurn({ answer, turnId: 't2' }))
+    await pane.press({ key: 'topics-action-1' })
+    between.run = undefined
+
+    expect((await pane.find({ key: 'topics-action-0' }))?.text).toBe('1. [✔] recomendo: A')
+    expect((await pane.find({ key: 'topics-action-1' }))?.text).toBe('2. [ ] B')
+  })
+
   test('a pane press drawn before another answer landed does not send', async ($, on) => {
     on('turn.complete', () => ({ text: '' }))
     const sent = collectSent(on)
@@ -978,6 +1006,16 @@ describe('the /topics pane', () => {
     expect((await ui.find({ key: 'topics-topic-0' }))?.text).toBe('▾ Banco de dados')
     expect(await ui.find({ type: 'Markdown', text: /índice/ })).toBeDefined()
     expect(await ui.find({ type: 'Markdown', text: /Todos passaram/ })).toBeUndefined()
+  })
+
+  test('draws the rule after a title on the terminal only', async ($) => {
+    const onTerminal = await mountMessage($, ANSWER, 'rule1', 'terminal')
+    expect((await onTerminal.findAll({ type: 'Text', text: /─/ })).length).toBeGreaterThan(0)
+
+    for (const surface of ['desktop', 'vscode'] as const) {
+      const ui = await mountMessage($, ANSWER, `rule-${surface}`, surface)
+      expect(await ui.findAll({ type: 'Text', text: /─/ })).toEqual([])
+    }
   })
 
   test('fits the rule after a title to the width of the pane', async ($, on) => {

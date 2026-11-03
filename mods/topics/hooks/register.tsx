@@ -28,7 +28,8 @@ const isSentAtom = atom({ plugin: 'topics', key: 'isSent' } as const, false)
 const isAnsweringAtom = atom({ plugin: 'topics', key: 'isAnswering' } as const, false)
 const focusedKeyAtom = atom({ plugin: 'topics', key: 'focusedKey' } as const, '')
 
-// Width of the thin rule after a topic title; HEADER_MARGIN is left for the arrow and gaps.
+// Width of the thin rule after a topic title, drawn on the terminal only: elsewhere the columns are not the cells the
+// text takes, and a rule too long wraps to a line of its own. HEADER_MARGIN is left for the arrow and gaps.
 const RULE_MIN = 3
 const RULE_MAX = 48
 const HEADER_MARGIN = 6
@@ -113,7 +114,7 @@ const renderTopicHeader = (
   key: string,
   title: string,
   isOpen: boolean,
-  width: number,
+  width: number | undefined,
   onToggle: () => unknown,
   hotkey?: string,
 ) => {
@@ -121,7 +122,12 @@ const renderTopicHeader = (
   return (
     <Box>
       <Button key={key} plain hotkey={hotkey} label={`${isOpen ? '▾' : '▸'} ${label}`} onPress={onToggle} />
-      <Text dimColor> {'─'.repeat(Math.max(RULE_MIN, Math.min(RULE_MAX, width - label.length - HEADER_MARGIN)))}</Text>
+      {width !== undefined && (
+        <Text dimColor>
+          {' '}
+          {'─'.repeat(Math.max(RULE_MIN, Math.min(RULE_MAX, width - label.length - HEADER_MARGIN)))}
+        </Text>
+      )}
     </Box>
   )
 }
@@ -131,7 +137,7 @@ const renderTopics = (
   topics: readonly Topic[],
   openTopics: readonly number[],
   toggleTopic: (i: number) => unknown,
-  width: number,
+  width: number | undefined,
   id: string,
   hasHotkeys = false,
 ) => {
@@ -378,7 +384,7 @@ export const register: Register = (on) => {
           topics,
           await read($, openTopics),
           (i) => update($, openTopics, (list) => toggle(list, i)),
-          e.viewport?.columns ?? 80,
+          e.surface === 'terminal' ? (e.viewport?.columns ?? 80) : undefined,
           e.requestId,
         )}
         {/* Keys carry the requestId: with the same key in several messages, a press would reach another
@@ -421,7 +427,7 @@ export const register: Register = (on) => {
           topics,
           await read($, openTopics),
           (i) => update($, openTopics, (list) => toggle(list, i)),
-          e.props.bodyColumns,
+          e.surface === 'terminal' ? e.props.bodyColumns : undefined,
           PANE_ID,
           true,
         )}
@@ -458,7 +464,7 @@ const actionsStateOf = async (
     // While Claude answers, a check would freeze the list and a (recomendo) written later would start unchecked. Once
     // sent, the screen keeps showing what was sent.
     toggleItem: async (i) => {
-      if ((await read($, isAnsweringAtom)) || (await read($, isSent))) return
+      if ((await read($, isAnsweringAtom)) || (await read($, isSent)) || !(await isCurrent())) return
       await update($, checkedItems, (list) => toggleChecked(actions, list ?? defaultChecked(actions), i))
     },
     toggleExplanation: (i) => update($, explainedItems, (list) => toggle(list, i)),

@@ -301,8 +301,31 @@ describe('surfaces', () => {
     })
   }
 
-  // The engine raises Spinner on these three: mobile has none.
-  for (const surface of ['terminal', 'desktop', 'vscode'] as const) {
+  const drawSpinnerWord = (on: On) =>
+    on('ui.render', { component: 'Spinner' }, async ($, e) => {
+      const { Text } = $.ui.resolve(e)
+      return <Text>{e.props.message ?? e.props.word}</Text>
+    })
+
+  test('on vscode, says the current step in the spinner row, with no box of its own', async ($, on) => {
+    drawSpinnerWord(on)
+    const props = { word: 'Sauteing', message: null, suffix: '…', mode: 'thinking' } as const
+    const ui = await mount($, 'Spinner', props, 'vscode')
+
+    expect((await ui.findAll({ type: 'Text' })).map((t) => t.text)).toEqual(['pensando'])
+    expect(await ui.findAll({ type: 'Box' })).toEqual([])
+  })
+
+  test('on vscode, a message of the engine stays in the spinner row', async ($, on) => {
+    drawSpinnerWord(on)
+    const props = { word: 'Sauteing', message: 'Compactando', suffix: '…', mode: 'thinking' } as const
+    const ui = await mount($, 'Spinner', props, 'vscode')
+
+    expect((await ui.findAll({ type: 'Text' })).map((t) => t.text)).toEqual(['Compactando'])
+  })
+
+  // The engine also raises Spinner on vscode, tested above: mobile has none.
+  for (const surface of ['terminal', 'desktop'] as const) {
     test(`shows the current step under the spinner on ${surface}`, async ($, on) => {
       on('ui.render', { component: 'Spinner' }, async ($, e) => {
         const { Text } = $.ui.resolve(e)

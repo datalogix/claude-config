@@ -1,4 +1,4 @@
-// Each test file that uses these helpers calls useTempHome() once, at the top.
+// Each test file that runs the CLI or the fake claude calls useTempHome() once, at the top.
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
@@ -12,7 +12,7 @@ export const CLI = path.join(ROOT, 'bin/cli.js')
 export const MODS = JSON.parse(fs.readFileSync(path.join(ROOT, '.claude-plugin/marketplace.json'), 'utf8')).plugins.map(
   (/** @type {{ name: string }} */ plugin) => plugin.name,
 )
-/** A mod without special handling, for tests about any mod (datalogix ships the old skills). */
+/** A mod with no options and no old skills, for tests about any mod. */
 export const PLAIN_MOD = 'steps'
 
 /** Reply to "plugin marketplace list --json": claude-config already added from GitHub. */

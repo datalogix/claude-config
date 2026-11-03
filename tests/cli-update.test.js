@@ -239,7 +239,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     assert.ok(!claudeCalls().some((call) => call.startsWith('plugin configure')))
   })
 
-  // Root writes through the read-only modes below.
+  // Root writes through the read-only mode below.
   test.skipIf(process.getuid?.() === 0)('still updates the mods when an old skill cannot be removed', () => {
     fakeClaude({
       'plugin list --json': installedMods('datalogix', PLAIN_MOD),

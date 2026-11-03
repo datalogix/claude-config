@@ -1,5 +1,5 @@
-// Plain-text contracts: the `## Pendências` items the topics mod parses, in every Markdown file of the skills, the
-// steps and items one skill follows in another, and the supporting files the review skill names.
+// Plain-text contracts of the skills: the `## Pendências` items the topics mod parses, in every Markdown file; the
+// steps and items one skill follows in another; phrases the rules rely on; and the supporting files review names.
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import { describe, test } from 'vitest'
@@ -63,7 +63,8 @@ describe.each(markdownFiles)('%s', (file) => {
     assert.equal(item.isSuggested, /^[-*+]\s+(?:\[[xX]\]|\([xX•●]\))/.test(span))
     // topics reads a ver: only on an indented line below the item.
     assert.doesNotMatch(item.text, /\bver:/i)
-    // A stance only at the start and with a known word: any other reads as plain text, with no mark on screen.
+    // Skills write a stance only at the start, with a word of the format. parse.ts also takes "(recomendado)" and a
+    // mark at the end, from older answers; anywhere else or with another word it reads as plain text, with no mark.
     assert.doesNotMatch(
       item.text.replace(/^\((?:recomendo|não recomendo|avalie)\) /, ''),
       /\((?:n[ãa]o )?recomend|\(avalie/i,

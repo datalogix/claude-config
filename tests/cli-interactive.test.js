@@ -72,7 +72,7 @@ useTempHome()
  * @param {string[]} [args]
  * @param {{ isStdinTty?: boolean, isStdoutTty?: boolean }} [terminal]
  * @returns {Promise<{ status: number, output: string }>} the exit code, and the
- *   messages shown (intro, log, outro) up to the first exit
+ *   messages shown (intro, log, cancel, outro) up to the first exit
  */
 async function runInteractive(answers, args = ['install'], { isStdinTty = true, isStdoutTty = true } = {}) {
   prompts.answers = [...answers]
@@ -146,7 +146,7 @@ describe('prompts', { skip: process.platform === 'win32' }, () => {
 
   const READ_STATUS_OPTIONS = 'plugin configure status@claude-config --json'
   const STATUS_DEFAULTS_REPLY = `echo '{"inputs":{"minSeconds":30,"planAlert":90,"notify":"always","excerpt":false},"configured":[]}'`
-  // Answers at the defaults: an empty text keeps where the question started
+  // Answers at the defaults: an empty answer to a number keeps where the question started
   // (answerFor), and notify and excerpt get their default. STATUS_OPTIONS asks
   // minSeconds, planAlert, notify and excerpt, in that order.
   const STATUS_DEFAULT_ANSWERS = ['', '', 'always', false]

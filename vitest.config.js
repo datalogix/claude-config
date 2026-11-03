@@ -6,7 +6,7 @@ export default defineConfig({
   // Claude Code loads the mod (not in git), so don't load tsconfigs to strip the types.
   // The cast: tsconfig is left out of OxcOptions, though Vite passes it through to the transform.
   oxc: /** @type {import('vite').OxcOptions} */ ({ tsconfig: false }),
-  // Mod tests import 'claude-code/testing' and run only with "claude plugin test".
-  // The installer tests run the real CLI against a new fake claude each, which can take seconds on a busy machine.
+  // The mods' own tests import 'claude-code/testing' and run only with "claude plugin test".
+  // The installer tests spawn the real CLI and a shell for each claude call, which can take seconds on a busy machine.
   test: { dir: 'tests', testTimeout: 30_000 },
 })

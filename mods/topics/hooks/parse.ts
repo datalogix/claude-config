@@ -22,7 +22,8 @@ export type Stance = 'recommended' | 'notRecommended' | 'evaluate'
 const STANCE_WORDS = 'recomendo|recomendad[oa]|n[ãa]o recomendo|avalie'
 /** The instruction asks for it at the start of the item; "(recomendado)" and the end are how older answers wrote it. */
 export const STANCE_MARK = new RegExp(
-  `^\\s*\\**\\((${STANCE_WORDS})\\)\\**\\s*[:.!–—-]?\\s*|\\s*\\**\\((${STANCE_WORDS})\\)\\**[.!]?\\s*$`,
+  // A separator only with a space after it: in "(recomendo) .env" or "(avalie) --force" it is the item's own text.
+  `^\\s*\\**\\((${STANCE_WORDS})\\)\\**\\s*(?:[:.!–—-](?=\\s|$))?\\s*|\\s*\\**\\((${STANCE_WORDS})\\)\\**[.!]?\\s*$`,
   'i',
 )
 
@@ -78,8 +79,12 @@ export const plainText = (t: string) => {
         (_, _ticks, code: string) => `${CODE_MARK}${spans.push(code) - 1}${CODE_MARK}`,
       )
       .replace(/`/g, '')
-      // Emphasis pairs only: a lone * (2 * 3), globs (src/*.ts, *.md), paths (__init__.py) and $_ENV stay.
-      .replace(/(?<![\p{L}\p{N}*/.])(\*{1,3})(?=[^\s*/.])(.+?)(?<=[^\s*])\1(?![\p{L}\p{N}*/]|\.[\p{L}\p{N}])/gu, '$2')
+      // Emphasis pairs only: a lone * (2 * 3), globs (src/*.ts, *.md), paths (__init__.py) and $_ENV stay. Bold may
+      // start with . or / (**.env**): a glob's ** (**/*.ts) has no pair closing before a space.
+      .replace(
+        /(?<![\p{L}\p{N}*/.])(\*{2,3}(?=[^\s*])|\*(?=[^\s*/.]))(.+?)(?<=[^\s*])\1(?![\p{L}\p{N}*/]|\.[\p{L}\p{N}])/gu,
+        '$2',
+      )
       .replace(/(?<![\p{L}\p{N}_/.])(_{1,3})(?=[^\s_/.])(.+?)(?<=[^\s_])\1(?![\p{L}\p{N}_/]|\.[\p{L}\p{N}])/gu, '$2')
       .replace(new RegExp(`${CODE_MARK}(\\d+)${CODE_MARK}`, 'g'), (_, i: string) => spans[Number(i)]!)
   )

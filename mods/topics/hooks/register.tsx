@@ -464,7 +464,13 @@ const actionsStateOf = async (
     // While Claude answers, a check would freeze the list and a (recomendo) written later would start unchecked. Once
     // sent, the screen keeps showing what was sent.
     toggleItem: async (i) => {
-      if ((await read($, isAnsweringAtom)) || (await read($, isSent)) || !(await isCurrent())) return
+      // Together, not one by one: each await would let a press of the send button right after this one go first.
+      const [isAnswering, wasSent, isStillCurrent] = await Promise.all([
+        read($, isAnsweringAtom),
+        read($, isSent),
+        isCurrent(),
+      ])
+      if (isAnswering || wasSent || !isStillCurrent) return
       await update($, checkedItems, (list) => toggleChecked(actions, list ?? defaultChecked(actions), i))
     },
     toggleExplanation: (i) => update($, explainedItems, (list) => toggle(list, i)),

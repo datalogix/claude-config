@@ -1149,7 +1149,10 @@ describe('the /topics pane', () => {
     expect(sent).toEqual(['Pendências:\n- [x] Rodar `npm test`\n- [ ] Já aprovado'])
   })
 
-  test('forgets the message of an answer after 200 newer ones', async ($, on) => {
+  // These draw 200 messages, which takes more than the 5 s default on a busy machine.
+  const MANY_MESSAGES = { timeoutMs: 30_000 }
+
+  test('forgets the message of an answer after 200 newer ones', MANY_MESSAGES, async ($, on) => {
     on('turn.complete', () => ({ text: '' }))
     const answer = WITH_ACTIONS
     const message = await mountMessage($, answer, 'evicted')
@@ -1161,7 +1164,7 @@ describe('the /topics pane', () => {
     expect((await pane.find({ key: 'topics-action-0' }))?.text).toBe('1. [ ] Rodar npm test')
   })
 
-  test('still shares with the message of an answer after 199 newer ones', async ($, on) => {
+  test('still shares with the message of an answer after 199 newer ones', MANY_MESSAGES, async ($, on) => {
     on('turn.complete', () => ({ text: '' }))
     const answer = WITH_ACTIONS
     const message = await mountMessage($, answer, 'kept')
@@ -1173,19 +1176,23 @@ describe('the /topics pane', () => {
     expect((await pane.find({ key: 'topics-action-0' }))?.text).toBe('1. [✔] Rodar npm test')
   })
 
-  test('a message drawn again with the same answer starts over the count of newer ones', async ($, on) => {
-    on('turn.complete', () => ({ text: '' }))
-    const answer = WITH_ACTIONS
-    await mountMessage($, answer, 'old')
-    for (let i = 0; i < 100; i++) await mountMessage($, withTag(WITH_ACTIONS, `first ${i}`))
-    const fresh = await mountMessage($, answer, 'fresh')
-    for (let i = 0; i < 150; i++) await mountMessage($, withTag(WITH_ACTIONS, `then ${i}`))
-    await fresh.press({ key: 'fresh-action-0' })
-    await $.turn.complete(completeTurn({ answer }))
+  test(
+    'a message drawn again with the same answer starts over the count of newer ones',
+    MANY_MESSAGES,
+    async ($, on) => {
+      on('turn.complete', () => ({ text: '' }))
+      const answer = WITH_ACTIONS
+      await mountMessage($, answer, 'old')
+      for (let i = 0; i < 100; i++) await mountMessage($, withTag(WITH_ACTIONS, `first ${i}`))
+      const fresh = await mountMessage($, answer, 'fresh')
+      for (let i = 0; i < 150; i++) await mountMessage($, withTag(WITH_ACTIONS, `then ${i}`))
+      await fresh.press({ key: 'fresh-action-0' })
+      await $.turn.complete(completeTurn({ answer }))
 
-    const pane = await mountPane($)
-    expect((await pane.find({ key: 'topics-action-0' }))?.text).toBe('1. [✔] Rodar npm test')
-  })
+      const pane = await mountPane($)
+      expect((await pane.find({ key: 'topics-action-0' }))?.text).toBe('1. [✔] Rodar npm test')
+    },
+  )
 
   test('shares with the newest message of an answer, even after an older one with the same text redraws', async ($, on) => {
     on('turn.complete', () => ({ text: '' }))

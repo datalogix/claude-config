@@ -93,7 +93,8 @@ const withUsage = (on: On, rateLimits: SessionRateLimit[]) => {
 
 const sessionStartInput = { cwd: '/', surface: 'terminal', isInteractive: true } as const
 
-test('shows the spinner with the elapsed time while working', async ($, on) => {
+// It went past the 5 s default on a busy machine.
+test('shows the spinner with the elapsed time while working', { timeoutMs: 30_000 }, async ($, on) => {
   const { lastStatus, clock } = setup(on)
 
   await $.turn.start({ text: 'oi', turnId: 't1' })

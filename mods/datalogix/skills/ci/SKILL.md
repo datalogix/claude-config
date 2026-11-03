@@ -33,7 +33,8 @@ Respostas às seções `## Pendências`, em todos os passos:
   `headRefName` e o commit é `headRefOid`. Sem argumento, use a
   branch atual e o commit dela (`git rev-parse HEAD`). HEAD destacado
   (`git branch --show-current` vazio): use só `--commit` abaixo; sem
-  execução, diga e pare.
+  execução, diga e pare. Com execução, a branch dos passos seguintes
+  é a `headBranch` dela.
 - Com run: `gh run view <id> --json
   databaseId,name,workflowName,headBranch,headSha,status,conclusion,url`.
   - Concluído com sucesso (`conclusion` `success`): diga e pare.
@@ -41,7 +42,7 @@ Respostas às seções `## Pendências`, em todos os passos:
     os jobs que já falharam e avise que outros ainda podem falhar.
 - Sem run: a execução mais recente com falha do commit, `gh run
   list --commit <commit> --limit 20 --json
-  databaseId,name,workflowName,headSha,status,conclusion,createdAt,url`,
+  databaseId,name,workflowName,headBranch,headSha,status,conclusion,createdAt,url`,
   só as de `conclusion` `failure`, `timed_out` ou
   `startup_failure`, a de `createdAt` mais recente. Sem nenhuma
   (ex.: commit local ainda sem push), a mais recente com falha da
@@ -53,7 +54,8 @@ Respostas às seções `## Pendências`, em todos os passos:
   <branch> --workflow "<workflowName>" --limit 5`), avise: a falha
   pode já estar resolvida.
 - O código local precisa ser o da execução. Se a branch local for
-  outra, diga e pare (não troque de branch). Se só o commit
+  outra, diga e pare (não troque de branch); com HEAD destacado não
+  há branch local a comparar, só o commit. Se só o commit
   diferir (`git rev-parse HEAD` × `headSha`), avise na prévia que a
   correção vale para o código local.
 - Mudanças locais sem commit (`git status --porcelain` não vazio):
@@ -97,18 +99,24 @@ Respostas às seções `## Pendências`, em todos os passos:
 ## 3. Diagnóstico
 Para cada falha, ache a causa no código local e classifique:
 - **Causada pela mudança**: a branch introduziu o problema.
-  Atualize a base com `git fetch origin <base>` (a `baseRefName` com
-  `#<número>`; senão, a branch padrão) e compare com ela (`git diff
-  origin/<base>...HEAD` nos arquivos envolvidos) para confirmar.
-  Na branch padrão, a base é o commit da última execução que passou
-  (`gh run list --branch <branch padrão> --workflow "<workflowName>"
-  --status success --limit 1 --json headSha`): compare com
-  `git diff <headSha>...HEAD`, e o que esse intervalo trouxe conta
-  como causado pela mudança. Sem execução que passou, diga e trate
-  como pré-existente.
-- **Pré-existente**: falha igual na base (`gh run list --branch
-  <base> --workflow "<workflowName>" --limit 5`) ou em código que a
-  branch não tocou.
+  A branch base é a `baseRefName` com `#<número>`; sem número, a do
+  PR da branch, se estiver aberto (`gh pr view <branch> --json
+  baseRefName,state`, `state` `OPEN`); senão, a branch padrão.
+  Atualize-a com `git fetch origin <branch base>` e compare com ela
+  (`git diff origin/<branch base>...HEAD` nos arquivos envolvidos)
+  para confirmar.
+  Na branch padrão, compare com o commit da última execução que
+  passou (`gh run list --branch <branch padrão> --workflow
+  "<workflowName>" --status success --limit 1 --json headSha`),
+  depois de `git fetch origin <branch padrão>`: `git diff
+  <headSha>...HEAD`, e o que esse intervalo trouxe conta como causado
+  pela mudança. Sem execução que passou, ou sem esse commit depois
+  do `fetch`, diga e trate como pré-existente.
+- **Pré-existente**: falha igual na branch base (`gh run list
+  --branch <branch base> --workflow "<workflowName>" --limit 5`) ou
+  em código que a branch não tocou. Na branch padrão, a própria
+  execução em análise não conta como falha na base: vale só o
+  caso acima ou código fora do intervalo.
 - **Intermitente**: teste que depende de tempo, ordem ou rede, ou
   que passou numa execução anterior do mesmo commit.
 - **Infraestrutura**: dependência indisponível, timeout do runner,

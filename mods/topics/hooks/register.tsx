@@ -197,10 +197,11 @@ const renderActions = (
   // One number per checkbox and one per radio group, on the group's first radio.
   let decisionCount = 0
   const numbers = actions.parts.map((part, p) =>
-    'item' in part && !(isRadioPart(actions, p) && isRadioPart(actions, p - 1)) ? ++decisionCount : 0,
+    'itemIndex' in part && !(isRadioPart(actions, p) && isRadioPart(actions, p - 1)) ? ++decisionCount : 0,
   )
-  const answeredCount = actions.parts.filter(
-    (part, p) => numbers[p] && 'item' in part && alternativesOf(actions, part.item).some((i) => isCheckedAt[i]),
+  const decidedCount = actions.parts.filter(
+    (part, p) =>
+      numbers[p] && 'itemIndex' in part && alternativesOf(actions, part.itemIndex).some((i) => isCheckedAt[i]),
   ).length
   return (
     <Box flexDirection="column" marginTop={1}>
@@ -210,12 +211,12 @@ const renderActions = (
         </Text>
         {decisionCount > 0 && (
           <Text dimColor>
-            {answeredCount} de {decisionCount}
+            {decidedCount} de {decisionCount}
           </Text>
         )}
       </Box>
       {actions.parts.map((part, p) => {
-        if (!('item' in part)) {
+        if (!('itemIndex' in part)) {
           const lines = part.text.split('\n')
           const question = isRadioPart(actions, p + 1) ? questionOf(part) : undefined
           if (question !== undefined) lines.pop()
@@ -232,7 +233,7 @@ const renderActions = (
           )
         }
 
-        const i = part.item
+        const i = part.itemIndex
         const item = actions.items[i]!
         const itemKey = `${id}-action-${i}`
         const stance = stanceOf(item.text)
@@ -246,7 +247,7 @@ const renderActions = (
         const text = plainText(withoutStanceMark(item.text))
         const hasGapAbove = item.isRadio
           ? lacksQuestion
-          : !(previous && 'item' in previous && !isRadioPart(actions, p - 1))
+          : !(previous && 'itemIndex' in previous && !isRadioPart(actions, p - 1))
         return (
           <Box key={`${itemKey}-box`} flexDirection="column" marginTop={hasGapAbove ? 1 : 0}>
             {lacksQuestion && (
@@ -374,7 +375,7 @@ export const register: Register = (on) => {
 
     const els = $.ui.resolve(e)
     const { Box, Markdown } = els
-    const openTopics = memberOf(openTopicsAtom, e)
+    const openTopicsMember = memberOf(openTopicsAtom, e)
 
     return (
       <Box flexDirection="column">
@@ -382,8 +383,8 @@ export const register: Register = (on) => {
         {renderTopics(
           els,
           topics,
-          await read($, openTopics),
-          (i) => update($, openTopics, (list) => toggle(list, i)),
+          await read($, openTopicsMember),
+          (i) => update($, openTopicsMember, (list) => toggle(list, i)),
           e.surface === 'terminal' ? (e.viewport?.columns ?? 80) : undefined,
           e.requestId,
         )}
@@ -412,8 +413,8 @@ export const register: Register = (on) => {
       return <Text dimColor>A última resposta não tem tópicos ainda.</Text>
     }
 
-    const openTopics = memberOf(openTopicsAtom, e)
-    const setAllOpen = (isOpen: boolean) => update($, openTopics, () => (isOpen ? topics.map((_, i) => i) : []))
+    const openTopicsMember = memberOf(openTopicsAtom, e)
+    const setAllOpen = (isOpen: boolean) => update($, openTopicsMember, () => (isOpen ? topics.map((_, i) => i) : []))
 
     return (
       <Box flexDirection="column">
@@ -425,8 +426,8 @@ export const register: Register = (on) => {
         {renderTopics(
           els,
           topics,
-          await read($, openTopics),
-          (i) => update($, openTopics, (list) => toggle(list, i)),
+          await read($, openTopicsMember),
+          (i) => update($, openTopicsMember, (list) => toggle(list, i)),
           e.surface === 'terminal' ? e.props.bodyColumns : undefined,
           PANE_ID,
           true,
@@ -453,13 +454,13 @@ const actionsStateOf = async (
   member: { requestId: string },
   isCurrent: () => Promise<boolean> = async () => true,
 ): Promise<ActionsState> => {
-  const checkedItems = memberOf(checkedItemsAtom, member)
-  const explainedItems = memberOf(explainedItemsAtom, member)
-  const isSent = memberOf(isSentAtom, member)
+  const checkedItemsMember = memberOf(checkedItemsAtom, member)
+  const explainedItemsMember = memberOf(explainedItemsAtom, member)
+  const isSentMember = memberOf(isSentAtom, member)
   return {
-    checkedItems: (await read($, checkedItems)) ?? defaultChecked(actions),
-    explainedItems: await read($, explainedItems),
-    isSent: await read($, isSent),
+    checkedItems: (await read($, checkedItemsMember)) ?? defaultChecked(actions),
+    explainedItems: await read($, explainedItemsMember),
+    isSent: await read($, isSentMember),
     isAnswering: await read($, isAnsweringAtom),
     // While Claude answers, a check would freeze the list and a (recomendo) written later would start unchecked. Once
     // sent, the screen keeps showing what was sent.
@@ -467,30 +468,30 @@ const actionsStateOf = async (
       // Together, not one by one: each await would let a press of the send button right after this one go first.
       const [isAnswering, wasSent, isStillCurrent] = await Promise.all([
         read($, isAnsweringAtom),
-        read($, isSent),
+        read($, isSentMember),
         isCurrent(),
       ])
       if (isAnswering || wasSent || !isStillCurrent) return
-      await update($, checkedItems, (list) => toggleChecked(actions, list ?? defaultChecked(actions), i))
+      await update($, checkedItemsMember, (list) => toggleChecked(actions, list ?? defaultChecked(actions), i))
     },
-    toggleExplanation: (i) => update($, explainedItems, (list) => toggle(list, i)),
+    toggleExplanation: (i) => update($, explainedItemsMember, (list) => toggle(list, i)),
     // Reads the state at press time: the drawing it came from may be older than the last check or send.
     send: async () => {
       if ((await read($, isAnsweringAtom)) || !(await isCurrent())) return
       // Read and set in one update, so of two quick presses only the first finds it unsent and sends.
       let wasSent = false
-      await update($, isSent, (v) => {
+      await update($, isSentMember, (v) => {
         wasSent = v
         return true
       })
       if (wasSent) return
       try {
         await $.prompt.submit({
-          text: sentText(actions, (await read($, checkedItems)) ?? defaultChecked(actions)),
+          text: sentText(actions, (await read($, checkedItemsMember)) ?? defaultChecked(actions)),
           asUser: true,
         })
       } catch {
-        await update($, isSent, () => false)
+        await update($, isSentMember, () => false)
         $.ui.toast('⚠️ Não foi possível enviar as pendências', { timeoutMs: 8000 })
       }
     },

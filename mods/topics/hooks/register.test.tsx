@@ -76,9 +76,9 @@ const collectSent = (on: On) => {
   return sent
 }
 
-const startTurn = (extra: Partial<TurnStartInput> = {}): TurnStartInput => ({ text: 'oi', turnId: 't1', ...extra })
+const turnStartInput = (extra: Partial<TurnStartInput> = {}): TurnStartInput => ({ text: 'oi', turnId: 't1', ...extra })
 
-const completeTurn = (extra: Partial<TurnCompleteInput> = {}): TurnCompleteInput =>
+const turnCompleteInput = (extra: Partial<TurnCompleteInput> = {}): TurnCompleteInput =>
   ({
     answer: '',
     durationMs: 1,
@@ -173,7 +173,7 @@ describe('parseAnswer', () => {
         topics: [],
         actions: {
           items: [{ text: 'Revisar', isSuggested: false, isRadio: false, details: [] }],
-          parts: [{ item: 0 }],
+          parts: [{ itemIndex: 0 }],
         },
       })
     })
@@ -186,7 +186,7 @@ describe('parseAnswer', () => {
       { text: 'Rodar `npm test`', isSuggested: false, isRadio: false, details: [] },
       { text: 'Já aprovado', isSuggested: true, isRadio: false, details: [] },
     ])
-    expect(parsed.actions?.parts).toEqual([{ item: 0 }, { item: 1 }, { text: 'Qualquer dúvida me avise.' }])
+    expect(parsed.actions?.parts).toEqual([{ itemIndex: 0 }, { itemIndex: 1 }, { text: 'Qualquer dúvida me avise.' }])
   })
 
   test('reads the indented details, the topic pointed to and the text between items', () => {
@@ -204,10 +204,10 @@ describe('parseAnswer', () => {
     ])
     expect(actions.parts).toEqual([
       { text: 'Close dentro do link: o que fazer?' },
-      { item: 0 },
-      { item: 1 },
+      { itemIndex: 0 },
+      { itemIndex: 1 },
       { text: 'Outra coisa:' },
-      { item: 2 },
+      { itemIndex: 2 },
     ])
   })
 
@@ -239,7 +239,33 @@ describe('parseActions', () => {
       ['## Pendências', 'Rode isto:', '```', '- [ ] não é item', '```', '- [ ] Item real'].join('\n'),
     ).actions!
     expect(actions.items.map((i) => i.text)).toEqual(['Item real'])
-    expect(actions.parts).toEqual([{ text: 'Rode isto:\n```\n- [ ] não é item\n```' }, { item: 0 }])
+    expect(actions.parts).toEqual([{ text: 'Rode isto:\n```\n- [ ] não é item\n```' }, { itemIndex: 0 }])
+  })
+})
+
+describe('the stance marks', () => {
+  test('each mark reads as its stance, at the start or at the end', () => {
+    expect(stanceOf('(recomendo) A')).toBe('recommended')
+    expect(stanceOf('(não recomendo) A')).toBe('notRecommended')
+    expect(stanceOf('(nao recomendo) A')).toBe('notRecommended')
+    expect(stanceOf('(avalie) A')).toBe('evaluate')
+    expect(stanceOf('A (avalie)')).toBe('evaluate')
+    expect(stanceOf('(recomendado) A')).toBe('recommended')
+    expect(stanceOf('A')).toBeUndefined()
+    expect(withoutStanceMark('(não recomendo) A')).toBe('A')
+  })
+
+  test('a mark in capitals reads as its own stance, so a (NÃO RECOMENDO) does not start checked', () => {
+    expect(stanceOf('(NÃO RECOMENDO) A')).toBe('notRecommended')
+    expect(stanceOf('(AVALIE) A')).toBe('evaluate')
+    expect(defaultChecked(parseAnswer('## Pendências\n- [ ] (NÃO RECOMENDO) A').actions!)).toEqual([])
+  })
+
+  test('only recommended items start checked, one per radio group', () => {
+    const actions = parseAnswer(
+      '## Pendências\nQual?\n- ( ) (recomendo) A\n- ( ) (recomendo) B\n- [ ] (recomendo) C\n- [ ] (avalie) D\n- [ ] (não recomendo) E\n- [x] F',
+    ).actions!
+    expect(defaultChecked(actions)).toEqual([0, 2])
   })
 
   test('a fully bold recommended item loses both bold marks', () => {
@@ -271,31 +297,11 @@ describe('parseActions', () => {
   test('a ** in code does not hide the bold the mark left unpaired', () => {
     expect(withoutStanceMark('`**kwargs` com **cache local (recomendado)**')).toBe('`**kwargs` com cache local')
   })
-})
 
-describe('the stance marks', () => {
-  test('each mark reads as its stance, at the start or at the end', () => {
-    expect(stanceOf('(recomendo) A')).toBe('recommended')
-    expect(stanceOf('(não recomendo) A')).toBe('notRecommended')
-    expect(stanceOf('(nao recomendo) A')).toBe('notRecommended')
-    expect(stanceOf('(avalie) A')).toBe('evaluate')
-    expect(stanceOf('A (avalie)')).toBe('evaluate')
-    expect(stanceOf('(recomendado) A')).toBe('recommended')
-    expect(stanceOf('A')).toBeUndefined()
-    expect(withoutStanceMark('(não recomendo) A')).toBe('A')
-  })
-
-  test('a mark in capitals reads as its own stance, so a (NÃO RECOMENDO) does not start checked', () => {
-    expect(stanceOf('(NÃO RECOMENDO) A')).toBe('notRecommended')
-    expect(stanceOf('(AVALIE) A')).toBe('evaluate')
-    expect(defaultChecked(parseAnswer('## Pendências\n- [ ] (NÃO RECOMENDO) A').actions!)).toEqual([])
-  })
-
-  test('only recommended items start checked, one per radio group', () => {
-    const actions = parseAnswer(
-      '## Pendências\nQual?\n- ( ) (recomendo) A\n- ( ) (recomendo) B\n- [ ] (recomendo) C\n- [ ] (avalie) D\n- [ ] (não recomendo) E\n- [x] F',
-    ).actions!
-    expect(defaultChecked(actions)).toEqual([0, 2])
+  test('keeps what follows a stance mark as written', () => {
+    expect(withoutStanceMark('(recomendo) .env fora do pacote')).toBe('.env fora do pacote')
+    expect(withoutStanceMark('(avalie) --force no push')).toBe('--force no push')
+    expect(withoutStanceMark('(recomendo) -x flag')).toBe('-x flag')
   })
 })
 
@@ -347,7 +353,7 @@ describe('the Pendências list', () => {
   test('an indented line after loose text stays loose text', () => {
     expect(parseAnswer('## Pendências\n- [ ] A\nNota:\n  recuada').actions).toEqual({
       items: [{ text: 'A', isSuggested: false, isRadio: false, details: [] }],
-      parts: [{ item: 0 }, { text: 'Nota:\n  recuada' }],
+      parts: [{ itemIndex: 0 }, { text: 'Nota:\n  recuada' }],
     })
   })
 
@@ -365,13 +371,17 @@ describe('the Pendências list', () => {
   test('an unindented code block after an item stays loose text', () => {
     const actions = parseAnswer('## Pendências\n- [ ] A\n```sh\nnpm test\n```\nQual?\n- ( ) X').actions!
     expect(actions.items[0]?.details).toEqual([])
-    expect(actions.parts).toEqual([{ item: 0 }, { text: '```sh\nnpm test\n```\nQual?' }, { item: 1 }])
+    expect(actions.parts).toEqual([{ itemIndex: 0 }, { text: '```sh\nnpm test\n```\nQual?' }, { itemIndex: 1 }])
   })
 
   test('an indented code block after loose text stays with that text', () => {
     const actions = parseAnswer('## Pendências\n- [ ] A\nRode antes:\n  ```sh\n  npm test\n  ```\n- [ ] B').actions!
     expect(actions.items[0]?.details).toEqual([])
-    expect(actions.parts).toEqual([{ item: 0 }, { text: 'Rode antes:\n  ```sh\n  npm test\n  ```' }, { item: 1 }])
+    expect(actions.parts).toEqual([
+      { itemIndex: 0 },
+      { text: 'Rode antes:\n  ```sh\n  npm test\n  ```' },
+      { itemIndex: 1 },
+    ])
   })
 
   test('with two "Pendências", the last one holds the items', () => {
@@ -447,12 +457,6 @@ describe('previewOf', () => {
     expect(previewOf('**.env.example** novo')).toBe('.env.example novo')
     expect(previewOf('**/etc/hosts** novo')).toBe('/etc/hosts novo')
     expect(previewOf('Veja **/*.ts e *.md')).toBe('Veja **/*.ts e *.md')
-  })
-
-  test('keeps what follows a stance mark as written', () => {
-    expect(withoutStanceMark('(recomendo) .env fora do pacote')).toBe('.env fora do pacote')
-    expect(withoutStanceMark('(avalie) --force no push')).toBe('--force no push')
-    expect(withoutStanceMark('(recomendo) -x flag')).toBe('-x flag')
   })
 
   test('drops a backtick left unpaired', () => {
@@ -596,7 +600,7 @@ describe('in the conversation', () => {
     expect((await ui.find({ key: 'row9-action-1' }))?.text).toBe('( ) B')
   })
 
-  test('a box written checked with a stance starts unchecked, and the stance alone marks it', async ($) => {
+  test('an item written checked with a stance starts unchecked, and the stance alone marks it', async ($) => {
     const ui = await mountMessage($, '## Pendências\n- [x] (avalie) A', 'stance-suggested')
     expect((await ui.find({ key: 'stance-suggested-action-0' }))?.text).toBe('1. [ ] avalie: A')
     expect(await ui.find({ type: 'Text', text: ' sugerido' })).toBeUndefined()
@@ -756,6 +760,16 @@ describe('in the conversation', () => {
     expect((await ui.find({ key: 'bold-labels-topic-1' }))?.text).toBe('▸ O __init__.py e user_id')
     expect((await ui.find({ key: 'bold-labels-action-0' }))?.text).toBe('(●) recomendo: Foo bar')
   })
+
+  test('draws the rule after a title on the terminal only', async ($) => {
+    const onTerminal = await mountMessage($, ANSWER, 'rule1', 'terminal')
+    expect((await onTerminal.findAll({ type: 'Text', text: /─/ })).length).toBeGreaterThan(0)
+
+    for (const surface of ['desktop', 'vscode'] as const) {
+      const ui = await mountMessage($, ANSWER, `rule-${surface}`, surface)
+      expect(await ui.findAll({ type: 'Text', text: /─/ })).toEqual([])
+    }
+  })
 })
 
 describe('sending the items', () => {
@@ -777,7 +791,7 @@ describe('sending the items', () => {
   })
 
   // Runs between the drawing and the button's own press handler, as an answer landing right before the press would.
-  const pressAfter = (on: On) => {
+  const interceptPress = (on: On) => {
     const between: { run?: () => Promise<unknown> } = {}
     on('ui.press', async (_$, e, next) => {
       await between.run?.()
@@ -789,10 +803,10 @@ describe('sending the items', () => {
   test('a press drawn before a turn started does not send', async ($, on) => {
     on('turn.start', ($, e) => ({ turnId: e.turnId }))
     const sent = collectSent(on)
-    const between = pressAfter(on)
+    const between = interceptPress(on)
     const ui = await mountMessage($, WITH_ACTIONS, 'late')
 
-    between.run = () => $.turn.start(startTurn())
+    between.run = () => $.turn.start(turnStartInput())
     await ui.press({ key: 'late-actions-send' })
 
     expect(sent).toEqual([])
@@ -800,12 +814,12 @@ describe('sending the items', () => {
 
   test('a pane press drawn before another answer landed does not check', async ($, on) => {
     on('turn.complete', () => ({ text: '' }))
-    const between = pressAfter(on)
-    await $.turn.complete(completeTurn({ answer: withTag(WITH_ACTIONS, 'before') }))
+    const between = interceptPress(on)
+    await $.turn.complete(turnCompleteInput({ answer: withTag(WITH_ACTIONS, 'before') }))
     const pane = await mountPane($)
 
     const answer = '## Pendências\n- [ ] (recomendo) A\n- [ ] B'
-    between.run = () => $.turn.complete(completeTurn({ answer, turnId: 't2' }))
+    between.run = () => $.turn.complete(turnCompleteInput({ answer, turnId: 't2' }))
     await pane.press({ key: 'topics-action-1' })
     between.run = undefined
 
@@ -816,11 +830,11 @@ describe('sending the items', () => {
   test('a pane press drawn before another answer landed does not send', async ($, on) => {
     on('turn.complete', () => ({ text: '' }))
     const sent = collectSent(on)
-    const between = pressAfter(on)
-    await $.turn.complete(completeTurn({ answer: withTag(WITH_ACTIONS, 'before') }))
+    const between = interceptPress(on)
+    await $.turn.complete(turnCompleteInput({ answer: withTag(WITH_ACTIONS, 'before') }))
     const pane = await mountPane($)
 
-    between.run = () => $.turn.complete(completeTurn({ answer: withTag(WITH_ACTIONS, 'after'), turnId: 't2' }))
+    between.run = () => $.turn.complete(turnCompleteInput({ answer: withTag(WITH_ACTIONS, 'after'), turnId: 't2' }))
     await pane.press({ key: 'topics-actions-send' })
 
     expect(sent).toEqual([])
@@ -854,23 +868,23 @@ describe('sending the items', () => {
   test('while Claude answers, sending waits', async ($, on) => {
     on('turn.start', ($, e) => ({ turnId: e.turnId }))
     on('turn.complete', () => ({ text: '' }))
-    await $.turn.start(startTurn())
+    await $.turn.start(turnStartInput())
     const ui = await mountMessage($, WITH_ACTIONS, 'busy')
     expect(await ui.find({ key: 'busy-actions-send' })).toBeUndefined()
     expect(
       await ui.find({ type: 'Text', text: 'o envio fica disponível quando o Claude terminar de responder' }),
     ).toBeDefined()
-    await $.turn.complete(completeTurn({ answer: WITH_ACTIONS }))
+    await $.turn.complete(turnCompleteInput({ answer: WITH_ACTIONS }))
     expect(await ui.find({ key: 'busy-actions-send' })).toBeDefined()
   })
 
   test('an agent ending while Claude answers does not release sending', async ($, on) => {
     on('turn.start', ($, e) => ({ turnId: e.turnId }))
     on('turn.complete', () => ({ text: '' }))
-    await $.turn.start(startTurn())
+    await $.turn.start(turnStartInput())
     const ui = await mountMessage($, WITH_ACTIONS, 'agent-end')
 
-    await $.turn.complete(completeTurn({ answer: ANSWER, turnId: 't2', agentId: 'sub1' }))
+    await $.turn.complete(turnCompleteInput({ answer: ANSWER, turnId: 't2', agentId: 'sub1' }))
 
     expect(await ui.find({ key: 'agent-end-actions-send' })).toBeUndefined()
   })
@@ -878,10 +892,10 @@ describe('sending the items', () => {
   test('a turn with an empty answer releases sending', async ($, on) => {
     on('turn.start', ($, e) => ({ turnId: e.turnId }))
     on('turn.complete', () => ({ text: '' }))
-    await $.turn.start(startTurn())
+    await $.turn.start(turnStartInput())
     const ui = await mountMessage($, WITH_ACTIONS, 'empty-end')
 
-    await $.turn.complete(completeTurn({ answer: '' }))
+    await $.turn.complete(turnCompleteInput({ answer: '' }))
 
     expect(await ui.find({ key: 'empty-end-actions-send' })).toBeDefined()
   })
@@ -898,7 +912,7 @@ describe('sending the items', () => {
   test('while Claude answers, a press does not check, so a (recomendo) written later still starts checked', async ($, on) => {
     on('turn.start', ($, e) => ({ turnId: e.turnId }))
     on('turn.complete', () => ({ text: '' }))
-    await $.turn.start(startTurn())
+    await $.turn.start(turnStartInput())
     const ui = await mountMessage($, '## Pendências\n- [ ] A', 'streaming')
 
     await ui.press({ key: 'streaming-action-0' })
@@ -907,7 +921,7 @@ describe('sending the items', () => {
     await ui.redraw({ text: '## Pendências\n- [ ] A\n- [ ] (recomendo) B', isFirstOfReply: true })
     expect((await ui.find({ key: 'streaming-action-1' }))?.text).toBe('2. [✔] recomendo: B')
 
-    await $.turn.complete(completeTurn({ answer: '## Pendências\n- [ ] A\n- [ ] (recomendo) B' }))
+    await $.turn.complete(turnCompleteInput({ answer: '## Pendências\n- [ ] A\n- [ ] (recomendo) B' }))
     await ui.press({ key: 'streaming-action-0' })
     expect((await ui.find({ key: 'streaming-action-0' }))?.text).toBe('1. [✔] A')
   })
@@ -928,13 +942,13 @@ describe('sending the items', () => {
   test('an agent turn neither blocks sending nor replaces the last answer', async ($, on) => {
     on('turn.start', ($, e) => ({ turnId: e.turnId }))
     on('turn.complete', () => ({ text: '' }))
-    await $.turn.complete(completeTurn({ answer: WITH_ACTIONS }))
+    await $.turn.complete(turnCompleteInput({ answer: WITH_ACTIONS }))
 
-    await $.turn.start(startTurn({ turnId: 't2', agentId: 'sub1' }))
+    await $.turn.start(turnStartInput({ turnId: 't2', agentId: 'sub1' }))
     const ui = await mountMessage($, WITH_ACTIONS, 'sub')
     expect(await ui.find({ key: 'sub-actions-send' })).toBeDefined()
 
-    await $.turn.complete(completeTurn({ answer: ANSWER, turnId: 't2', agentId: 'sub1' }))
+    await $.turn.complete(turnCompleteInput({ answer: ANSWER, turnId: 't2', agentId: 'sub1' }))
     const pane = await mountPane($)
     expect((await pane.find({ key: 'topics-topic-0' }))?.text).toBe('▸ Mudança')
   })
@@ -989,16 +1003,16 @@ describe('the /topics pane', () => {
     expect(await ui.find({ type: 'Text', text: 'A última resposta não tem tópicos ainda.' })).toBeDefined()
   })
 
-  test('shows the summary of the answer', async ($, on) => {
+  test('shows the intro of the answer', async ($, on) => {
     on('turn.complete', () => ({ text: '' }))
-    await $.turn.complete(completeTurn({ answer: ANSWER }))
+    await $.turn.complete(turnCompleteInput({ answer: ANSWER }))
     const ui = await mountPane($)
     expect(await ui.find({ type: 'Markdown', text: 'Resumo: três coisas mudaram.' })).toBeDefined()
   })
 
   test('opens a single topic', async ($, on) => {
     on('turn.complete', () => ({ text: '' }))
-    await $.turn.complete(completeTurn({ answer: ANSWER }))
+    await $.turn.complete(turnCompleteInput({ answer: ANSWER }))
     const ui = await mountPane($)
 
     await ui.press({ key: 'topics-topic-0' })
@@ -1008,19 +1022,9 @@ describe('the /topics pane', () => {
     expect(await ui.find({ type: 'Markdown', text: /Todos passaram/ })).toBeUndefined()
   })
 
-  test('draws the rule after a title on the terminal only', async ($) => {
-    const onTerminal = await mountMessage($, ANSWER, 'rule1', 'terminal')
-    expect((await onTerminal.findAll({ type: 'Text', text: /─/ })).length).toBeGreaterThan(0)
-
-    for (const surface of ['desktop', 'vscode'] as const) {
-      const ui = await mountMessage($, ANSWER, `rule-${surface}`, surface)
-      expect(await ui.findAll({ type: 'Text', text: /─/ })).toEqual([])
-    }
-  })
-
   test('fits the rule after a title to the width of the pane', async ($, on) => {
     on('turn.complete', () => ({ text: '' }))
-    await $.turn.complete(completeTurn({ answer: ANSWER }))
+    await $.turn.complete(turnCompleteInput({ answer: ANSWER }))
     const ui = await mountPane($, { ...PANE_PROPS, bodyColumns: 40 })
     const [rule] = await ui.findAll({ type: 'Text', text: /─/ })
     expect(rule?.text).toBe(` ${'─'.repeat(20)}`)
@@ -1029,7 +1033,7 @@ describe('the /topics pane', () => {
   test('the pane topics carry the hotkeys 1–9, and a message none', async ($, on) => {
     on('turn.complete', () => ({ text: '' }))
     const answer = Array.from({ length: 10 }, (_, i) => `## T${i}\nx`).join('\n')
-    await $.turn.complete(completeTurn({ answer }))
+    await $.turn.complete(turnCompleteInput({ answer }))
 
     const ui = await mountPane($)
     const hotkeys = await Promise.all(
@@ -1042,7 +1046,7 @@ describe('the /topics pane', () => {
 
   test('shows the last answer closed and opens all', async ($, on) => {
     on('turn.complete', () => ({ text: '' }))
-    await $.turn.complete(completeTurn({ answer: ANSWER }))
+    await $.turn.complete(turnCompleteInput({ answer: ANSWER }))
 
     const ui = await mountPane($)
     expect((await ui.find({ key: 'topics-open-all' }))?.props.hotkey).toBe('a')
@@ -1057,7 +1061,7 @@ describe('the /topics pane', () => {
   test('sends the items from the pane', async ($, on) => {
     on('turn.complete', () => ({ text: '' }))
     const sent = collectSent(on)
-    await $.turn.complete(completeTurn({ answer: WITH_ACTIONS }))
+    await $.turn.complete(turnCompleteInput({ answer: WITH_ACTIONS }))
 
     const ui = await mountPane($)
     await ui.press({ key: 'topics-actions-send' })
@@ -1069,12 +1073,12 @@ describe('the /topics pane', () => {
     on('turn.complete', () => ({ text: '' }))
     const sent = collectSent(on)
     const answer = '## Pendências\n- [ ] (recomendo) A\n- [ ] (avalie) B'
-    await $.turn.complete(completeTurn({ answer }))
+    await $.turn.complete(turnCompleteInput({ answer }))
     const ui = await mountPane($)
     await ui.press({ key: 'topics-actions-send' })
     expect(sent.at(-1)).toBe('Pendências:\n- [x] (recomendo) A\n- [ ] (avalie) B')
 
-    await $.turn.complete(completeTurn({ answer, turnId: 't2' }))
+    await $.turn.complete(turnCompleteInput({ answer, turnId: 't2' }))
     await ui.press({ key: 'topics-action-0' })
     await ui.press({ key: 'topics-actions-send' })
     expect(sent.at(-1)).toBe('Pendências:\n- [ ] (recomendo) A\n- [ ] (avalie) B')
@@ -1083,7 +1087,7 @@ describe('the /topics pane', () => {
   test('marks the focused item with ❯', async ($, on) => {
     on('turn.complete', () => ({ text: '' }))
     on('ui.focus', () => ({ value: {} }) as never)
-    await $.turn.complete(completeTurn({ answer: WITH_ACTIONS }))
+    await $.turn.complete(turnCompleteInput({ answer: WITH_ACTIONS }))
 
     const ui = await mountPane($)
     expect(await ui.find({ type: 'Text', text: /❯/ })).toBeUndefined()
@@ -1108,7 +1112,7 @@ describe('the /topics pane', () => {
     on('turn.complete', () => ({ text: '' }))
     on('prompt.submit', () => ({ text: '' }) as never)
     const answer = WITH_ALTERNATIVES
-    await $.turn.complete(completeTurn({ answer }))
+    await $.turn.complete(turnCompleteInput({ answer }))
     const ui = await mountPane($)
     await ui.press({ key: 'topics-action-0' })
     await ui.press({ key: 'topics-topic-0' })
@@ -1116,7 +1120,7 @@ describe('the /topics pane', () => {
     await ui.press({ key: 'topics-actions-send' })
     expect(await ui.find({ type: 'Text', text: '✓ pendências enviadas' })).toBeDefined()
 
-    await $.turn.complete(completeTurn({ answer, turnId: 't2' }))
+    await $.turn.complete(turnCompleteInput({ answer, turnId: 't2' }))
     expect((await ui.find({ key: 'topics-action-0' }))?.text).toBe('(●) recomendo: Manter como está')
     expect((await ui.find({ key: 'topics-topic-0' }))?.text).toBe('▸ O caso')
     expect((await ui.find({ key: 'topics-action-0-explanation' }))?.text).toBe('▸ explicação: O caso')
@@ -1125,11 +1129,11 @@ describe('the /topics pane', () => {
 
   test('an empty answer keeps the previous one in the pane', async ($, on) => {
     on('turn.complete', () => ({ text: '' }))
-    await $.turn.complete(completeTurn({ answer: WITH_ACTIONS }))
+    await $.turn.complete(turnCompleteInput({ answer: WITH_ACTIONS }))
     const ui = await mountPane($)
     await ui.press({ key: 'topics-action-0' })
 
-    await $.turn.complete(completeTurn({ answer: '', turnId: 't2' }))
+    await $.turn.complete(turnCompleteInput({ answer: '', turnId: 't2' }))
     expect((await ui.find({ key: 'topics-action-0' }))?.text).toBe('1. [✔] Rodar npm test')
   })
 
@@ -1138,7 +1142,7 @@ describe('the /topics pane', () => {
     const sent = collectSent(on)
     const answer = WITH_ACTIONS
     const message = await mountMessage($, answer, 'shared')
-    await $.turn.complete(completeTurn({ answer }))
+    await $.turn.complete(turnCompleteInput({ answer }))
     const pane = await mountPane($)
 
     await message.press({ key: 'shared-action-0' })
@@ -1158,7 +1162,7 @@ describe('the /topics pane', () => {
     const message = await mountMessage($, answer, 'evicted')
     await message.press({ key: 'evicted-action-0' })
     for (let i = 0; i < 200; i++) await mountMessage($, withTag(WITH_ACTIONS, `newer ${i}`))
-    await $.turn.complete(completeTurn({ answer }))
+    await $.turn.complete(turnCompleteInput({ answer }))
 
     const pane = await mountPane($)
     expect((await pane.find({ key: 'topics-action-0' }))?.text).toBe('1. [ ] Rodar npm test')
@@ -1170,7 +1174,7 @@ describe('the /topics pane', () => {
     const message = await mountMessage($, answer, 'kept')
     await message.press({ key: 'kept-action-0' })
     for (let i = 0; i < 199; i++) await mountMessage($, withTag(WITH_ACTIONS, `kept newer ${i}`))
-    await $.turn.complete(completeTurn({ answer }))
+    await $.turn.complete(turnCompleteInput({ answer }))
 
     const pane = await mountPane($)
     expect((await pane.find({ key: 'topics-action-0' }))?.text).toBe('1. [✔] Rodar npm test')
@@ -1187,7 +1191,7 @@ describe('the /topics pane', () => {
       const fresh = await mountMessage($, answer, 'fresh')
       for (let i = 0; i < 150; i++) await mountMessage($, withTag(WITH_ACTIONS, `then ${i}`))
       await fresh.press({ key: 'fresh-action-0' })
-      await $.turn.complete(completeTurn({ answer }))
+      await $.turn.complete(turnCompleteInput({ answer }))
 
       const pane = await mountPane($)
       expect((await pane.find({ key: 'topics-action-0' }))?.text).toBe('1. [✔] Rodar npm test')
@@ -1199,7 +1203,7 @@ describe('the /topics pane', () => {
     const answer = WITH_ACTIONS
     const older = await mountMessage($, answer, 'older')
     await older.press({ key: 'older-action-0' })
-    await $.turn.complete(completeTurn({ answer }))
+    await $.turn.complete(turnCompleteInput({ answer }))
     const newer = await mountMessage($, answer, 'newer')
     await older.redraw({ text: answer, isFirstOfReply: true })
 

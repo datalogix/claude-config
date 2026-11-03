@@ -11,7 +11,7 @@ export type ActionItem = {
   explanationTitle?: string
 }
 /** Loose text (a question, a note) or an index into `items`, in written order. */
-export type ActionPart = { text: string } | { item: number }
+export type ActionPart = { text: string } | { itemIndex: number }
 export type Actions = { items: ActionItem[]; parts: ActionPart[] }
 export type ParsedAnswer = { intro: string; topics: Topic[]; actions?: Actions }
 
@@ -90,9 +90,9 @@ export const plainText = (t: string) => {
   )
 }
 
-const plainTitle = (t: string) => normalizeTitle(withoutTitleMarks(t))
+const comparableTitle = (t: string) => normalizeTitle(withoutTitleMarks(t))
 
-export const isSameTitle = (a: string, b: string) => plainTitle(a) === plainTitle(b)
+export const isSameTitle = (a: string, b: string) => comparableTitle(a) === comparableTitle(b)
 
 export const toggle = (list: readonly number[], i: number): number[] =>
   list.includes(i) ? list.filter((x) => x !== i) : [...list, i]
@@ -128,12 +128,12 @@ export const parseActions = (body: string): Actions => {
     if (text) parts.push({ text })
     looseLines = []
   }
-  const codeLineKind = createCodeBlockTracker()
+  const trackCodeLine = createCodeBlockTracker()
   // The indent of the fence that opened a block among the last item's details; undefined for a block in loose text.
   let detailIndent: number | undefined
   for (const line of body.split('\n')) {
     const lastItem = items[items.length - 1]
-    const kind = codeLineKind(line)
+    const kind = trackCodeLine(line)
     if (kind) {
       const isOpening = kind === 'open'
       const indent = /^\s*/.exec(line)![0].length
@@ -147,7 +147,7 @@ export const parseActions = (body: string): Actions => {
     const match = /^\s*[-*+]\s+(?:\[([ xX])\]|\(([ xX•●])\))\s+(.+?)\s*$/.exec(line)
     if (match) {
       closeLooseText()
-      parts.push({ item: items.length })
+      parts.push({ itemIndex: items.length })
       const mark = match[1] ?? match[2]
       items.push({ text: match[3] ?? '', isSuggested: mark !== ' ', isRadio: match[2] !== undefined, details: [] })
     } else if (looseLines.length === 0 && !line.trim()) {
@@ -169,13 +169,13 @@ export const parseActions = (body: string): Actions => {
 export const parseAnswer = (text: string): ParsedAnswer => {
   const intro: string[] = []
   const headings: { title: string; lines: string[] }[] = []
-  const codeLineKind = createCodeBlockTracker()
+  const trackCodeLine = createCodeBlockTracker()
 
   for (const line of text.split('\n')) {
     // A closing run of # only counts after a space, so "## Usar C#" keeps its #.
-    const title = !codeLineKind(line) && /^##\s+(.+?)(?:\s+#+)?\s*$/.exec(line)
-    if (title) {
-      headings.push({ title: title[1] ?? '', lines: [] })
+    const titleMatch = !trackCodeLine(line) && /^##\s+(.+?)(?:\s+#+)?\s*$/.exec(line)
+    if (titleMatch) {
+      headings.push({ title: titleMatch[1] ?? '', lines: [] })
     } else if (headings.length > 0) {
       headings[headings.length - 1]!.lines.push(line)
     } else {
@@ -194,8 +194,8 @@ export const parseAnswer = (text: string): ParsedAnswer => {
 }
 
 export const previewOf = (body: string): string => {
-  const codeLineKind = createCodeBlockTracker()
-  const line = body.split('\n').find((l) => !codeLineKind(l) && l.trim()) ?? ''
+  const trackCodeLine = createCodeBlockTracker()
+  const line = body.split('\n').find((l) => !trackCodeLine(l) && l.trim()) ?? ''
   const clean = plainText(line.replace(/^\s*(>\s*)*((#+|[-*+]|\d+[.)])\s+)?/, '')).trim()
   // By code point, so an emoji is not cut in half.
   const chars = [...clean]
@@ -204,18 +204,18 @@ export const previewOf = (body: string): string => {
 
 export const isRadioPart = (actions: Actions, p: number): boolean => {
   const part = actions.parts[p]
-  return part !== undefined && 'item' in part && actions.items[part.item]!.isRadio
+  return part !== undefined && 'itemIndex' in part && actions.items[part.itemIndex]!.isRadio
 }
 
 /** The `( )` radios next to item `i`, with no text or checkbox between them; just `i` for a checkbox. */
 export const alternativesOf = (actions: Actions, i: number): number[] => {
   if (!actions.items[i]!.isRadio) return [i]
 
-  let start = actions.parts.findIndex((part) => 'item' in part && part.item === i)
+  let start = actions.parts.findIndex((part) => 'itemIndex' in part && part.itemIndex === i)
   while (isRadioPart(actions, start - 1)) start--
 
   const group: number[] = []
-  for (let p = start; isRadioPart(actions, p); p++) group.push((actions.parts[p] as { item: number }).item)
+  for (let p = start; isRadioPart(actions, p); p++) group.push((actions.parts[p] as { itemIndex: number }).itemIndex)
   return group
 }
 
@@ -240,7 +240,7 @@ export const toggleChecked = (actions: Actions, checked: readonly number[], i: n
 }
 
 export const questionOf = (part: ActionPart | undefined): string | undefined => {
-  if (part === undefined || 'item' in part) return undefined
+  if (part === undefined || 'itemIndex' in part) return undefined
   const last = part.text.split('\n').at(-1)
   return last !== undefined && !isFence(last) ? last : undefined
 }
@@ -250,13 +250,13 @@ export const sentText = (actions: Actions, checked: readonly number[]): string =
   [
     `${ACTIONS_TITLE}:`,
     ...actions.parts.flatMap((part, i) => {
-      if ('item' in part) {
-        const item = actions.items[part.item]!
-        const x = checked.includes(part.item) ? 'x' : ' '
+      if ('itemIndex' in part) {
+        const item = actions.items[part.itemIndex]!
+        const x = checked.includes(part.itemIndex) ? 'x' : ' '
         return [item.isRadio ? `- (${x}) ${item.text}` : `- [${x}] ${item.text}`]
       }
       const next = actions.parts[i + 1]
-      const question = next && 'item' in next ? questionOf(part) : undefined
+      const question = next && 'itemIndex' in next ? questionOf(part) : undefined
       return question === undefined ? [] : [question]
     }),
   ].join('\n')

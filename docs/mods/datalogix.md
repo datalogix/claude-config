@@ -20,7 +20,7 @@ check its skills.
   `/datalogix:commit`'s flow, which it reads and follows from step 2
   after its step 1 state checks: one preview, nothing committed before
   you confirm, never a push; their hashes go in the progress file.
-  Checking "Seguir para a próxima etapa depois dos commits" moves on
+  Checking "Seguir para o próximo passo depois dos commits" moves on
   once they are all made; when the project type checks git before
   each step, they must all be made first. The closing step, and the
   end of a single step or a focus mode, ask whether to run

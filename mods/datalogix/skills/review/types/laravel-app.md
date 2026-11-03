@@ -7,7 +7,9 @@
   - **em produção**: já tem usuários e dados reais
 - **Testes**: suíte com `RefreshDatabase` (ou equivalente) e banco de
   teste separado; confira no `phpunit.xml` que os testes nunca apontam
-  para o banco de desenvolvimento ou de produção.
+  para o banco de desenvolvimento ou de produção. Se apontarem, não
+  rode a suíte, nem em `report`: pare e me avise antes da linha de
+  base.
 
 ## Etapas, nesta ordem
 1. `git` — .gitignore, .gitattributes e .editorconfig
@@ -51,8 +53,10 @@ Classes e métodos internos NÃO são API pública: renomeie sem alias.
 ### em produção — obrigatório
 - **Checagem de git antes de CADA passo**:
   - `git status --porcelain` vazio (o passo anterior foi commitado)
-  - fora da branch padrão (`main`/`master`); se estiver nela, pare e
-    sugira criar uma (ex.: `review/<assunto>`, sem data)
+  - fora da branch padrão (a de `git symbolic-ref --short
+    refs/remotes/origin/HEAD`, sem o `origin/`; sem esse ref, `main`
+    ou `master`); se estiver nela, pare e sugira criar uma (ex.:
+    `review/<assunto>`, sem data)
   - registre no progresso o commit de início do passo
 - Migrations já rodadas nunca são editadas; mudança exige migration nova,
   segura para produção (`steps/resources.md`)
@@ -62,4 +66,6 @@ Classes e métodos internos NÃO são API pública: renomeie sem alias.
 - Jobs: mudar a assinatura do construtor ou propriedades de um job
   quebra os que já estão na fila; mantenha compatibilidade ou
   planeje drenar a fila
+- Chave de `.env` ou de config renomeada ou nova: só com o deploy
+  preparado (notas de deploy)
 - Fechamento: notas de deploy (`steps/closing.md`)

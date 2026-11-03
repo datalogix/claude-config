@@ -15,8 +15,12 @@ Argumentos: $ARGUMENTS
   próximo passo.
 - `report`: analisar tudo e gerar um relatório, sem alterar nada
   (`modes/report.md`). `report <modo>` faz o mesmo só para aquele modo.
-- `reset`: confirmar comigo e apagar o progresso deste projeto
-  (`reset <modo>` apaga só o progresso daquele modo).
+- `reset`: confirmar comigo e apagar o `progress.md` deste projeto
+  (`reset <modo>` apaga só a seção daquele modo em "Modos de foco";
+  as "Decisões do projeto" ficam). Relatórios e sandbox ficam. Sem
+  progresso, diga que não há o que apagar. Depois de apagar, pare,
+  salvo se a mesma mensagem pedir mais: primeiro o reset, depois o
+  resto, um modo por vez, na ordem em que os citei.
 - Modos de foco, cada um revisa SÓ aquele aspecto:
   - `docs`: documentação, incluindo docblocks (`modes/docs.md`)
   - `naming`: nomenclatura (`modes/naming.md`)
@@ -32,8 +36,10 @@ Argumentos: $ARGUMENTS
   `code` aplica nas pastas certas de uma aplicação. `docs` é sempre o
   modo; o passo 1 dele aplica `steps/docs.md`, o mesmo checklist da
   etapa `docs` da revisão completa.
-- Um caminho (`src/Actions`, `resources/views`): revisão completa só
-  dessa pasta. Com um modo (`naming src/Actions`), o modo só nessa pasta.
+- Um caminho (`src/Actions`, `resources/views`): só a etapa do tipo a
+  que essa pasta pertence, só nela, e, como na etapa avulsa, sem
+  fechamento (seção 5, item 7). Com um modo (`naming src/Actions`), o
+  modo só nessa pasta.
 
 ## 1. Arquivos de apoio
 Ficam na pasta desta skill (`${CLAUDE_SKILL_DIR}`).
@@ -51,6 +57,7 @@ Precedência: regras do projeto (`CLAUDE.md`, skills e guidelines do
 projeto) > arquivo do tipo > arquivo da etapa/modo > este arquivo.
 
 ## 2. Reconhecer o projeto
+Confira o perfil no início de cada chamada e de cada passo.
 Se o "Perfil do projeto" no progresso não existir, ou se `composer.json`
 ou `package.json` mudou desde o commit registrado nele, ou surgiram
 skills ou tags novas, descubra e registre:
@@ -118,7 +125,8 @@ skills ou tags novas, descubra e registre:
   `.nuxt/`, `.output/`, `.next/`).
 - **Skills e guidelines**:
   - `.claude/skills/*/SKILL.md`, `.claude/commands/*.md` (Claude Code)
-  - `.ai/skills/*/SKILL.md`, `.ai/guidelines/*` (Laravel Boost, do projeto)
+  - `.ai/skills/*/SKILL.md`, `.ai/guidelines/*` (Laravel Boost, do
+    projeto)
   - `resources/boost/skills/*/SKILL.md`, `resources/boost/guidelines/*`
     (Laravel Boost, distribuídas por um pacote)
   Leia só o frontmatter (`name`, `description`) e classifique:
@@ -126,7 +134,8 @@ skills ou tags novas, descubra e registre:
     as etapas em que se aplica, pela descrição. Se não estiver claro,
     pergunte.
   - **Produto** (`resources/boost/`): revisado na etapa de documentação.
-  - Mesma skill em `.claude/skills` e `.ai/skills`: a de `.ai/` é a fonte.
+  - Mesma skill em `.claude/skills` e `.ai/skills`: a de `.ai/` é a
+    fonte.
   Mostre no perfil: skill · origem · etapas.
 - **Arquivos de comunidade da organização**: com remoto no GitHub,
   veja se `<owner>/.github` existe e é público (`gh api
@@ -150,16 +159,19 @@ skills ou tags novas, descubra e registre:
   ou o registrado em "Decisões do projeto". Sem nenhum dos dois, leia o
   item "Idioma" do passo 2 de `${CLAUDE_SKILL_DIR}/../issue/SKILL.md` e
   siga-o, com o diretório atual como destino: detecte pelos commits e,
-  se ficar em dúvida, pergunte junto com o perfil e espere a resposta
-  (com `report`, não pergunte: não há commits). Mostre o idioma no
-  perfil e registre-o em "Decisões do projeto".
+  se ficar em dúvida, pergunte junto com o perfil e espere a resposta.
+  Com `report`, não pergunte nem registre: não há commits; mostre
+  "em dúvida" no perfil. Nos outros casos, mostre o idioma no perfil
+  e registre-o em "Decisões do projeto".
 - **Sem `CLAUDE.md` na raiz** (o Claude não foi iniciado no projeto):
   PARE e pergunte se quero rodar `/init` antes de seguir; ele dá
   contexto à revisão e aos workflows de `datalogix/workflows`. Se eu
   disser para seguir sem ele, registre em "Decisões do projeto" e não
   pergunte de novo.
 
-Mostre o perfil em poucas linhas, incluindo tipo e estágio.
+Ao gerar ou regenerar o perfil, mostre-o em poucas linhas, incluindo
+tipo e estágio, e atualize o commit dele. Regenerar não repete o que
+já está em "Decisões do projeto" (estágio, idioma, `/init`).
 
 ## 3. Progresso (fora do projeto)
 - Arquivo: `~/.claude/reviews/<id>/progress.md`, onde `<id>` é:
@@ -167,9 +179,9 @@ Mostre o perfil em poucas linhas, incluindo tipo e estágio.
   - lib JS/TS: o `name` do package.json sem `@` e com `/` trocado por
     `-` (ex.: `@datalogix/ui` → `datalogix-ui`)
   - aplicação (Laravel ou Nuxt/Next), ou `name` ausente ou genérico
-    (`laravel/laravel`, `nuxt-app`, `my-app`): o nome
-    da pasta raiz + os 6 primeiros caracteres do hash do caminho
-    absoluto (`pwd | sha1sum | cut -c1-6`), ex.: `loja-3fa91c`
+    (`laravel/laravel`, `nuxt-app`, `my-app`): o nome da pasta raiz +
+    os 6 primeiros caracteres do hash do caminho absoluto
+    (`pwd | sha1sum | cut -c1-6`), ex.: `loja-3fa91c`
   Grave o caminho absoluto do projeto no topo do progresso; se ele não
   bater com o projeto atual, pare e me avise (dois projetos com o
   mesmo id).
@@ -181,20 +193,23 @@ Mostre o perfil em poucas linhas, incluindo tipo e estágio.
   3. **Mudanças para documentar**: o que alterou comportamento,
      configuração ou API pública
   4. **Etapas**: por etapa/pasta/parte, data, commit, o que foi
-     analisado, itens aplicados, recusados e pulados (pelo número),
+     analisado, itens aplicados, não aplicados, recusados e pulados
+     (com número e título, que identifica o item entre relatórios),
      "Decisões tomadas" sem perguntar, testes e os commits feitos
      pelo fluxo de commit (hash e título)
   5. **Perguntas pendentes**, com o passo e os itens que dependem delas
   6. **Modos de foco**: uma seção por modo, com progresso próprio; um
      modo nunca marca etapa da revisão completa como feita
 - Salve ao fim de CADA passo, para eu poder parar e retomar com
-  `/datalogix:review`.
+  `/datalogix:review` (num modo, `/datalogix:review <modo>`).
 - Se algo verificado mudou desde o commit registrado (`git -c
   core.quotePath=false diff --name-only <commit> -- <caminho>`),
   reanalise só o que mudou.
 
 ## 4. Linha de base e plano
-`help` e `status` não rodam nada disto: só leem os arquivos e o progresso.
+`help`, `status` e `reset` não rodam nada disto nem a seção 2: só
+leem os arquivos e o progresso (`reset` calcula o `<id>` da seção
+3). Sem progresso, `status` diz que a revisão não começou e para.
 
 - **Branch com data**: antes da linha de base, siga o item "Branch com
   data" do passo 1 de `${CLAUDE_SKILL_DIR}/../commit/SKILL.md`, com o
@@ -216,8 +231,11 @@ Mostre o perfil em poucas linhas, incluindo tipo e estágio.
 - **Verificação completa** = as duas. Nos tipos JS não há verificação
   PHP: a verificação front-end roda em todo passo e é a verificação
   completa.
-- Na primeira chamada da sessão, rode a verificação completa como linha
-  de base. Se algo falhar antes de qualquer mudança, pare e me mostre.
+- Na primeira chamada da sessão, mesmo retomando um passo, rode a
+  verificação completa como linha de base. Se algo falhar, pare, me
+  mostre e diga se a árvore já tinha mudanças (`git status
+  --porcelain`). Se eu mandar seguir, registre as falhas em "Decisões
+  do projeto" como conhecidas.
 - **Passo de formatação**: se na linha de base só falharem os checks de
   formatação (`pint --test`, `prettier --check`), proponha um passo
   próprio antes das etapas: rodar `pint` (com `--blade` nas mesmas
@@ -229,38 +247,53 @@ Mostre o perfil em poucas linhas, incluindo tipo e estágio.
   hash dele no `.git-blame-ignore-revs` num commit seguinte, e PARAR
   até "próxima". Registre no progresso; vale também quando eu
   instalar o formatador depois.
-- Mostre o plano: as etapas na ordem definida pelo arquivo do tipo, com
-  as pastas de cada etapa por pasta (código PHP: Contracts primeiro,
-  depois as que dependem delas, Providers por último; código JS/TS:
-  tipos e utilitários primeiro, depois quem os importa; arquivos
-  soltos na raiz contam como um grupo), com quantidade de arquivos e
-  linhas, e as pastas grandes já divididas em partes (seção 8).
+- Mostre o plano: as etapas na ordem definida pelo arquivo do tipo
+  (num modo, os passos do arquivo do modo), com as pastas de cada etapa
+  por pasta (código PHP: Contracts primeiro, depois as que dependem
+  delas, Providers por último; código JS/TS: tipos e utilitários
+  primeiro, depois quem os importa; arquivos soltos na raiz contam como
+  um grupo), com quantidade de arquivos e linhas, e as pastas grandes
+  já divididas em partes (seção 8).
 - Etapas que não se aplicam (sem `package.json`, sem front-end, sem
   recursos) são puladas com uma linha de aviso, sem pausa.
 
 ## 5. Ciclo de cada passo
-Um passo é uma etapa, uma pasta ou uma parte de pasta.
-0. Antes de começar, a checagem de git do arquivo do tipo, se o estágio
-   exigir. Se falhar, pare e me diga o que resolver.
+Um passo é uma etapa, uma pasta, uma parte de pasta ou um passo de
+modo.
+0. Antes de começar, a checagem de git do arquivo do tipo, se o
+   estágio exigir (não vale para `report`, que não altera nada). Se
+   falhar, pare e me diga o que resolver.
 1. Faça a ANÁLISE num subagente (ferramenta Task/Agent), para não lotar
-   a conversa. Passe a ele: os caminhos do arquivo da etapa/modo e do
-   arquivo do tipo (para ler), os `SKILL.md` mapeados para a etapa, a
-   lista de arquivos do passo (e, se for parte, os nomes dos arquivos
-   das outras partes da pasta), o perfil, as "Decisões do projeto", as
-   seções 6 (formato) e 7 (perguntas: decidir antes de perguntar) deste
-   arquivo, e a regra de idioma (seção 11) com o que o `CLAUDE.md`
-   disser sobre idioma. Ele devolve só o relatório.
+   a conversa. Passe a ele: os caminhos absolutos do arquivo da
+   etapa/modo, dos que ele citar para o passo (no modo `docs`,
+   `steps/docs.md` e `steps/code.md`; na etapa `code`, `steps/http.md`
+   e `steps/jobs.md`) e do arquivo do tipo (para ler), os `SKILL.md`
+   mapeados para a etapa, a lista de arquivos do passo (e, se for
+   parte, os nomes dos arquivos das outras partes da pasta), o perfil,
+   as "Decisões do projeto", as seções 6 (formato) e 7 (perguntas:
+   decidir antes de perguntar) deste arquivo, e a regra de idioma
+   (seção 11) com o que o `CLAUDE.md` disser sobre idioma. Ele devolve
+   só o relatório.
    Antes de mostrar, confira o relatório: descarte itens que repetem
    uma "Decisão do projeto", que já foram recusados antes, ou cujo
    trecho citado não existe no arquivo; transforme em item as perguntas
    de sim/não óbvio.
-2. Mostre o relatório, com as perguntas no fim (seção 7), e PARE até eu
+2. Mostre o relatório, com as perguntas no fim (seção 7), convertido
+   para o formato da sessão, se houver, e PARE até eu
    dizer o que aplicar ("aplica 1, 3", "todas", "nenhuma", "todas menos
    sugestões", "todas menos 4") e responder as perguntas, na mesma
    mensagem. "pula" adia o passo inteiro sem aplicar nada (fica
-   pendente no progresso) e segue para o próximo. Registre
-   em "Decisões do projeto" as respostas que valem adiante.
-3. Aplique só o aprovado, um item de cada vez, adicionando testes quando
+   pendente no progresso) e segue para o próximo. Registre em
+   "Decisões do projeto" as respostas que valem adiante.
+   Item que não aprovei (fora de "aplica 1, 3", ou com a caixa
+   desmarcada) fica como "não aplicado" e pode voltar em outro
+   relatório. Só conta como recusado o que eu recusar em texto ou a
+   caixa que veio com `(recomendo)` e eu desmarquei.
+3. Aplique só o aprovado, um item de cada vez, nesta conversa ou, com
+   muitos itens, num subagente (ferramenta Task/Agent), passando os
+   itens aprovados, as decisões e as regras deste item. Confira o diff
+   que ele devolver; a verificação (item 4), o progresso e os commits
+   ficam nesta conversa. Adicione testes quando
    mudar comportamento ou cobrir algo sem teste. Ao renomear, atualize
    todas as referências (código, testes, config, views, docs, skills) e
    busque pelo nome antigo antes de concluir. Se surgir dúvida num item:
@@ -268,7 +301,7 @@ Um passo é uma etapa, uma pasta ou uma parte de pasta.
    se for uma escolha real, pule-o e pergunte no resumo (seção 7).
 4. Rode a verificação PHP e, se o passo alterou front-end, a verificação
    front-end (seção 4); nos tipos JS, a verificação completa. Tudo
-   precisa passar 100%.
+   precisa passar 100%, salvo as falhas conhecidas da linha de base.
    - Se falhar, corrija e rode de novo.
    - Nunca apague, pule ou enfraqueça teste existente. Se achar que o
      teste está errado, me pergunte.
@@ -276,9 +309,9 @@ Um passo é uma etapa, uma pasta ou uma parte de pasta.
      registre o motivo e siga.
 5. Registre em "Mudanças para documentar" o que o passo alterou de
    comportamento, configuração ou API pública. Salve o progresso,
-   mostre um resumo curto (arquivos alterados, testes
-   adicionados, "Decisões tomadas", itens pulados e perguntas
-   pendentes), sugira os commits e PARE até eu dizer "próxima"
+   mostre um resumo curto (arquivos alterados, testes adicionados,
+   "Decisões tomadas", itens pulados e perguntas pendentes), sugira
+   os commits e PARE até eu dizer "próxima"
    (aplicando antes os itens liberados por respostas que eu der).
    - Um commit por funcionalidade ou correção, com os testes, a
      documentação e o lockfile da mudança que acompanham;
@@ -291,18 +324,23 @@ Um passo é uma etapa, uma pasta ou uma parte de pasta.
      sugerido, todos desmarcados, com os arquivos recuados abaixo
      (novos com "(novo)", apagados com "(apagado)" e, de um arquivo
      renomeado, os dois caminhos); com mais de um, também
-     `- [ ] Fazer tudo em um commit só`, com o detalhe "ignora os
-     outros commits"; e
-     `- [ ] Seguir para a próxima etapa depois dos commits`. Sem o
-     formato da seção 7, aceite em texto (ex.: "commita 1 e 2 e
-     segue").
+     `- [ ] Fazer tudo em um commit só`, com o detalhe "ignora os outros
+     commits"; e `- [ ] Seguir para o próximo passo depois dos commits`.
+     Sem próximo passo (etapa avulsa, pasta, último passo de um modo),
+     não mostre esse item. Sem o formato da seção 7, aceite em texto
+     (ex.: "commita 1 e 2 e segue").
    - Se o arquivo do tipo exigir a checagem de git antes de cada
      passo, avise que todos os commits sugeridos precisam ser
      feitos antes de "próxima": com algo sem commit, o próximo passo
      para.
-   - Com commits marcados, faça-os pelo fluxo de commit (abaixo). Com
-     "Seguir" marcado, só depois que todos os marcados forem feitos
-     vale como "próxima"; se algum for cancelado ou falhar, PARE.
+   - Com commits marcados, faça-os pelo fluxo de commit (abaixo). A
+     prévia dele aparece e espera a confirmação mesmo com "Seguir"
+     marcado. Com "Seguir", só depois que todos os marcados forem
+     feitos vale como "próxima"; se algum for cancelado ou falhar,
+     PARE.
+   - Se a mesma resposta liberar itens, aplique-os e rode a
+     verificação antes dos commits. O que eles mudarem fora dos
+     commits marcados vai num novo resumo, e PARE, mesmo com "Seguir".
    - Fluxo de commit: leia `${CLAUDE_SKILL_DIR}/../commit/SKILL.md`
      e siga-o a partir do passo 2, como se os commits marcados
      fossem os grupos marcados no passo 1 dele (ou, com "Fazer tudo
@@ -320,16 +358,18 @@ Um passo é uma etapa, uma pasta ou uma parte de pasta.
      comando como ele manda.
    - Só entram arquivos dos commits sugeridos. A prévia, a
      confirmação e os avisos são os dele; nenhum commit é feito sem
-     a minha confirmação.
+     a minha confirmação. Fora do último passo, não sugira
+     `/datalogix:pr` ao fim do passo 5 dele.
    - Depois, registre no progresso da etapa o hash e o título de cada
      commit feito (`git log -<n> --format='%h %s'`).
 6. Depois da última etapa, faça o fechamento (`steps/closing.md`),
    com a verificação completa, e liste os passos pulados com "pula".
-7. Etapa avulsa e modo não têm fechamento: no resumo do fim da etapa,
-   ou do último passo do modo, pergunte se rodo o `/code-review`
-   sobre as mudanças e siga a seção 2 de `steps/closing.md` (o
-   `/security-review` também, nas mesmas condições). Não vale para
-   `report`.
+7. Etapa avulsa, caminho e modo não têm fechamento: no resumo do fim
+   da etapa, ou do último passo do modo, pergunte se rodo o
+   `/code-review` sobre as mudanças e siga a seção 2 de
+   `steps/closing.md` (o `/security-review` também, nas mesmas
+   condições), rodando-os só depois dos commits marcados. Não vale
+   para `report`.
 
 ## 6. Formato do relatório
 Só reporte o que confirmou lendo o código: cite o trecho e a linha
@@ -414,13 +454,13 @@ das respostas acima:
   quebrar: só essa linha volta com a resposta), logo seguida das
   alternativas como `- ( ) <opção>`, uma por alternativa, a
   recomendada primeiro e começando com "(recomendo)"; o exemplo
-  de cada opção vai recuado logo abaixo dela (bloco de código
-  recuado), nunca entre a pergunta e as opções;
+  de cada opção vai logo abaixo dela, num bloco com cerca (três
+  crases) recuado, nunca entre a pergunta e as opções;
 - pergunta sem opções (ex.: "este comportamento é intencional?")
   vira alternativas que dizem o que você fará em cada resposta
   (ex.: `- ( ) Sim, manter e documentar` e
-  `- ( ) Não, corrigir`), com o trecho de código recuado abaixo
-  da primeira;
+  `- ( ) Não, corrigir`), com o trecho de código num bloco com
+  cerca recuado abaixo da primeira;
 - item que depende de uma pergunta diz isso num detalhe recuado
   logo abaixo da caixa, com o texto da pergunta (ex.: `depende de:
   Como expor o tempo de expiração do código 2FA?`), e só é
@@ -429,9 +469,10 @@ das respostas acima:
 
 Pergunte NA HORA e espere apenas quando não der para seguir: branch
 com data (seção 4), linha de base falhando, `CLAUDE.md` ausente,
-idioma dos commits em dúvida (seção 2), requisito de testes ausente
-(arquivo do tipo), skill sem etapa clara, teste existente que parece
-errado, checagem de git falhando, ou ação irreversível ou não
+tipo do projeto em dúvida (seção 2), estágio não registrado (arquivo
+do tipo), idioma dos commits em dúvida (seção 2), requisito de testes
+ausente (arquivo do tipo), skill sem etapa clara, teste existente que
+parece errado, checagem de git falhando, ou ação irreversível ou não
 aprovada (apagar arquivos, editar migration, mudar versão mínima,
 quebrar API pública).
 
@@ -471,7 +512,8 @@ Resuma só o que está escrito nos arquivos; não invente comportamento.
 
 ## 10. Regras
 - SEMPRE um passo por vez; nunca dois no mesmo relatório e nunca avance
-  sem "próxima" (exceção: `report`, que não altera nada).
+  sem "próxima", "pula" ou "Seguir" (exceção: `report`, que não altera
+  nada).
 - Não altere API pública (definição no arquivo do tipo) sem aprovação.
 - Não instale ferramentas nem dependências novas sem aprovação.
 - Todo código que você escrever segue "Documentação no código" de

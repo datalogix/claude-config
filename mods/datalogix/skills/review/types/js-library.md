@@ -27,9 +27,10 @@ git (`private: true`, com `npx github:...`), sem Laravel: tem
 1. `git` — .gitignore, .gitattributes e .editorconfig
 2. `ci` — integração contínua (workflows do próprio projeto)
 3. `npm` — dependências, scripts e campos de publicação
-4. `code` — código JS/TS (`steps/code-js.md`), uma pasta por vez;
-   numa lib de componentes, aplique também as seções de componentes
-   de `steps/frontend.md` (Vue ou React)
+4. `code` — código JS/TS de `src/` (ou da pasta que o `exports` e o
+   build indicam, `steps/code-js.md`), uma pasta por vez; numa lib de
+   componentes, aplique também as seções de componentes de
+   `steps/frontend.md` (Vue ou React)
 5. `docs` — README, /docs, CLAUDE.md, skills e guidelines
 6. `pack` — o pacote como o npm entrega, instalado num projeto limpo
 7. `closing` — fechamento
@@ -59,8 +60,10 @@ API pública.
 ### v1+ — obrigatório
 - **Checagem de git antes de CADA passo**:
   - `git status --porcelain` vazio (o passo anterior foi commitado)
-  - fora da branch padrão (`main`/`master`); se estiver nela, pare e
-    sugira criar uma (ex.: `review/<assunto>`, sem data)
+  - fora da branch padrão (a de `git symbolic-ref --short
+    refs/remotes/origin/HEAD`, sem o `origin/`; sem esse ref, `main`
+    ou `master`); se estiver nela, pare e sugira criar uma (ex.:
+    `review/<assunto>`, sem data)
   - registre no progresso o commit de início do passo
 - Quebras de API: o nome antigo continua exportado, apontando para o
   novo, com `@deprecated` no JSDoc indicando o substituto; remoção só

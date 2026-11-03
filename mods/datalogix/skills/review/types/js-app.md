@@ -65,8 +65,10 @@ pública: renomeie sem alias.
 ### em produção — obrigatório
 - **Checagem de git antes de CADA passo**:
   - `git status --porcelain` vazio (o passo anterior foi commitado)
-  - fora da branch padrão (`main`/`master`); se estiver nela, pare e
-    sugira criar uma (ex.: `review/<assunto>`, sem data)
+  - fora da branch padrão (a de `git symbolic-ref --short
+    refs/remotes/origin/HEAD`, sem o `origin/`; sem esse ref, `main`
+    ou `master`); se estiver nela, pare e sugira criar uma (ex.:
+    `review/<assunto>`, sem data)
   - registre no progresso o commit de início do passo
 - Mudança em API pública exige aprovação e plano de compatibilidade:
   redirecionar URLs antigas (Nuxt: `routeRules` com `redirect`; Next:

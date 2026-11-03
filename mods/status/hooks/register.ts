@@ -177,7 +177,7 @@ type State = {
   seenAgentIds: Set<string> // since the main turn started, with those it found running: the total of the progress
   failedAgentIds: Set<string> // of seenAgentIds, also those in the foreground, which failedAgentCount leaves out
   windows: SessionRateLimit[]
-  outcome?: { text: string; isSuccess: boolean } // how the last answer, or the background agents after it, ended
+  outcome?: { text: string; isSuccess: boolean; isFailure?: boolean } // how the last answer, or the background agents after it, ended
   isWaitingForAgents: boolean // answered with agents still running
   alertedLevelKeys: Set<string>
   windowsAtLimit: Map<string, string | undefined> // kind at 100% → resetsAt
@@ -253,8 +253,8 @@ async function checkAgentsDone($: EngineInterface, s: State, agentCountBefore: n
           isAboutBackgroundAgents: true,
         })
     } else {
-      // A failed or interrupted answer stays: the agents ending well says nothing about it.
-      if (!s.outcome || s.outcome.isSuccess) s.outcome = { text: '✅ tudo pronto', isSuccess: true }
+      // An answer that failed stays: the agents ending well says nothing about it. After Esc, they are all there was.
+      if (!s.outcome?.isFailure) s.outcome = { text: '✅ tudo pronto', isSuccess: true }
       await sendNotice($, s, `✅ Os agentes em segundo plano terminaram${workflowsSuffix}`, {
         timeoutMs: 8000,
         isAboutBackgroundAgents: true,
@@ -528,10 +528,10 @@ export const register: Register = (on, options) => {
     const remainingSuffix = remainingWork ? ` — ${remainingWork} em segundo plano` : ''
 
     if (e.reason === 'error') {
-      s.outcome = { text: `❌ deu erro após ${duration}`, isSuccess: false }
+      s.outcome = { text: `❌ deu erro após ${duration}`, isSuccess: false, isFailure: true }
       await sendNotice($, s, `❌ Claude parou com erro após ${duration}${remainingSuffix}`, { timeoutMs: 10000 })
     } else if (e.reason === 'refusal') {
-      s.outcome = { text: `⚠️ recusou após ${duration}`, isSuccess: false }
+      s.outcome = { text: `⚠️ recusou após ${duration}`, isSuccess: false, isFailure: true }
       await sendNotice($, s, `⚠️ Claude recusou a resposta após ${duration}${remainingSuffix}`, { timeoutMs: 10000 })
     } else if (isAborted) {
       s.outcome = { text: `⏹️ interrompido após ${duration}`, isSuccess: false }

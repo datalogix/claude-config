@@ -22,6 +22,34 @@ const mount = <C extends RenderComponent>(
 const isOriginalShown = async (ui: Pick<Mounted, 'find'>) =>
   (await ui.find({ type: 'Text', text: 'original' })) !== undefined
 
+/** Hidden: nothing drawn at all, neither the original nor anything in its place. */
+const isHidden = async (ui: Pick<Mounted, 'findAll'>) => (await ui.findAll({ type: 'Text' })).length === 0
+
+const toolUse = (overrides: Partial<RenderPropsOf['ToolUse']> = {}): RenderPropsOf['ToolUse'] => ({
+  tool_use_id: 'tu1',
+  tool: 'Bash',
+  input: { command: 'ls' },
+  isRunning: false,
+  isErrored: false,
+  isInterrupted: false,
+  ...overrides,
+})
+
+const spinner = (overrides: Partial<RenderPropsOf['Spinner']> = {}): RenderPropsOf['Spinner'] => ({
+  word: 'Sauteing',
+  message: null,
+  suffix: '…',
+  mode: 'thinking',
+  ...overrides,
+})
+
+/** Stands in for the spinner's own row, with each field it may change in sight. */
+const drawSpinnerRow = (on: On) =>
+  on('ui.render', { component: 'Spinner' }, async ($, e) => {
+    const { Text } = $.ui.resolve(e)
+    return <Text>{[e.props.word, e.props.message, e.props.suffix].join('|')}</Text>
+  })
+
 /**
  * A failing hook is skipped and the original drawn instead, so "shown" alone does not prove steps chose it. Keys each
  * row `steps-ok` when steps' hook answered (`returned` or `passed`), else `steps-<outcome>`. Uses only literals: an
@@ -78,26 +106,16 @@ test('lets the session start go on', async ($, on) => {
 })
 
 describe('tool uses', () => {
-  const toolUse = (overrides: Partial<RenderPropsOf['ToolUse']> = {}): RenderPropsOf['ToolUse'] => ({
-    tool_use_id: 'tu1',
-    tool: 'Bash',
-    input: { command: 'ls' },
-    isRunning: false,
-    isErrored: false,
-    isInterrupted: false,
-    ...overrides,
-  })
-
   test('are hidden from the conversation', async ($, on) => {
     drawOriginal(on, 'ToolUse')
     const ui = await mount($, 'ToolUse', toolUse())
-    expect(await isOriginalShown(ui)).toBe(false)
+    expect(await isHidden(ui)).toBe(true)
   })
 
   test('are hidden while running', async ($, on) => {
     drawOriginal(on, 'ToolUse')
     const ui = await mount($, 'ToolUse', toolUse({ isRunning: true }))
-    expect(await isOriginalShown(ui)).toBe(false)
+    expect(await isHidden(ui)).toBe(true)
   })
 
   for (const [name, overrides] of [
@@ -120,7 +138,7 @@ describe('tool uses', () => {
     expect(await isShownBySteps(ui)).toBe(true)
 
     expect(await runStepsCommand($)).toMatchObject({ text: 'Linhas de ferramentas escondidas.' })
-    expect(await isOriginalShown(ui)).toBe(false)
+    expect(await isHidden(ui)).toBe(true)
   })
 })
 
@@ -135,7 +153,7 @@ describe('tool results', () => {
 
   test('are hidden from the conversation', async ($, on) => {
     drawOriginal(on, 'ToolResult')
-    expect(await isOriginalShown(await mount($, 'ToolResult', toolResult()))).toBe(false)
+    expect(await isHidden(await mount($, 'ToolResult', toolResult()))).toBe(true)
   })
 
   for (const [name, overrides] of [
@@ -164,7 +182,7 @@ describe('tool progress', () => {
   test('is hidden until /steps', withWatcher, async ($, on) => {
     drawOriginal(on, 'ToolProgress')
     const ui = await mount($, 'ToolProgress', toolProgress)
-    expect(await isOriginalShown(ui)).toBe(false)
+    expect(await isHidden(ui)).toBe(true)
 
     await runStepsCommand($)
     expect(await isShownBySteps(ui)).toBe(true)
@@ -199,13 +217,19 @@ describe('tool groups', () => {
   test('are hidden when everything went well', async ($, on) => {
     drawOriginal(on, 'ToolGroup')
     const ui = await mount($, 'ToolGroup', group([call()]))
-    expect(await isOriginalShown(ui)).toBe(false)
+    expect(await isHidden(ui)).toBe(true)
   })
 
   test('are hidden while the group is live', async ($, on) => {
     drawOriginal(on, 'ToolGroup')
     const ui = await mount($, 'ToolGroup', group([call(), call({ isRunning: true })], { isActive: true }))
-    expect(await isOriginalShown(ui)).toBe(false)
+    expect(await isHidden(ui)).toBe(true)
+  })
+
+  test('are hidden when the engine says the group holds only calls', async ($, on) => {
+    drawOriginal(on, 'ToolGroup')
+    const ui = await mount($, 'ToolGroup', group([call()], { isCallsOnly: true }))
+    expect(await isHidden(ui)).toBe(true)
   })
 
   for (const [name, props] of [
@@ -230,23 +254,12 @@ describe('tool groups', () => {
 })
 
 describe('spinner', () => {
-  const drawSpinner = (on: On) =>
-    on('ui.render', { component: 'Spinner' }, async ($, e) => {
-      const { Text } = $.ui.resolve(e)
-      return (
-        <Text>
-          {e.props.word}
-          {e.props.suffix}
-        </Text>
-      )
-    })
-
   test('keeps the original with the current step below it', async ($, on) => {
-    drawSpinner(on)
-    const ui = await mount($, 'Spinner', { word: 'Sauteing', message: null, suffix: '…', mode: 'thinking' })
+    drawSpinnerRow(on)
+    const ui = await mount($, 'Spinner', spinner())
 
     const texts = (await ui.findAll({ type: 'Text' })).map((t) => t.text)
-    expect(texts).toEqual(['Sauteing…', 'pensando'])
+    expect(texts).toEqual(['Sauteing||…', 'pensando'])
   })
 
   for (const [mode, label] of [
@@ -257,24 +270,21 @@ describe('spinner', () => {
     ['tool-use', 'usando ferramentas'],
   ] as const) {
     test(`spells out ${mode} as "${label}", dim and indented on its own row`, async ($, on) => {
-      drawSpinner(on)
-      const ui = await mount($, 'Spinner', { word: 'Sauteing', message: null, suffix: '…', mode })
+      drawSpinnerRow(on)
+      const ui = await mount($, 'Spinner', spinner({ mode }))
 
       const [column, labelRow] = await ui.findAll({ type: 'Box' })
       expect(column).toMatchObject({ props: { flexDirection: 'column' } })
-      expect(labelRow).toMatchObject({ props: { paddingLeft: 2 } })
+      expect(labelRow).toMatchObject({ props: { paddingLeft: 2 }, text: label })
       expect(await ui.find({ type: 'Text', text: label })).toMatchObject({ props: { dimColor: true } })
     })
   }
 
   test('keeps only the original for a mode it has no label for', withWatcher, async ($, on) => {
-    on('ui.render', { component: 'Spinner' }, async ($, e) => {
-      const { Text } = $.ui.resolve(e)
-      return <Text>{e.props.word}</Text>
-    })
-    const ui = await mount($, 'Spinner', { word: 'Sauteing', message: null, suffix: '…', mode: 'dreaming' } as never)
+    drawSpinnerRow(on)
+    const ui = await mount($, 'Spinner', spinner({ mode: 'dreaming' as never }))
 
-    expect(await ui.find({ type: 'Text', text: 'Sauteing' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: 'Sauteing||…' })).toBeDefined()
     // Only the watcher's Box: steps passed the original on with no label row around it.
     expect((await ui.findAll({ type: 'Box' })).map((box) => box.key)).toEqual(['steps-ok'])
   })
@@ -285,57 +295,45 @@ describe('surfaces', () => {
   for (const surface of ['terminal', 'desktop', 'vscode', 'mobile'] as const) {
     test(`hides the tool rows on ${surface}, and /steps shows them again`, async ($, on) => {
       drawOriginal(on, 'ToolUse')
-      const props = {
-        tool_use_id: 'tu1',
-        tool: 'Bash',
-        input: {},
-        isRunning: false,
-        isErrored: false,
-        isInterrupted: false,
-      }
-      const ui = await mount($, 'ToolUse', props, surface)
-      expect(await isOriginalShown(ui)).toBe(false)
+      const ui = await mount($, 'ToolUse', toolUse(), surface)
+      expect(await isHidden(ui)).toBe(true)
 
       await runStepsCommand($)
       expect(await isOriginalShown(ui)).toBe(true)
     })
   }
 
-  const drawSpinnerRow = (on: On) =>
-    on('ui.render', { component: 'Spinner' }, async ($, e) => {
-      const { Text } = $.ui.resolve(e)
-      return <Text>{e.props.message ?? e.props.word}</Text>
-    })
-
   test('on vscode, says the current step in the spinner row, with no box of its own', async ($, on) => {
     drawSpinnerRow(on)
-    const props = { word: 'Sauteing', message: null, suffix: '…', mode: 'thinking' } as const
-    const ui = await mount($, 'Spinner', props, 'vscode')
+    const ui = await mount($, 'Spinner', spinner(), 'vscode')
 
-    expect((await ui.findAll({ type: 'Text' })).map((t) => t.text)).toEqual(['pensando'])
+    expect((await ui.findAll({ type: 'Text' })).map((t) => t.text)).toEqual(['pensando||…'])
     expect(await ui.findAll({ type: 'Box' })).toEqual([])
   })
 
   test('on vscode, a message of the engine stays in the spinner row', async ($, on) => {
     drawSpinnerRow(on)
-    const props = { word: 'Sauteing', message: 'Compactando', suffix: '…', mode: 'thinking' } as const
-    const ui = await mount($, 'Spinner', props, 'vscode')
+    const ui = await mount($, 'Spinner', spinner({ message: 'Compactando' }), 'vscode')
 
-    expect((await ui.findAll({ type: 'Text' })).map((t) => t.text)).toEqual(['Compactando'])
+    expect((await ui.findAll({ type: 'Text' })).map((t) => t.text)).toEqual(['Sauteing|Compactando|…'])
   })
 
   // The engine also raises Spinner on vscode, tested above: mobile has none.
   for (const surface of ['terminal', 'desktop'] as const) {
     test(`shows the current step under the spinner on ${surface}`, async ($, on) => {
-      on('ui.render', { component: 'Spinner' }, async ($, e) => {
-        const { Text } = $.ui.resolve(e)
-        return <Text>{e.props.word}</Text>
-      })
-      const props = { word: 'Sauteing', message: null, suffix: '…', mode: 'thinking' } as const
-      const ui = await mount($, 'Spinner', props, surface)
+      drawSpinnerRow(on)
+      const ui = await mount($, 'Spinner', spinner(), surface)
 
       const texts = (await ui.findAll({ type: 'Text' })).map((t) => t.text)
-      expect(texts).toEqual(['Sauteing', 'pensando'])
+      expect(texts).toEqual(['Sauteing||…', 'pensando'])
+    })
+
+    test(`keeps the current step under a message of the engine on ${surface}`, async ($, on) => {
+      drawSpinnerRow(on)
+      const ui = await mount($, 'Spinner', spinner({ message: 'Compactando' }), surface)
+
+      const texts = (await ui.findAll({ type: 'Text' })).map((t) => t.text)
+      expect(texts).toEqual(['Sauteing|Compactando|…', 'pensando'])
     })
   }
 })

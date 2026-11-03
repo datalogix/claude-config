@@ -496,6 +496,40 @@ test('an agent that starts again after ending shows up again', async ($, on) => 
   expect(lastStatus()).toMatch(/│ {2}🤖 agente: Explorar$/)
 })
 
+test('an agent that failed and starts again no longer counts as failed', async ($, on) => {
+  const { agents, lastStatus, clock } = setup(on)
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  agents.push(agent('a1', 'Explorar'), agent('a2', 'Revisar'))
+  await $.turn.start({ text: '', turnId: 't2', agentId: 'a1' })
+  await $.turn.start({ text: '', turnId: 't3', agentId: 'a2' })
+  await $.turn.complete(turnComplete(5_000, { agentId: 'a1', turnId: 't2', reason: 'error' }))
+  await clock.advance(200)
+  expect(lastStatus()).toMatch(/│ {2}🤖 1\/2 ⚠️1: Revisar$/)
+
+  await $.turn.start({ text: '', turnId: 't4', agentId: 'a1' })
+  await clock.advance(200)
+  expect(lastStatus()).toMatch(/│ {2}🤖 0\/2: Explorar \+1$/)
+})
+
+test('an agent that leaves the list after ending shows up if the list brings it back', async ($, on) => {
+  const { agents, lastStatus, clock } = setup(on)
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  agents.push(agent('a1', 'Explorar'))
+  await $.turn.start({ text: '', turnId: 't2', agentId: 'a1' })
+  await $.turn.complete(turnComplete(5_000, { agentId: 'a1', turnId: 't2' }))
+  expect(lastStatus()).toBe('⠋ Claude está trabalhando… 0:00')
+
+  // Another agent's start reads the list again.
+  agents.length = 0
+  await $.turn.start({ text: '', turnId: 't3', agentId: 'a2' })
+  agents.push(agent('a1', 'Explorar'))
+  await $.turn.start({ text: '', turnId: 't4', agentId: 'a2' })
+  await clock.advance(200)
+  expect(lastStatus()).toMatch(/│ {2}🤖 agente: Explorar$/)
+})
+
 test('a failed answer stays in the status after the background agents end well', async ($, on) => {
   const { agents, lastStatus } = setup(on)
 
@@ -722,6 +756,19 @@ test('Stop after the turn ends says which workflows are in flight', async ($, on
   expect(lastStatus()).toBe('✅ pronto em 5s')
 })
 
+test('Stop after the turn ends starts the spinner of the workflows in flight', async ($, on) => {
+  const { lastStatus, clock } = setup(on)
+  stopHook(on)
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  await $.turn.complete(turnComplete(5_000))
+  await $.classic.Stop(stopInput([{ id: 'w1', type: 'workflow', status: 'running', name: 'deploy' }]))
+  expect(lastStatus()).toBe('⠋ em segundo plano  │  🔀 workflow: deploy')
+
+  await clock.advance(200)
+  expect(lastStatus()).toBe('⠙ em segundo plano  │  🔀 workflow: deploy')
+})
+
 test('Stop before the turn ends counts in the notice of the answer, in the plural too', async ($, on) => {
   const { toasts } = setup(on)
   stopHook(on)
@@ -767,6 +814,18 @@ test('a workflow without a name shows what stands in for it', async ($, on) => {
   const description = 'uma descrição bem longa de um workflow sem nome'
   await $.classic.Stop(stopInput([{ id: 'w1', type: 'workflow', status: 'running', description }]))
   expect(lastStatus()).toBe('⠋ em segundo plano  │  🔀 workflow: uma descrição bem longa de um…')
+})
+
+test('a prompt of the user that names a workflow keeps it on the status', async ($, on) => {
+  const { lastStatus } = setup(on)
+  stubWorkflowLaunch(on, 'w1', 'revisao')
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  await $.tool.call({ tool: 'Workflow', script: 'x' } as never)
+  await $.turn.complete(turnComplete(5_000))
+
+  await $.prompt.submit({ text: 'o que é w1?', wait: false } as never)
+  expect(lastStatus()).toMatch(/🔀 workflow: revisao$/)
 })
 
 test('a Workflow call that failed does not count as running', async ($, on) => {
@@ -1335,6 +1394,7 @@ describe('extractExcerpt', () => {
     ['````md\n```\nexemplo\n```\n````\nFeito', 'Feito'],
     ['```\ncode\n``` js\n```\nFeito', 'Feito'],
     ['~~~\n```\n~~~\nFeito', 'Feito'],
+    ['```a`b\nFeito', '`a`b'],
     ['2 * 3 = 6', '2 * 3 = 6'],
     ['Veja [o README](https://x/README.md).', 'Veja o README.'],
     ['- [x] Feito', 'Feito'],

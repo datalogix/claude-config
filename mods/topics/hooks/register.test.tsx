@@ -761,6 +761,18 @@ describe('in the conversation', () => {
     expect((await ui.find({ key: 'bold-labels-action-0' }))?.text).toBe('(●) recomendo: Foo bar')
   })
 
+  test('a title has its rule on a terminal that does not give its width', async ($) => {
+    const ui = await $.ui.mount({
+      plugin: 'topics',
+      surface: 'terminal',
+      component: 'AssistantMessage',
+      requestId: 'rule-no-width',
+      props: { text: ANSWER, isFirstOfReply: true },
+    } as never)
+    const [rule] = await ui.findAll({ type: 'Text', text: /─/ })
+    expect(rule?.text).toBe(` ${'─'.repeat(48)}`)
+  })
+
   test('draws the rule after a title on the terminal only', async ($) => {
     const onTerminal = await mountMessage($, ANSWER, 'rule1', 'terminal')
     expect((await onTerminal.findAll({ type: 'Text', text: /─/ })).length).toBeGreaterThan(0)

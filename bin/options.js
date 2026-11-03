@@ -12,8 +12,9 @@ function defaultText(option) {
 }
 
 /**
- * The answer that takes no choice, in the order the questions are asked: a
- * boolean starts true only from "true", and a select from a choice.
+ * The answer when the user changes nothing, checked in the order askOptions
+ * picks the question: a boolean starts true only from "true", and a select
+ * from a choice.
  *
  * @param {Partial<Option> | undefined} option
  */
@@ -58,7 +59,7 @@ export function currentValues(inputs, userConfig) {
  * back masked.
  *
  * @param {Option} option
- * @param {string} rawAnswer what the user answered
+ * @param {string} rawAnswer
  * @param {string} initial the value the question started from (`initialValue`)
  * @returns {string | undefined}
  */
@@ -117,7 +118,7 @@ export function configuredKeys(configured, values, userConfig) {
  */
 export function initialValue(option, current, isConfigured) {
   const fallback = defaultText(option)
-  // ?? and not ||: false, 0 and an empty text are current values too.
+  // ?? and not ||: an empty text is a current value too.
   return isConfigured ? (current ?? fallback) : fallback
 }
 

@@ -19,7 +19,7 @@ const SETTINGS_FILE = path.join(process.env.CLAUDE_CONFIG_DIR || CLAUDE_DIR, 'se
 /** A claude call that hangs (network, a git waiting for input) fails after this; tests lower it. */
 const CLAUDE_TIMEOUT_MS = Number(process.env.DATALOGIX_CLAUDE_TIMEOUT_MS) || 120_000
 
-/** Written by earlier versions into each copied skill: only those are removed. */
+/** Written by earlier versions into each copied skill: a copy without it is never removed. */
 const MARKER_FILE = '.claude-config'
 
 const USAGE = `Usage:
@@ -236,12 +236,12 @@ function removeOldSkills(installedIds, unselectedNames = [], names = listOldSkil
  * @returns {Result}
  */
 function runClaude(args, input) {
-  // A git asking for credentials would wait on a prompt nobody sees: it fails instead.
   /** @type {import('node:child_process').SpawnSyncOptionsWithStringEncoding} */
   const options = {
     encoding: 'utf8',
     input,
     timeout: CLAUDE_TIMEOUT_MS,
+    // A git asking for credentials would wait on a prompt nobody sees: it fails instead.
     env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
   }
   let result = spawnSync('claude', args, options)
@@ -278,7 +278,7 @@ function checkClaudeCli() {
 
 /**
  * Undefined when claude fails or replies with anything but a list of items
- * holding `key`: an empty list would read as nothing installed.
+ * holding `key`: returning an empty list then would read as nothing installed.
  *
  * @param {string} label
  * @param {string[]} args
@@ -484,7 +484,7 @@ function ensureMarketplace(shouldLink) {
   return { canInstall: isAdded, canUpdate: isAdded }
 }
 
-/** @returns {boolean} whether the marketplace was updated */
+/** @returns {boolean} */
 function updateMarketplace() {
   const isUpdated = checkResult('marketplace', runClaude(['plugin', 'marketplace', 'update', marketplace.name]))
   if (isUpdated) {
@@ -558,7 +558,7 @@ async function askOptions(mod, isInstalled) {
           message,
           initialValue: option.sensitive ? undefined : initial,
           validate: (input) => {
-            // Digits only: Number() also takes spaces, line breaks, 0x10 and 1e3.
+            // Plain decimals only: Number() also takes spaces, line breaks, 0x10 and 1e3.
             if (option.type === 'number' && input && !/^-?\d+(\.\d+)?$/.test(input)) {
               return 'Enter a number.'
             }
@@ -603,8 +603,9 @@ async function syncMod(mod, installedIds, { isSelected, canInstall, canUpdate })
   if (!canInstall) {
     return
   }
-  // Updated first, so the options asked match its userConfig. A failed
-  // update still asks: configuring does not need the network.
+  // Updated first, so the installed version has the options asked, which come
+  // from this checkout's plugin.json. A failed update still asks: configuring
+  // does not need the network.
   if (isInstalled && canUpdate) {
     updateMod(mod.name, mod.id)
   }
@@ -682,7 +683,7 @@ async function install(shouldLink) {
 /**
  * @param {string} name
  * @param {Set<string>} installedIds gets the mod's id when it installs
- * @returns {boolean} whether it installed
+ * @returns {boolean}
  */
 function installMod(name, installedIds) {
   const id = modId(name)
@@ -718,8 +719,10 @@ async function update() {
   if (!installedIds) {
     return
   }
-  // Only after a marketplace update: an older one may not list the new name.
+  // Apart from installedIds: the update below only goes through the mods that
+  // were already installed, not the ones installed here.
   const currentIds = new Set(installedIds)
+  // Only after a marketplace update: an older one may not list the new name.
   for (const [oldName, newName] of Object.entries(RENAMED_MODS)) {
     const id = modId(newName)
     if (!isMarketplaceUpdated || !installedIds.has(modId(oldName)) || installedIds.has(id)) {

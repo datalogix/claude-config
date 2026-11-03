@@ -96,4 +96,17 @@ describe('cmdLine through cmd.exe', { skip: process.platform !== 'win32' }, () =
       .map((line) => JSON.parse(line))
     assert.deepEqual(calls, [['--version'], ['plugin', 'marketplace', 'list', '--json'], ['plugin', 'list', '--json']])
   })
+
+  // Neither a claude nor a claude.cmd: both ways of running it fail, which only skips the mods.
+  test('the installer says so when claude is not installed', () => {
+    const emptyDir = path.join(binDir, 'empty')
+    fs.mkdirSync(emptyDir, { recursive: true })
+    const result = spawnSync(process.execPath, [fileURLToPath(new URL('../bin/cli.js', import.meta.url)), 'update'], {
+      encoding: 'utf8',
+      env: { ...process.env, PATH: emptyDir, USERPROFILE: emptyDir },
+    })
+
+    assert.equal(result.status, 0, result.stdout + result.stderr)
+    assert.match(result.stdout + result.stderr, /the claude CLI is not installed/)
+  })
 })

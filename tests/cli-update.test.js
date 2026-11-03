@@ -48,6 +48,40 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     assert.doesNotMatch(output, /mods not installed/)
   })
 
+  test('updates a marketplace added from another source, unlike install', () => {
+    fakeClaude({
+      'plugin list --json': installedMods(PLAIN_MOD),
+      'plugin marketplace list --json': `echo '[{"name":"claude-config","path":"${tmpDir}"}]'`,
+    })
+
+    const { status, output } = runCli(['update'])
+
+    assert.equal(status, 0, output)
+    assert.ok(claudeCalls().includes('plugin marketplace update claude-config'))
+    assert.ok(claudeCalls().includes(`plugin update ${PLAIN_MOD}@claude-config --json`))
+  })
+
+  test('says failed when claude fails with nothing on stderr', () => {
+    fakeClaude({
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+      'plugin marketplace update claude-config': 'exit 1',
+    })
+
+    const { status, output } = runCli(['update'])
+
+    assert.equal(status, 1)
+    assert.match(output, /marketplace: failed/)
+  })
+
+  test('shows at most 200 characters of an unexpected reply', () => {
+    fakeClaude({ 'plugin marketplace list --json': `echo ${'x'.repeat(300)}` })
+
+    const { status, output } = runCli(['update'])
+
+    assert.equal(status, 1)
+    assert.match(output.replace(/\s+/g, ''), new RegExp(`unexpectedreply\\(x{200}\\)`))
+  })
+
   test('asks for /reload-plugins only when an update brings a new version', () => {
     /** @param {string} newVersion */
     const updateTo = (newVersion) => {

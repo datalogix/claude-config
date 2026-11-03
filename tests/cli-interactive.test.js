@@ -473,6 +473,15 @@ describe('prompts', { skip: process.platform === 'win32' }, () => {
     }
   })
 
+  test('accepts any text in an option that is not a number', async () => {
+    statusOptions = { label: { type: 'string', title: 'Label' } }
+    fakeClaude({ 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
+
+    await runInteractive([['status'], ''])
+
+    assert.equal(prompts.questions[1].validate('abc'), undefined)
+  })
+
   test.each([
     ['fails', 'echo broken >&2; exit 1', /could not read its options \(skipped configuring\)/, 1],
     ['replies without inputs', "echo '{}'", /could not read its options; skipped configuring/, 0],

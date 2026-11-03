@@ -160,13 +160,23 @@ describe('parseAnswer', () => {
       ['Usar C#', 'Outro'],
     ],
     ['a ### title stays inside its topic', ['## A', '### Sub', 'x', '## B'], ['A', 'B']],
+    ['a longer fence closes the block', ['## A', '```', '## dentro', '`````', '## B'], ['A', 'B']],
+    ['a tilde fence may have a backtick after it', ['## A', '~~~ a`b', '## dentro', '~~~', '## B'], ['A', 'B']],
   ] as const) {
     test(name, () => {
       expect(parseAnswer(lines.join('\n')).topics.map((t) => t.title)).toEqual(titles)
     })
   }
 
-  for (const title of ['Pendencias', '**Pendências**', '__Pendências__', 'Pendências:']) {
+  for (const title of [
+    'Pendencias',
+    '**Pendências**',
+    '__Pendências__',
+    'Pendências:',
+    'PENDÊNCIAS',
+    'Pendências :',
+    '**Pendências: **',
+  ]) {
     test(`"${title}" is the Pendências list`, () => {
       expect(parseAnswer(`## ${title}\n- [ ] Revisar`)).toEqual({
         intro: '',
@@ -214,6 +224,12 @@ describe('parseAnswer', () => {
   test('a ### title stays in the body of its topic', () => {
     expect(parseAnswer('## A\n### Sub\nx\n## B').topics[0]?.body).toBe('### Sub\nx')
   })
+
+  test('a title that only starts with "Pendências" is a topic', () => {
+    const parsed = parseAnswer('## Pendências abertas\n- [ ] A')
+    expect(parsed.actions).toBeUndefined()
+    expect(parsed.topics.map((t) => t.title)).toEqual(['Pendências abertas'])
+  })
 })
 
 describe('parseActions', () => {
@@ -232,6 +248,11 @@ describe('parseActions', () => {
         explanationTitle: 'Banco',
       },
     ])
+  })
+
+  test('a code block under an item keeps its relative indentation', () => {
+    const body = '## Pendências\n- [ ] A\n  ```yaml\n  a:\n    b: 1\n  ```'
+    expect(parseAnswer(body).actions?.items[0]?.details).toEqual(['```yaml\na:\n  b: 1\n```'])
   })
 
   test('an item inside a loose code block is not an item', () => {
@@ -298,6 +319,10 @@ describe('the stance marks', () => {
     expect(withoutStanceMark('`**kwargs` com **cache local (recomendado)**')).toBe('`**kwargs` com cache local')
   })
 
+  test('a ** in a code span of more backticks does not hide the bold the mark left unpaired', () => {
+    expect(withoutStanceMark('``**a`` com **c (recomendado)**')).toBe('``**a`` com c')
+  })
+
   test('keeps what follows a stance mark as written', () => {
     expect(withoutStanceMark('(recomendo) .env fora do pacote')).toBe('.env fora do pacote')
     expect(withoutStanceMark('(avalie) --force no push')).toBe('--force no push')
@@ -328,6 +353,9 @@ describe('the item marks', () => {
     'A (recomendado)',
     'A (recomendada).',
     '(recomendo). A',
+    '(recomendo)! A',
+    '(recomendo) — A',
+    '(recomendo) – A',
     'A (recomendado)!',
     'A (RECOMENDADO)',
     'A **(recomendado)**',
@@ -341,6 +369,29 @@ describe('the item marks', () => {
       expect(withoutStanceMark(text)).toBe('A')
     })
   }
+
+  for (const line of [
+    '- [ ]',
+    '- [] A',
+    '[ ] A',
+    '( ) A',
+    '-[ ] A',
+    '- [ ]A',
+    '- ( )A',
+    '1. [ ] A',
+    '- [y] A',
+    '- A',
+  ]) {
+    test(`"${line}" is not an item`, () => {
+      expect(parseAnswer(`## Pendências\n${line}`).actions).toEqual({ items: [], parts: [{ text: line }] })
+    })
+  }
+
+  test('an indented item is an item, and spaces after its text go', () => {
+    const items = parseAnswer('## Pendências\n- [ ] A   \n  - [ ] B').actions!.items
+    expect(items.map((i) => i.text)).toEqual(['A', 'B'])
+    expect(items[0]?.details).toEqual([])
+  })
 })
 
 describe('the Pendências list', () => {
@@ -366,6 +417,23 @@ describe('the Pendências list', () => {
   test('only the first ver: of an item points to a topic', () => {
     const actions = parseAnswer('## Pendências\n- [ ] A\n  ver: Um\n  ver: Dois').actions!
     expect(actions.items[0]).toMatchObject({ explanationTitle: 'Um', details: ['ver: Dois'] })
+  })
+
+  test('a "ver:" with no title stays a detail', () => {
+    expect(parseAnswer('## Pendências\n- [ ] A\n  ver:').actions?.items[0]).toEqual({
+      text: 'A',
+      isSuggested: false,
+      isRadio: false,
+      details: ['ver:'],
+    })
+  })
+
+  test('an unindented "ver:" stays loose text', () => {
+    expect(parseAnswer('## Pendências\n- [ ] A\nver: X').actions?.parts).toEqual([{ itemIndex: 0 }, { text: 'ver: X' }])
+  })
+
+  test('a blank line inside loose text stays', () => {
+    expect(parseAnswer('## Pendências\nUm.\n\nDois.\n- [ ] A').actions?.parts[0]).toEqual({ text: 'Um.\n\nDois.' })
   })
 
   test('an unindented code block after an item stays loose text', () => {
@@ -401,10 +469,20 @@ describe('previewOf', () => {
   test('drops list and title markup', () => {
     expect(previewOf('- **Todos** passaram.')).toBe('Todos passaram.')
     expect(previewOf('### Sub\nresto')).toBe('Sub')
+    expect(previewOf('* Item')).toBe('Item')
+    expect(previewOf('+ Item')).toBe('Item')
   })
 
   test('skips a leading code block', () => {
     expect(previewOf('```bash\nnpm test\n```\nRode os testes.')).toBe('Rode os testes.')
+  })
+
+  test('skips the blank line after a leading code block', () => {
+    expect(previewOf('```bash\nnpm test\n```\n\nRode os testes.')).toBe('Rode os testes.')
+  })
+
+  test('is empty for a body with only a code block', () => {
+    expect(previewOf('```\nx\n```')).toBe('')
   })
 
   test('drops the number of a numbered list', () => {
@@ -451,6 +529,7 @@ describe('previewOf', () => {
     expect(previewOf('Use `src/*.ts` e `lib/*.js` no glob')).toBe('Use src/*.ts e lib/*.js no glob')
     expect(previewOf('Ver `foo_` e `_bar`')).toBe('Ver foo_ e _bar')
     expect(previewOf('**usar `foo*`** agora')).toBe('usar foo* agora')
+    expect(previewOf('Use ``a`b`` agora')).toBe('Use a`b agora')
   })
 
   test('drops bold that starts with a dot or a slash, and keeps a glob', () => {
@@ -464,7 +543,21 @@ describe('previewOf', () => {
   })
 })
 
+const TWO_GROUPS = '## Pendências\nQ1?\n- ( ) (recomendo) A\n- ( ) B\nQ2?\n- ( ) (recomendo) C\n- ( ) D'
+
 describe('checking and sending', () => {
+  test('two radio groups do not exclude each other', () => {
+    const actions = parseAnswer(TWO_GROUPS).actions!
+    expect(defaultChecked(actions)).toEqual([0, 2])
+    expect(toggleChecked(actions, [0, 2], 1)).toEqual([2, 1])
+    expect(toggleChecked(actions, [0, 2], 3)).toEqual([0, 3])
+  })
+
+  test('checking an earlier alternative unchecks a later one', () => {
+    const actions = parseAnswer('## Pendências\nQual?\n- ( ) A\n- ( ) B').actions!
+    expect(toggleChecked(actions, [1], 0)).toEqual([0])
+  })
+
   test('the sent text carries each group question and leaves the details out', () => {
     expect(sentText(parseAnswer(WITH_ALTERNATIVES).actions!, [1])).toBe(
       [
@@ -565,6 +658,19 @@ describe('in the conversation', () => {
     })
   }
 
+  test("a title's rule counts the title as drawn, without its marks", async ($) => {
+    const ui = await $.ui.mount({
+      plugin: 'topics',
+      surface: 'terminal',
+      component: 'AssistantMessage',
+      requestId: 'rule-marks',
+      viewport: { columns: 40, rows: 40 },
+      props: { text: '## **Banco** de dados\nx\n## B\ny', isFirstOfReply: true },
+    } as never)
+    const [rule] = await ui.findAll({ type: 'Text', text: /─/ })
+    expect(rule?.text).toBe(` ${'─'.repeat(20)}`)
+  })
+
   test('"Pendências" stays open at the end, below the closed topics', async ($) => {
     const ui = await mountMessage($, WITH_ACTIONS, 'row2')
     expect((await ui.find({ key: 'row2-action-0' }))?.text).toBe('1. [ ] Rodar npm test')
@@ -598,6 +704,14 @@ describe('in the conversation', () => {
     await ui.press({ key: 'row9-action-1' })
     // Unchecking the checked alternative leaves the group empty on purpose.
     expect((await ui.find({ key: 'row9-action-1' }))?.text).toBe('( ) B')
+  })
+
+  test('unchecking the checked alternative leaves the group empty', async ($) => {
+    const ui = await mountMessage($, '## Pendências\nQual?\n- (x) (recomendo) A\n- (x) B', 'empty-group')
+    await ui.press({ key: 'empty-group-action-1' })
+    await ui.press({ key: 'empty-group-action-1' })
+    expect((await ui.find({ key: 'empty-group-action-0' }))?.text).toBe('( ) recomendo: A')
+    expect((await ui.find({ key: 'empty-group-action-1' }))?.text).toBe('( ) B')
   })
 
   test('an item written checked with a stance starts unchecked, and the stance alone marks it', async ($) => {
@@ -652,6 +766,24 @@ describe('in the conversation', () => {
     expect((await ui.find({ key: 'row4b-action-0-explanation' }))?.text).toBe('▾ explicação: O caso')
     expect(await ui.find({ type: 'Markdown', text: /dentro do link\./ })).toBeDefined()
     expect((await ui.find({ key: 'row4b-topic-0' }))?.text).toBe('▸ O caso')
+  })
+
+  test('on screen, each radio group has its number and counts once', async ($) => {
+    const ui = await mountMessage($, TWO_GROUPS, 'groups')
+    expect((await ui.findAll({ type: 'Text', text: /^\d+\. $/ })).map((t) => t.text)).toEqual(['1. ', '2. '])
+    expect(await ui.find({ type: 'Text', text: '2 de 2' })).toBeDefined()
+    await ui.press({ key: 'groups-action-3' })
+    expect((await ui.find({ key: 'groups-action-0' }))?.text).toBe('(●) recomendo: A')
+    expect((await ui.find({ key: 'groups-action-2' }))?.text).toBe('( ) recomendo: C')
+    expect((await ui.find({ key: 'groups-action-3' }))?.text).toBe('(●) D')
+  })
+
+  test('a blank line between the question and its radios keeps the question', async ($) => {
+    const text = '## Pendências\nQual?\n\n- ( ) A\n- ( ) B'
+    expect(sentText(parseAnswer(text).actions!, [0])).toBe('Pendências:\nQual?\n- (x) A\n- ( ) B')
+    const ui = await mountMessage($, text, 'blank-question')
+    expect(await ui.find({ type: 'Markdown', text: 'Qual?' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: 'escolha uma opção' })).toBeUndefined()
   })
 
   test('radios with no question before them get a number and a prompt', async ($) => {
@@ -899,6 +1031,9 @@ describe('sending the items', () => {
     await $.turn.complete(turnCompleteInput({ answer: ANSWER, turnId: 't2', agentId: 'sub1' }))
 
     expect(await ui.find({ key: 'agent-end-actions-send' })).toBeUndefined()
+    expect(
+      await ui.find({ type: 'Text', text: 'o envio fica disponível quando o Claude terminar de responder' }),
+    ).toBeDefined()
   })
 
   test('a turn with an empty answer releases sending', async ($, on) => {
@@ -951,6 +1086,24 @@ describe('sending the items', () => {
     expect((await ui.find({ key: 'frozen-action-1' }))?.text).toBe('2. [ ] Já aprovado')
   })
 
+  test('while Claude answers, topics and explanations still open', async ($, on) => {
+    on('turn.start', ($, e) => ({ turnId: e.turnId }))
+    await $.turn.start(turnStartInput())
+    const ui = await mountMessage($, WITH_ALTERNATIVES, 'reading')
+    await ui.press({ key: 'reading-topic-0' })
+    expect((await ui.find({ key: 'reading-topic-0' }))?.text).toBe('▾ O caso')
+    await ui.press({ key: 'reading-action-0-explanation' })
+    expect((await ui.find({ key: 'reading-action-0-explanation' }))?.text).toBe('▾ explicação: O caso')
+  })
+
+  test('after sending, an explanation still opens', async ($, on) => {
+    on('prompt.submit', () => ({ text: '' }) as never)
+    const ui = await mountMessage($, WITH_ALTERNATIVES, 'read-after')
+    await ui.press({ key: 'read-after-actions-send' })
+    await ui.press({ key: 'read-after-action-0-explanation' })
+    expect((await ui.find({ key: 'read-after-action-0-explanation' }))?.text).toBe('▾ explicação: O caso')
+  })
+
   test('an agent turn neither blocks sending nor replaces the last answer', async ($, on) => {
     on('turn.start', ($, e) => ({ turnId: e.turnId }))
     on('turn.complete', () => ({ text: '' }))
@@ -967,20 +1120,51 @@ describe('sending the items', () => {
 })
 
 describe('the format instruction', () => {
+  const input: PromptComposeInput = {
+    model: 'm',
+    promptModel: 'm',
+    surfaces: ['terminal'],
+    tools: [],
+    outputStyle: null,
+    traits: [],
+  }
+
   test('adds the instruction to the system prompt, after the sections already there', async ($, on) => {
     on('prompt.compose', () => ({ sections: [{ id: 'base', text: 'x', scope: 'session' }] }) as never)
-    const input: PromptComposeInput = {
-      model: 'm',
-      promptModel: 'm',
-      surfaces: ['terminal'],
-      tools: [],
-      outputStyle: null,
-      traits: [],
-    }
     const { sections } = await $.prompt.compose(input)
     expect(sections.map((s) => s.id)).toEqual(['base', 'topics:instruction'])
     expect(sections[1]).toMatchObject({ scope: 'session' })
     expect(sections[1]?.text).toContain('termine a resposta, mesmo curta, com um último tópico `## Pendências`')
+  })
+
+  test('keeps destructive actions out of (recomendo)', async ($, on) => {
+    on('prompt.compose', () => ({ sections: [] }) as never)
+    const { sections } = await $.prompt.compose(input)
+    expect(sections[0]?.text).toContain(
+      'uma ação destrutiva, difícil de desfazer ou visível para outras pessoas nunca leva `(recomendo)`',
+    )
+  })
+})
+
+describe('the events topics watches', () => {
+  test('go on to the next hook', async ($, on) => {
+    const seen: string[] = []
+    on('turn.start', (_$, e) => {
+      seen.push('turn.start')
+      return { turnId: e.turnId }
+    })
+    on('turn.complete', () => {
+      seen.push('turn.complete')
+      return { text: '' }
+    })
+    on('ui.focus', () => {
+      seen.push('ui.focus')
+      return { value: {} } as never
+    })
+    await $.turn.start(turnStartInput())
+    await $.turn.complete(turnCompleteInput({ answer: ANSWER }))
+    await $.ui.focus({ component: 'Pane', requestId: 'topics', origin: { kind: 'person' } } as never)
+    expect(seen).toEqual(['turn.start', 'turn.complete', 'ui.focus'])
   })
 })
 
@@ -1010,6 +1194,34 @@ describe('the /topics pane', () => {
     expect(result).toMatchObject({ text: 'Painel de tópicos aberto (Esc fecha).' })
   })
 
+  test('another command does not open the pane', async ($, on) => {
+    const opened: unknown[] = []
+    on('ui.open', ($, e) => {
+      opened.push(e)
+      return { value: {} } as never
+    })
+    on('command.run', { command: 'other' }, () => ({ text: 'outro' }))
+    const result = await $.command.run({ command: 'other', args: '' } as never)
+    expect(result).toMatchObject({ text: 'outro' })
+    expect(opened).toEqual([])
+  })
+
+  test('another pane is not drawn by topics', async ($, on) => {
+    on('ui.render', { component: 'Pane', requestId: 'other' }, async ($, e) => {
+      const { Text } = $.ui.resolve(e)
+      return <Text>outro painel</Text>
+    })
+    const ui = await $.ui.mount({
+      plugin: 'topics',
+      surface: 'terminal',
+      component: 'Pane',
+      requestId: 'other',
+      props: PANE_PROPS,
+    })
+    expect(await ui.find({ type: 'Text', text: 'outro painel' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: 'A última resposta não tem tópicos ainda.' })).toBeUndefined()
+  })
+
   test('says so when the last answer has no topics', async ($) => {
     const ui = await mountPane($)
     expect(await ui.find({ type: 'Text', text: 'A última resposta não tem tópicos ainda.' })).toBeDefined()
@@ -1032,6 +1244,27 @@ describe('the /topics pane', () => {
     expect((await ui.find({ key: 'topics-topic-0' }))?.text).toBe('▾ Banco de dados')
     expect(await ui.find({ type: 'Markdown', text: /índice/ })).toBeDefined()
     expect(await ui.find({ type: 'Markdown', text: /Todos passaram/ })).toBeUndefined()
+  })
+
+  test('shows an answer with a single topic', async ($, on) => {
+    on('turn.complete', () => ({ text: '' }))
+    await $.turn.complete(turnCompleteInput({ answer: 'Oi.\n## Único\nx' }))
+    const ui = await mountPane($)
+    expect((await ui.find({ key: 'topics-topic-0' }))?.text).toBe('▸ Único')
+  })
+
+  test('draws no rule off the terminal', async ($, on) => {
+    on('turn.complete', () => ({ text: '' }))
+    await $.turn.complete(turnCompleteInput({ answer: ANSWER }))
+    const ui = await $.ui.mount({
+      plugin: 'topics',
+      surface: 'desktop',
+      component: 'Pane',
+      requestId: 'topics',
+      props: PANE_PROPS,
+    })
+    expect((await ui.find({ key: 'topics-topic-0' }))?.text).toBe('▸ Banco de dados')
+    expect(await ui.findAll({ type: 'Text', text: /─/ })).toEqual([])
   })
 
   test('fits the rule after a title to the width of the pane', async ($, on) => {
@@ -1118,6 +1351,17 @@ describe('the /topics pane', () => {
     // The engine's close mark: the event comes with no element.
     await $.ui.focus({ component: 'Pane', requestId: 'topics', origin: { kind: 'person' } } as never)
     expect(await ui.find({ type: 'Text', text: /❯/ })).toBeUndefined()
+  })
+
+  test('focus moving in another pane leaves the mark alone', async ($, on) => {
+    on('turn.complete', () => ({ text: '' }))
+    on('ui.focus', () => ({ value: {} }) as never)
+    await $.turn.complete(turnCompleteInput({ answer: WITH_ACTIONS }))
+    const ui = await mountPane($)
+    const origin = { kind: 'person' }
+    await $.ui.focus({ component: 'Pane', requestId: 'topics', element: 'topics-action-1', origin } as never)
+    await $.ui.focus({ component: 'Pane', requestId: 'other', element: 'x', origin } as never)
+    expect((await ui.findAll({ type: 'Box', text: /^❯/ })).at(-1)?.text).toBe('❯ 2. [ ] Já aprovado sugerido')
   })
 
   test('starts clean for each new answer', async ($, on) => {

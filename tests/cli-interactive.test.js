@@ -5,7 +5,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, test, vi } from 'vitest'
 import {
-  ADDED_MARKETPLACE,
+  GITHUB_MARKETPLACE_REPLY,
   assertCalledBefore,
   CLI,
   MODS,
@@ -116,7 +116,7 @@ async function runInteractive(answers, args = ['install'], { isStdinTty = true, 
   }
 }
 
-describe('interactive install', { skip: process.platform === 'win32' }, () => {
+describe('prompts', { skip: process.platform === 'win32' }, () => {
   const STATUS_MANIFEST = path.join(ROOT, 'mods/status/.claude-plugin/plugin.json')
   // Fixed, so an option added to or changed in the status mod does not touch tests about the installer.
   const STATUS_OPTIONS = {
@@ -147,7 +147,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
   // Answers at the defaults: an empty text keeps where the question started
   // (answerFor), and notify and excerpt get their default. STATUS_OPTIONS asks
   // minSeconds, planAlert, notify and excerpt, in that order.
-  const STATUS_KEPT_ANSWERS = ['', '', 'always', false]
+  const STATUS_DEFAULT_ANSWERS = ['', '', 'always', false]
   const STATUS_CHANGED_ANSWERS = ['10', '', 'always', false]
   // An update that found no new version, so it needs no /reload-plugins.
   const UNCHANGED_UPDATE_REPLY = `echo '{"oldVersion":"a","newVersion":"a"}'`
@@ -155,7 +155,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
   test('uninstalls an installed mod left unselected, keeping its data', async () => {
     fakeClaude({
       'plugin list --json': installedMods('status', 'steps'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
     })
 
     const { status, output } = await runInteractive([MODS.filter((name) => name !== 'status')])
@@ -175,7 +175,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
   test('ends with exit code 1 when an unselected mod fails to uninstall', async () => {
     fakeClaude({
       'plugin list --json': installedMods('status'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       'plugin uninstall --keep-data status@claude-config': 'echo busy >&2; exit 1',
     })
 
@@ -189,7 +189,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
   test('warns about an unselected mod also loaded inline only while it stays installed', async () => {
     fakeClaude({
       'plugin list --json': installedMods('status', 'status@inline', 'steps', 'steps@inline'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       'plugin uninstall --keep-data status@claude-config': 'echo busy >&2; exit 1',
     })
 
@@ -218,7 +218,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
   })
 
   test('removes the old skills when datalogix is left unselected', async () => {
-    fakeClaude({ 'plugin marketplace list --json': ADDED_MARKETPLACE })
+    fakeClaude({ 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
     addOldSkill('review')
 
     const { status, output } = await runInteractive([['steps']])
@@ -229,7 +229,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
   })
 
   test('stores through stdin only the answers that differ from the default', async () => {
-    fakeClaude({ 'plugin marketplace list --json': ADDED_MARKETPLACE })
+    fakeClaude({ 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
 
     const { status, output } = await runInteractive([['status'], ...STATUS_CHANGED_ANSWERS])
 
@@ -244,7 +244,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
 
   test('ends with exit code 1, not configured, when the answers fail to store', async () => {
     fakeClaude({
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       'plugin configure status@claude-config --values-stdin': 'echo invalid >&2; exit 1',
     })
 
@@ -258,11 +258,11 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
   test('stores nothing for an installed mod answered with its current values', async () => {
     fakeClaude({
       'plugin list --json': installedMods('status'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       [READ_STATUS_OPTIONS]: STATUS_DEFAULTS_REPLY,
     })
 
-    const { status, output } = await runInteractive([['status'], ...STATUS_KEPT_ANSWERS])
+    const { status, output } = await runInteractive([['status'], ...STATUS_DEFAULT_ANSWERS])
 
     assert.equal(status, 0, output)
     assert.ok(!claudeCalls().some((call) => call.endsWith('--values-stdin')))
@@ -272,7 +272,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
   test('asks for /reload-plugins when storing the options is the only change', async () => {
     fakeClaude({
       'plugin list --json': installedMods('status'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       [READ_STATUS_OPTIONS]: STATUS_DEFAULTS_REPLY,
       'plugin update status@claude-config --json': UNCHANGED_UPDATE_REPLY,
     })
@@ -291,7 +291,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
       [READ_STATUS_OPTIONS]: STATUS_DEFAULTS_REPLY,
     })
 
-    const { status, output } = await runInteractive([['status'], ...STATUS_KEPT_ANSWERS])
+    const { status, output } = await runInteractive([['status'], ...STATUS_DEFAULT_ANSWERS])
 
     assert.equal(status, 0, output)
     assert.match(output, /ok: status/)
@@ -302,11 +302,11 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
     // starts from this checkout's 90, not the installed version's 75.
     fakeClaude({
       'plugin list --json': installedMods('status'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       [READ_STATUS_OPTIONS]: `echo '{"inputs":{"minSeconds":45,"planAlert":75,"notify":"agents","excerpt":true},"configured":["minSeconds","notify","excerpt"]}'`,
     })
 
-    const { status, output } = await runInteractive([['status'], ...STATUS_KEPT_ANSWERS])
+    const { status, output } = await runInteractive([['status'], ...STATUS_DEFAULT_ANSWERS])
 
     assert.equal(status, 0, output)
     const [, minSeconds, planAlert, notify, excerpt] = prompts.questions
@@ -318,7 +318,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
 
   test('names the mod, the title and the description in each question of the real status manifest', async () => {
     statusOptions = undefined
-    fakeClaude({ 'plugin marketplace list --json': ADDED_MARKETPLACE })
+    fakeClaude({ 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
     /** @type {{ title: string, description: string, type: string, default: unknown, options?: string[] }[]} */
     const options = Object.values(JSON.parse(fs.readFileSync(STATUS_MANIFEST, 'utf8')).userConfig)
     const answers = options.map((option) => (option.type === 'boolean' ? false : option.options ? option.default : ''))
@@ -350,11 +350,11 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
     statusOptions = { ...STATUS_OPTIONS, notify: { ...STATUS_OPTIONS.notify, default: 'agents' } }
     fakeClaude({
       'plugin list --json': installedMods('status'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       [READ_STATUS_OPTIONS]: `echo '{"inputs":{"minSeconds":30,"planAlert":90,"notify":"bogus","excerpt":false},"configured":["notify"]}'`,
     })
 
-    const { status, output } = await runInteractive([['status'], ...STATUS_KEPT_ANSWERS])
+    const { status, output } = await runInteractive([['status'], ...STATUS_DEFAULT_ANSWERS])
 
     assert.equal(status, 0, output)
     assert.equal(prompts.questions[3].initialValue, 'agents')
@@ -368,7 +368,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
       statusOptions = { token: { type: 'string', title: 'Token', sensitive: true } }
       fakeClaude({
         'plugin list --json': installedMods('status'),
-        'plugin marketplace list --json': ADDED_MARKETPLACE,
+        'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
         [READ_STATUS_OPTIONS]: `echo '{"inputs":{"token":"****"},"configured":["token"]}'`,
       })
       return runInteractive([['status'], answer])
@@ -403,11 +403,11 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
   test('counts as configured the options that differ from the default when the reply has no configured list', async () => {
     fakeClaude({
       'plugin list --json': installedMods('status'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       [READ_STATUS_OPTIONS]: `echo '{"inputs":{"minSeconds":45,"planAlert":90,"notify":"always","excerpt":false}}'`,
     })
 
-    const { status, output } = await runInteractive([['status'], ...STATUS_KEPT_ANSWERS])
+    const { status, output } = await runInteractive([['status'], ...STATUS_DEFAULT_ANSWERS])
 
     assert.equal(status, 0, output)
     assert.equal(prompts.questions[1].initialValue, '45')
@@ -418,7 +418,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
   test('still asks the options when the update fails', async () => {
     fakeClaude({
       'plugin list --json': installedMods('status'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       'plugin update status@claude-config --json': 'echo offline >&2; exit 1',
       [READ_STATUS_OPTIONS]: STATUS_DEFAULTS_REPLY,
     })
@@ -433,7 +433,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
 
   test('does not configure a mod that fails to install', async () => {
     fakeClaude({
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       'plugin install status@claude-config': 'echo broken >&2; exit 1',
     })
 
@@ -460,9 +460,9 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
   })
 
   test('accepts only plain numbers in a number option', async () => {
-    fakeClaude({ 'plugin marketplace list --json': ADDED_MARKETPLACE })
+    fakeClaude({ 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
 
-    await runInteractive([['status'], ...STATUS_KEPT_ANSWERS])
+    await runInteractive([['status'], ...STATUS_DEFAULT_ANSWERS])
 
     const { validate } = prompts.questions[1]
     for (const input of ['1e3', '0x10', ' 5', '5\n', 'abc']) {
@@ -481,7 +481,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
   ])('skips configuring a mod when claude %s reading its options', async (_, reply, message, code) => {
     fakeClaude({
       'plugin list --json': installedMods('status'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       [READ_STATUS_OPTIONS]: reply,
     })
 
@@ -527,9 +527,9 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
   })
 
   test('stores nothing for a new mod answered with the defaults', async () => {
-    fakeClaude({ 'plugin marketplace list --json': ADDED_MARKETPLACE })
+    fakeClaude({ 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
 
-    const { status, output } = await runInteractive([['status'], ...STATUS_KEPT_ANSWERS])
+    const { status, output } = await runInteractive([['status'], ...STATUS_DEFAULT_ANSWERS])
 
     assert.equal(status, 0, output)
     assert.ok(claudeCalls().includes('plugin install status@claude-config'))
@@ -540,11 +540,11 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
   test('updates an installed mod before reading its options', async () => {
     fakeClaude({
       'plugin list --json': installedMods('status'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       [READ_STATUS_OPTIONS]: STATUS_DEFAULTS_REPLY,
     })
 
-    const { status, output } = await runInteractive([['status'], ...STATUS_KEPT_ANSWERS])
+    const { status, output } = await runInteractive([['status'], ...STATUS_DEFAULT_ANSWERS])
 
     assert.equal(status, 0, output)
     assertCalledBefore('plugin update status@claude-config --json', READ_STATUS_OPTIONS)
@@ -553,7 +553,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
   test('update asks nothing in a terminal', async () => {
     fakeClaude({
       'plugin list --json': installedMods('status'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       [READ_STATUS_OPTIONS]: STATUS_DEFAULTS_REPLY,
     })
 
@@ -569,7 +569,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
     ['select', ['', '']],
     ['confirm', ['', '', 'always']],
   ])('a cancelled %s question stores nothing', async (_, answersBefore) => {
-    fakeClaude({ 'plugin marketplace list --json': ADDED_MARKETPLACE })
+    fakeClaude({ 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
 
     const { status, output } = await runInteractive([['status'], ...answersBefore, prompts.CANCEL])
 
@@ -579,7 +579,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
   })
 
   test('a cancelled prompt ends with exit code 1, without /reload-plugins when nothing changed', async () => {
-    fakeClaude({ 'plugin marketplace list --json': ADDED_MARKETPLACE })
+    fakeClaude({ 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
 
     const { status, output } = await runInteractive([prompts.CANCEL])
 
@@ -590,7 +590,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
   })
 
   test('a prompt cancelled after a mod changed still asks for /reload-plugins', async () => {
-    fakeClaude({ 'plugin marketplace list --json': ADDED_MARKETPLACE })
+    fakeClaude({ 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
 
     // datalogix installs before status asks its first option.
     const { status, output } = await runInteractive([['datalogix', 'status'], prompts.CANCEL])

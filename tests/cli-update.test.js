@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, test } from 'vitest'
 import {
-  ADDED_MARKETPLACE,
+  GITHUB_MARKETPLACE_REPLY,
   assertCalledBefore,
   CLI,
   PLAIN_MOD,
@@ -25,7 +25,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
   test('updates its own mods and leaves the rest alone', () => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD, 'other@elsewhere'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
     })
 
     const { status, output } = runCli(['update'])
@@ -53,7 +53,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     const updateTo = (newVersion) => {
       fakeClaude({
         'plugin list --json': installedMods(PLAIN_MOD),
-        'plugin marketplace list --json': ADDED_MARKETPLACE,
+        'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
         [`plugin update ${PLAIN_MOD}@claude-config --json`]: `echo '{"oldVersion":"abc","newVersion":"${newVersion}"}'`,
       })
       return runCli(['update'])
@@ -70,7 +70,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
   test('counts an update reply that is not JSON as a change', () => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       [`plugin update ${PLAIN_MOD}@claude-config --json`]: 'echo not json',
     })
 
@@ -83,7 +83,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
   test('counts an update reply of null as a change', () => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       [`plugin update ${PLAIN_MOD}@claude-config --json`]: 'echo null',
     })
 
@@ -96,7 +96,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
   test('asks for /reload-plugins when uninstalling the earlier name is the only change', () => {
     fakeClaude({
       'plugin list --json': installedMods('passos', 'steps'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       'plugin update steps@claude-config --json': `echo '{"oldVersion":"a","newVersion":"a"}'`,
     })
 
@@ -107,7 +107,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
   })
 
   test('replaces the skills copied by earlier versions with datalogix', () => {
-    fakeClaude({ 'plugin marketplace list --json': ADDED_MARKETPLACE })
+    fakeClaude({ 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
     addOldSkill('review')
     fs.mkdirSync(skillPath('foreign'))
 
@@ -121,10 +121,10 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     assert.ok(fs.existsSync(skillPath('foreign')))
   })
 
-  test('only removes the old skills when datalogix is already installed', () => {
+  test('removes the old skills without installing datalogix again when it is already installed', () => {
     fakeClaude({
       'plugin list --json': installedMods('datalogix'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
     })
     addOldSkill('review')
 
@@ -137,7 +137,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
 
   test('keeps the old skills when the marketplace update fails', () => {
     fakeClaude({
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       'plugin marketplace update claude-config': 'echo offline >&2; exit 1',
     })
     addOldSkill('review')
@@ -152,7 +152,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
   test('does not reinstall the new name of a renamed mod already there', () => {
     fakeClaude({
       'plugin list --json': installedMods('passos', 'steps'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
     })
 
     const { status, output } = runCli(['update'])
@@ -167,7 +167,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
   test('keeps a renamed mod when the marketplace update fails', () => {
     fakeClaude({
       'plugin list --json': installedMods('passos'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       'plugin marketplace update claude-config': 'echo offline >&2; exit 1',
     })
 
@@ -183,7 +183,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
   test('without a terminal, neither reads nor configures the options', () => {
     fakeClaude({
       'plugin list --json': installedMods('status'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
     })
 
     const { status, output } = runCli(['update'])
@@ -196,7 +196,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
   test.skipIf(process.getuid?.() === 0)('still updates the mods when an old skill cannot be removed', () => {
     fakeClaude({
       'plugin list --json': installedMods('datalogix', PLAIN_MOD),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
     })
     addOldSkill('review')
     fs.writeFileSync(path.join(skillPath('review'), 'SKILL.md'), '')
@@ -223,7 +223,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
   test.skipIf(process.getuid?.() === 0)('keeps the marker of an old skill removed only halfway', () => {
     fakeClaude({
       'plugin list --json': installedMods('datalogix'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
     })
     addOldSkill('review')
     const locked = path.join(skillPath('review'), 'locked')
@@ -244,7 +244,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
 
   // Root reads through the mode below too.
   test.skipIf(process.getuid?.() === 0)('reports an unreadable ~/.claude/skills once', () => {
-    fakeClaude({ 'plugin marketplace list --json': ADDED_MARKETPLACE })
+    fakeClaude({ 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
     const skills = path.join(home, '.claude/skills')
     fs.mkdirSync(skills, { recursive: true })
     fs.chmodSync(skills, 0o300)
@@ -306,7 +306,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     )
     fakeClaude({
       'plugin list --json': installedMods('status'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
     })
 
     const { status, output } = runCli(['update'], CLI, { CLAUDE_CONFIG_DIR: configDir })
@@ -322,7 +322,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     fs.writeFileSync(path.join(configDir, 'skills/foreign/.claude-config'), '')
     fakeClaude({
       'plugin list --json': installedMods('datalogix'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
     })
     addOldSkill('review')
 
@@ -342,7 +342,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     )
     fakeClaude({
       'plugin list --json': installedMods('status'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
     })
 
     const { status, output } = runCli(['update'], CLI, { CLAUDE_CONFIG_DIR: configDir })
@@ -355,7 +355,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
   test('ignores a settings.json it cannot read the options from', () => {
     fakeClaude({
       'plugin list --json': installedMods('status'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
     })
     fs.mkdirSync(path.join(home, '.claude'))
 
@@ -376,7 +376,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
   test('fails a claude call that hangs and still updates the mods', () => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       // exec, so the timeout kills sleep itself and no child keeps the output open
       'plugin marketplace update claude-config': 'exec /bin/sleep 10',
     })
@@ -404,7 +404,7 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
   test.each(COMMANDS)('stops before the mods when the installed ones cannot be listed (%s)', (command) => {
     fakeClaude({
       'plugin list --json': 'echo broken >&2; exit 1',
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
     })
 
     const { status, output } = runCli([command])
@@ -432,7 +432,7 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
     (command) => {
       fakeClaude({
         'plugin list --json': installedMods(PLAIN_MOD),
-        'plugin marketplace list --json': ADDED_MARKETPLACE,
+        'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
         'plugin marketplace update claude-config': 'echo offline >&2; exit 1',
       })
 
@@ -446,7 +446,7 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
 
   test.each(COMMANDS)('keeps the old skills when datalogix fails to install (%s)', (command) => {
     fakeClaude({
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       'plugin install datalogix@claude-config': 'echo broken >&2; exit 1',
     })
     addOldSkill('review')
@@ -461,7 +461,7 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
   test.each(COMMANDS)('replaces the mods under their earlier names (%s)', (command) => {
     fakeClaude({
       'plugin list --json': installedMods('passos', 'topicos', 'passos@other'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
     })
 
     const { status, output } = runCli([command])
@@ -478,7 +478,7 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
   test.each(COMMANDS)('keeps a mod under its earlier name when the new one fails to install (%s)', (command) => {
     fakeClaude({
       'plugin list --json': installedMods('passos'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       'plugin install steps@claude-config': 'echo "not found" >&2; exit 1',
     })
 
@@ -492,7 +492,7 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
   test.each(COMMANDS)('ends with exit code 1 when a mod under its earlier name fails to uninstall (%s)', (command) => {
     fakeClaude({
       'plugin list --json': installedMods('passos', 'steps'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       'plugin uninstall --keep-data passos@claude-config': 'echo busy >&2; exit 1',
     })
 
@@ -513,7 +513,7 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
     )
     fakeClaude({
       'plugin list --json': installedMods('status'),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
     })
 
     const { status, output } = runCli([command])

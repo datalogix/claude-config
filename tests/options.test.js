@@ -57,29 +57,29 @@ test('takes as untouched the choice a select starts from when its default is not
 })
 
 test('an answer changed from the current value is a change', () => {
-  const result = optionChanges(userConfig, { minSeconds: '10' }, { minSeconds: '30' }, new Set(['minSeconds']))
-  assert.deepEqual(result, { toStore: { minSeconds: '10' }, hasChanges: true })
+  const changes = optionChanges(userConfig, { minSeconds: '10' }, { minSeconds: '30' }, new Set(['minSeconds']))
+  assert.deepEqual(changes, { toStore: { minSeconds: '10' }, hasChanges: true })
 })
 
 test('defaults of a mod not installed yet are no change', () => {
-  const result = optionChanges(userConfig, { minSeconds: '30', excerpt: 'false' }, {}, new Set())
-  assert.deepEqual(result, { toStore: {}, hasChanges: false })
+  const changes = optionChanges(userConfig, { minSeconds: '30', excerpt: 'false' }, {}, new Set())
+  assert.deepEqual(changes, { toStore: {}, hasChanges: false })
 })
 
 test('an answer kept at the current value is no change', () => {
-  const result = optionChanges(userConfig, { excerpt: 'true' }, { excerpt: 'true' }, new Set(['excerpt']))
-  assert.deepEqual(result, { toStore: { excerpt: 'true' }, hasChanges: false })
+  const changes = optionChanges(userConfig, { excerpt: 'true' }, { excerpt: 'true' }, new Set(['excerpt']))
+  assert.deepEqual(changes, { toStore: { excerpt: 'true' }, hasChanges: false })
 })
 
 test('a stored value of an unconfigured option is a change, even when it matches the installed default', () => {
-  const result = optionChanges(userConfig, { minSeconds: '10' }, { minSeconds: '10' }, new Set())
-  assert.deepEqual(result, { toStore: { minSeconds: '10' }, hasChanges: true })
+  const changes = optionChanges(userConfig, { minSeconds: '10' }, { minSeconds: '10' }, new Set())
+  assert.deepEqual(changes, { toStore: { minSeconds: '10' }, hasChanges: true })
 })
 
 test('an answer left out of the stored values is no change', () => {
   const answers = { minSeconds: '30', excerpt: 'true' }
-  const result = optionChanges(userConfig, answers, { minSeconds: '10', excerpt: 'true' }, new Set(['excerpt']))
-  assert.deepEqual(result, { toStore: { excerpt: 'true' }, hasChanges: false })
+  const changes = optionChanges(userConfig, answers, { minSeconds: '10', excerpt: 'true' }, new Set(['excerpt']))
+  assert.deepEqual(changes, { toStore: { excerpt: 'true' }, hasChanges: false })
 })
 
 test('a configured option starts from its current value', () => {
@@ -146,7 +146,7 @@ test('an empty sensitive answer leaves the option out', () => {
   assert.equal(answerFor({ type: 'string', sensitive: true }, 'secret', ''), 'secret')
 })
 
-test('a filled answer is stored as given', () => {
+test('a filled answer stands as given', () => {
   assert.equal(answerFor({ type: 'number' }, '10', '30'), '10')
   assert.equal(answerFor({ type: 'boolean' }, 'false', 'true'), 'false')
 })

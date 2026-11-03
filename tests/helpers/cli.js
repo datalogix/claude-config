@@ -16,7 +16,7 @@ export const MODS = JSON.parse(fs.readFileSync(path.join(ROOT, '.claude-plugin/m
 export const PLAIN_MOD = 'steps'
 
 /** Reply to "plugin marketplace list --json": claude-config already added from GitHub. */
-export const ADDED_MARKETPLACE = `echo '[{"name":"claude-config","repo":"datalogix/claude-config"}]'`
+export const GITHUB_MARKETPLACE_REPLY = `echo '[{"name":"claude-config","repo":"datalogix/claude-config"}]'`
 
 // Set by useTempHome() before each test: read them inside a test, never when
 // the file loads (live bindings, new for each test).

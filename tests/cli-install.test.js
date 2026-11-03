@@ -5,7 +5,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, test } from 'vitest'
 import {
-  ADDED_MARKETPLACE,
+  GITHUB_MARKETPLACE_REPLY,
   CLI,
   PLAIN_MOD,
   MODS,
@@ -45,18 +45,18 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     const lstatOrUndefined = (/** @type {string} */ file) => fs.lstatSync(file, { throwIfNoEntry: false })
 
     /**
-     * @param {string} name
+     * @param {string} skillName
      * @param {string} marketplaceName
      * @returns {string} the skill folder inside a new clone of that marketplace
      */
-    const addClone = (name, marketplaceName) => {
+    const addSkillInClone = (skillName, marketplaceName) => {
       const clone = path.join(tmpDir, 'clone')
       fs.mkdirSync(path.join(clone, '.claude-plugin'), { recursive: true })
       fs.writeFileSync(path.join(clone, '.claude-plugin/marketplace.json'), JSON.stringify({ name: marketplaceName }))
-      const folder = path.join(clone, 'skills', name)
+      const folder = path.join(clone, 'skills', skillName)
       fs.mkdirSync(folder, { recursive: true })
       fs.writeFileSync(path.join(folder, 'SKILL.md'), '')
-      fs.mkdirSync(path.dirname(skillPath(name)), { recursive: true })
+      fs.mkdirSync(path.dirname(skillPath(skillName)), { recursive: true })
       return folder
     }
 
@@ -77,7 +77,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
       ['a relative link', (/** @type {string} */ folder) => path.relative(path.dirname(skillPath('pr')), folder)],
     ])('removes %s into a clone of this marketplace, not the clone', (_, target) => {
       fakeClaude()
-      const folder = addClone('pr', 'claude-config')
+      const folder = addSkillInClone('pr', 'claude-config')
       fs.symlinkSync(target(folder), skillPath('pr'))
 
       const { status, output } = runCli(['install'])
@@ -90,7 +90,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     test.each([
       [
         'a link into a clone of another marketplace',
-        () => fs.symlinkSync(addClone('review', 'other'), skillPath('review')),
+        () => fs.symlinkSync(addSkillInClone('review', 'other'), skillPath('review')),
       ],
       ['a folder without the marker', () => fs.mkdirSync(skillPath('review'), { recursive: true })],
       [
@@ -107,9 +107,9 @@ describe('install', { skip: process.platform === 'win32' }, () => {
           fs.writeFileSync(skillPath('review'), '')
         },
       ],
-    ])('keeps %s', (_, addSkill) => {
+    ])('keeps %s', (_, addEntry) => {
       fakeClaude()
-      addSkill()
+      addEntry()
 
       const { status, output } = runCli(['install'])
 
@@ -170,7 +170,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     })
 
     test('fails on the mod list, installing nothing', () => {
-      fakeClaude({ 'plugin list --json': reply, 'plugin marketplace list --json': ADDED_MARKETPLACE })
+      fakeClaude({ 'plugin list --json': reply, 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
 
       const { status, output } = runCli(['install'])
 
@@ -220,7 +220,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
   test('warns about a mod also loaded inline, even when already installed', () => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD, `${PLAIN_MOD}@inline`),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
     })
 
     const { status, output } = runCli(['install'])
@@ -244,7 +244,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
   test('does not warn about a mod loaded inline that failed to install', () => {
     fakeClaude({
       'plugin list --json': installedMods(`${PLAIN_MOD}@inline`),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       [`plugin install ${PLAIN_MOD}@claude-config`]: 'echo broken >&2; exit 1',
     })
 
@@ -275,7 +275,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
   })
 
   test('warns when --link finds the marketplace added from GitHub', () => {
-    fakeClaude({ 'plugin marketplace list --json': ADDED_MARKETPLACE })
+    fakeClaude({ 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
 
     const { status, output } = runCli(['install', '--link'])
 
@@ -290,7 +290,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
   test('neither updates the marketplace nor the mods when it comes from another source', () => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
     })
 
     const { status, output } = runCli(['install', '--link'])
@@ -356,7 +356,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.ok(!claudeCalls().includes('plugin marketplace update claude-config'))
   })
 
-  test('warns about a marketplace whose source is given as text', () => {
+  test('warns about a marketplace whose text source is another repository', () => {
     fakeClaude({ 'plugin marketplace list --json': `echo '[{"name":"claude-config","source":"github:x/y"}]'` })
 
     const { status, output } = runCli(['install'])
@@ -455,8 +455,8 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.match(output, /already added from/)
   })
 
-  test('notes and updates the marketplace already added from the requested source', () => {
-    fakeClaude({ 'plugin marketplace list --json': ADDED_MARKETPLACE })
+  test('notes the marketplace already added from the requested source', () => {
+    fakeClaude({ 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
 
     const { status, output } = runCli(['install'])
 
@@ -468,7 +468,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
   test('updates the marketplace and the mods already installed', () => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
     })
 
     const { status, output } = runCli(['install'])
@@ -488,7 +488,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
   test('ends with exit code 1 when an installed mod fails to update', () => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD),
-      'plugin marketplace list --json': ADDED_MARKETPLACE,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       [`plugin update ${PLAIN_MOD}@claude-config --json`]: 'echo broken >&2; exit 1',
     })
 

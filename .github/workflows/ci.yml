@@ -52,14 +52,14 @@ jobs:
       - run: npm ci
       # The mod tests run through "claude plugin test", which needs no login
       - run: npm install --global @anthropic-ai/claude-code
-      # The datalogix mod has no hooks, so only validate checks its manifest
+      # The datalogix mod has no hooks, so it has no "claude plugin test": only validate runs Claude Code's checks on it
       - name: Validate Claude plugins
         run: |
           claude plugin validate .
           for mod in mods/*/; do claude plugin validate "$mod"; done
       - run: npm test
 
-  # Only part of what runs without the fake claude shell script: the cmd.exe quoting, the options and the CLI loading
+  # Part of what needs no fake claude shell script: the cmd.exe quoting and fallback, the options, the CLI loading
   windows:
     runs-on: windows-latest
     timeout-minutes: 30

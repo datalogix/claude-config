@@ -28,8 +28,9 @@ Nuxt/Next.
 1. `git` — .gitignore, .gitattributes e .editorconfig
 2. `ci` — integração contínua (workflows do próprio projeto)
 3. `npm` — dependências, scripts e campos de publicação
-4. `code` — código JS/TS de `src/` (ou da pasta que o `exports` e o
-   build indicam, `steps/code-js.md`), uma pasta por vez; numa lib de
+4. `code` — código JS/TS de `src/` (ou da pasta que o `exports`, o
+   `bin` ou o build indicam, e as demais pastas com código próprio,
+   `steps/code-js.md`), uma pasta por vez; numa lib de
    componentes, aplique também as seções de componentes de
    `steps/frontend.md` (Vue ou React)
 5. `docs` — README, /docs, CLAUDE.md, skills e guidelines

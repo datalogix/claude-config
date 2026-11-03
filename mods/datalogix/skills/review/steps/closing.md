@@ -96,5 +96,5 @@ Para mudanças grandes antes do merge, mencione o `/code-review ultra`
 
 ## 3. Resumo final
 Etapas feitas, passos pulados ("pula"), itens aplicados e recusados,
-"Decisões tomadas", testes adicionados, quebras de API e perguntas que
-ficaram pendentes.
+"Decisões tomadas", testes adicionados, quebras de API e perguntas e
+correções que ficaram pendentes.

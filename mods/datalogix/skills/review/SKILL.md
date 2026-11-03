@@ -11,8 +11,8 @@ Argumentos: $ARGUMENTS
 - Vazio: revisão completa; retomar de onde parou (ou começar do início).
 - `help`: explicar o comando sem executar nada (seção 9).
   `help <argumento>` explica em detalhe só aquele argumento.
-- `status`: mostrar perfil, andamento, perguntas pendentes e o
-  próximo passo.
+- `status`: mostrar perfil, andamento, perguntas e correções
+  pendentes e o próximo passo.
 - `report`: analisar tudo e gerar um relatório, sem alterar nada
   (`modes/report.md`). `report <modo>` faz o mesmo só para aquele modo.
 - `reset`: confirmar comigo e apagar o `progress.md` deste projeto
@@ -38,8 +38,10 @@ Argumentos: $ARGUMENTS
   etapa `docs` da revisão completa.
 - Um caminho (`src/Actions`, `resources/views`): só a etapa do tipo a
   que essa pasta pertence, só nela, e, como na etapa avulsa, sem
-  fechamento (seção 5, item 7). Com um modo (`naming src/Actions`), o
-  modo só nessa pasta.
+  fechamento (seção 5, item 7). Com um modo (`naming src/Actions`), só
+  os passos por pasta do modo, nessa pasta; o `naming` usa o glossário
+  que já está em "Decisões do projeto". O `deps` não tem passo por
+  pasta: avise e ignore a pasta.
 
 ## 1. Arquivos de apoio
 Ficam na pasta desta skill (`${CLAUDE_SKILL_DIR}`).
@@ -200,6 +202,9 @@ já está em "Decisões do projeto" (estágio, idioma, `/init`).
   5. **Perguntas pendentes**, com o passo e os itens que dependem delas
   6. **Modos de foco**: uma seção por modo, com progresso próprio; um
      modo nunca marca etapa da revisão completa como feita
+  7. **Correções pendentes**: bugs que o modo `tests` achou e não
+     corrige, com o passo que os corrige; saem daqui quando esse
+     passo aplica a correção
 - Salve ao fim de CADA passo, para eu poder parar e retomar com
   `/datalogix:review` (num modo, `/datalogix:review <modo>`).
 - Se algo verificado mudou desde o commit registrado (`git -c
@@ -255,8 +260,9 @@ leem os arquivos e o progresso (`reset` calcula o `<id>` da seção
   primeiro, depois quem os importa; arquivos soltos na raiz contam como
   um grupo), com quantidade de arquivos e linhas, e as pastas grandes
   já divididas em partes (seção 8).
-- Etapas que não se aplicam (sem `package.json`, sem front-end, sem
-  recursos) são puladas com uma linha de aviso, sem pausa.
+- Etapas e passos de modo que não se aplicam (sem `package.json`, sem
+  front-end, sem recursos) são pulados com uma linha de aviso, sem
+  pausa.
 
 ## 5. Ciclo de cada passo
 Um passo é uma etapa, uma pasta, uma parte de pasta ou um passo de
@@ -276,7 +282,9 @@ modo.
    e 7 (perguntas: decidir antes de perguntar) deste arquivo, e a regra
    de idioma (seção 11) com o que o `CLAUDE.md` disser sobre idioma; na
    etapa `docs` e no passo 1 do modo `docs`, também a lista "Mudanças
-   para documentar". Ele devolve só o relatório.
+   para documentar"; em todo passo, as "Correções pendentes" dos
+   arquivos dele, que viram itens do relatório. Ele devolve só o
+   relatório.
    Antes de mostrar, confira o relatório: descarte itens que repetem
    uma "Decisão do projeto", que já foram recusados antes, ou cujo
    trecho citado não existe no arquivo; transforme em item as perguntas
@@ -329,9 +337,9 @@ modo.
      renomeado, os dois caminhos); com mais de um, também
      `- [ ] Fazer tudo em um commit só`, com o detalhe "ignora os outros
      commits"; e `- [ ] Seguir para o próximo passo depois dos commits`.
-     Sem próximo passo (etapa avulsa, pasta, último passo de um modo),
-     não mostre esse item. Sem o formato da seção 7, aceite em texto
-     (ex.: "commita 1 e 2 e segue").
+     Sem próximo passo (etapa avulsa, pasta, último passo de um modo
+     que se aplica), não mostre esse item. Sem o formato da seção 7,
+     aceite em texto (ex.: "commita 1 e 2 e segue").
    - Se o arquivo do tipo exigir a checagem de git antes de cada
      passo, avise que todos os commits sugeridos precisam ser
      feitos antes de "próxima": com algo sem commit, o próximo passo
@@ -368,8 +376,8 @@ modo.
 6. Depois da última etapa, faça o fechamento (`steps/closing.md`),
    com a verificação completa, e liste os passos pulados com "pula".
 7. Etapa avulsa, caminho e modo não têm fechamento: no resumo do fim
-   da etapa, ou do último passo do modo, pergunte se rodo o
-   `/code-review` sobre as mudanças e siga a seção 2 de
+   da etapa, ou do último passo do modo que se aplica, pergunte se
+   rodo o `/code-review` sobre as mudanças e siga a seção 2 de
    `steps/closing.md` (o `/security-review` também, nas mesmas
    condições), rodando-os só depois dos commits marcados. Não vale
    para `report`.

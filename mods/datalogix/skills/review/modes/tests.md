@@ -1,21 +1,27 @@
 # Modo: tests — testes
 
 Revisa SÓ testes. Pode adicionar e melhorar testes; NÃO altera código
-de produção. Se um teste revelar um bug, registre como item com a
-severidade da seção 6 do `SKILL.md` (uso normal: crítico; caso de
-borda: importante); a correção fica fora deste modo: indique o passo
-da revisão completa que a aplica. Nunca apague, pule ou enfraqueça
-teste existente sem aprovação item a item.
+de produção. Nunca apague, pule ou enfraqueça teste existente sem
+aprovação item a item.
+
+Para confirmar se um teste pega um erro, pode alterar o código numa
+cópia temporária fora do projeto (`mktemp -d`), apagada ao fim do
+passo; nunca na árvore do projeto. Diga no item o que alterou e o
+resultado.
 
 Passos, um por vez:
 1. Visão geral.
 2. Pastas de `tests/`, uma por vez (ex.: `tests/Unit`, `tests/Feature`).
 3. Testes JS/TS, se existirem.
 
-Nos tipos JS, os passos 1 e 2 tratam só dos testes JS/TS, com as
-ideias da seção 3, e o passo 3 não existe. Cobertura com `vitest run
---coverage` só se o provider (`@vitest/coverage-v8` ou `-istanbul`)
-já estiver instalado.
+Nos tipos JS, os passos 1 e 2 tratam só dos testes JS/TS e o passo 3
+não existe. No passo 1 valem "o que não tem teste" (seção 1) e a
+cobertura com `vitest run --coverage`, só se o provider
+(`@vitest/coverage-v8` ou `-istanbul`) já estiver instalado; sem ele,
+não instale nada: leia os testes e o código e mapeie os módulos sem
+teste correspondente. No passo 2, as pastas que têm testes, inclusive
+`*.test.*` ao lado do código, com as regras da seção 2 ajustadas pela
+seção 3.
 
 ## 1. Visão geral
 - cobertura, se houver driver (`pcov` ou `xdebug`): `--coverage` (Pest)
@@ -53,3 +59,14 @@ Mesmas ideias com o runner em uso (Vitest, ou Jest se o projeto já
 usa; regras na seção 2 do `SKILL.md`), incluindo fake timers
 (`vi.useFakeTimers`/`jest.useFakeTimers`) para data/hora e mocks de
 `fetch` em vez de rede real.
+
+## Bugs revelados por testes
+- viram item com a severidade da seção 6 do `SKILL.md` (uso normal:
+  crítico; caso de borda: importante), cuja ação é registrar, não
+  corrigir (ex.: `- [ ] Registrar o bug do total com cupom`)
+- aprovado, grave-o em "Correções pendentes" do progresso, com o
+  arquivo, a entrada que falha, o resultado esperado e o passo da
+  revisão completa que o corrige (ex.: etapa `code`, pasta `src/Cart`)
+- o teste que falha por causa do bug não entra neste modo, nem pulado:
+  a verificação precisa passar 100%. Não o proponha como item à parte;
+  descreva-o no registro, e ele entra com a correção

@@ -33,7 +33,9 @@ corrija.
 - formato consistente em todo o projeto
 - JSDoc/TSDoc: as mesmas regras, com `@param`/`@returns` só onde o
   tipo TS não diz tudo, `@example` nas funções públicas de uma lib,
-  `@deprecated` com o substituto e `@internal` no que fica fora da API
+  `@deprecated` com o substituto e `@internal` no que fica fora da API.
+  Em arquivo `.js`, o tipo no JSDoc (`@param {string} file`) é a
+  declaração: mantenha-o e remova só a descrição que repete o nome
 - docblocks não mudam comportamento, mas rode a verificação PHP
   (análise estática lê docblocks); JSDoc/TSDoc alterado roda também a
   verificação front-end

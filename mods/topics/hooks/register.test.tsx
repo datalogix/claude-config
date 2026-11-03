@@ -15,7 +15,7 @@ import {
   previewOf,
   STANCE_MARK,
   stanceOf,
-  submitText,
+  sentText,
   toggleChecked,
   withoutStanceMark,
   defaultChecked,
@@ -461,8 +461,8 @@ describe('previewOf', () => {
 })
 
 describe('checking and sending', () => {
-  test('the submit text carries each group question and leaves the details out', () => {
-    expect(submitText(parseAnswer(WITH_ALTERNATIVES).actions!, [1])).toBe(
+  test('the sent text carries each group question and leaves the details out', () => {
+    expect(sentText(parseAnswer(WITH_ALTERNATIVES).actions!, [1])).toBe(
       [
         'Pendências:',
         'Close dentro do link: o que fazer?',
@@ -474,11 +474,11 @@ describe('checking and sending', () => {
     )
   })
 
-  test('the submit text carries only the question line, not the text before it', () => {
+  test('the sent text carries only the question line, not the text before it', () => {
     const actions = parseAnswer('## Pendências\nContexto longo.\n```\nnpm test\n```\nQual?\n- ( ) X\n- ( ) Y').actions!
-    expect(submitText(actions, [0])).toBe('Pendências:\nQual?\n- (x) X\n- ( ) Y')
+    expect(sentText(actions, [0])).toBe('Pendências:\nQual?\n- (x) X\n- ( ) Y')
     const afterCode = parseAnswer('## Pendências\nRode:\n```\nnpm test\n```\n- [ ] Rodar').actions!
-    expect(submitText(afterCode, [])).toBe('Pendências:\n- [ ] Rodar')
+    expect(sentText(afterCode, [])).toBe('Pendências:\n- [ ] Rodar')
   })
 
   test('checking an alternative unchecks the others in its group, and only those', () => {
@@ -491,9 +491,9 @@ describe('checking and sending', () => {
 
   test('an item written checked is sent unchecked unless the user checks it', () => {
     const suggested = parseAnswer('## Pendências\nQual?\n- (x) A\n- ( ) B').actions!
-    expect(submitText(suggested, [])).toBe('Pendências:\nQual?\n- ( ) A\n- ( ) B')
+    expect(sentText(suggested, [])).toBe('Pendências:\nQual?\n- ( ) A\n- ( ) B')
     expect(toggleChecked(suggested, [], 1)).toEqual([1])
-    expect(submitText(suggested, [1])).toBe('Pendências:\nQual?\n- ( ) A\n- (x) B')
+    expect(sentText(suggested, [1])).toBe('Pendências:\nQual?\n- ( ) A\n- (x) B')
   })
 
   test('a checkbox right after radios is not in the group, nor checkboxes under a question', () => {
@@ -659,7 +659,7 @@ describe('in the conversation', () => {
   test('"Pendências" with only text has no send button', async ($) => {
     const ui = await mountMessage($, '## Pendências\nSó um aviso.', 'text-only')
     expect(await ui.find({ type: 'Markdown', text: /Só um aviso/ })).toBeDefined()
-    expect(await ui.find({ key: 'text-only-actions-submit' })).toBeUndefined()
+    expect(await ui.find({ key: 'text-only-actions-send' })).toBeUndefined()
     expect(await ui.find({ type: 'Text', text: / de / })).toBeUndefined()
   })
 
@@ -683,7 +683,7 @@ describe('in the conversation', () => {
   ] as const) {
     test(`"${title}" is still the Pendências list`, async ($) => {
       const ui = await mountMessage($, `## ${title}\n- [ ] Fazer`, id)
-      expect(await ui.find({ key: `${id}-actions-submit` })).toBeDefined()
+      expect(await ui.find({ key: `${id}-actions-send` })).toBeDefined()
     })
   }
 
@@ -738,9 +738,9 @@ describe('in the conversation', () => {
 
   test('a message drawn again with more text, as it streams, shows the new text', async ($) => {
     const ui = await mountMessage($, '## A\nx\n## B\ny', 'grow')
-    expect(await ui.find({ key: 'grow-actions-submit' })).toBeUndefined()
+    expect(await ui.find({ key: 'grow-actions-send' })).toBeUndefined()
     await ui.redraw({ text: '## A\nx\n## B\ny\n## Pendências\n- [ ] Fazer', isFirstOfReply: true })
-    expect(await ui.find({ key: 'grow-actions-submit' })).toBeDefined()
+    expect(await ui.find({ key: 'grow-actions-send' })).toBeDefined()
   })
 
   test('button labels drop code backticks', async ($) => {
@@ -767,7 +767,7 @@ describe('sending the items', () => {
     })
     const ui = await mountMessage($, WITH_ACTIONS, 'row3')
     await ui.press({ key: 'row3-action-0' })
-    await ui.press({ key: 'row3-actions-submit' })
+    await ui.press({ key: 'row3-actions-send' })
     expect(sent).toEqual([
       {
         text: 'Pendências:\n- [x] Rodar `npm test`\n- [ ] Já aprovado',
@@ -793,7 +793,7 @@ describe('sending the items', () => {
     const ui = await mountMessage($, WITH_ACTIONS, 'late')
 
     between.run = () => $.turn.start(startTurn())
-    await ui.press({ key: 'late-actions-submit' })
+    await ui.press({ key: 'late-actions-send' })
 
     expect(sent).toEqual([])
   })
@@ -821,7 +821,7 @@ describe('sending the items', () => {
     const pane = await mountPane($)
 
     between.run = () => $.turn.complete(completeTurn({ answer: withTag(WITH_ACTIONS, 'after'), turnId: 't2' }))
-    await pane.press({ key: 'topics-actions-submit' })
+    await pane.press({ key: 'topics-actions-send' })
 
     expect(sent).toEqual([])
   })
@@ -829,9 +829,9 @@ describe('sending the items', () => {
   test('after sending, the button becomes "enviadas" and does not send again', async ($, on) => {
     const sent = collectSent(on)
     const ui = await mountMessage($, WITH_ACTIONS, 'sent')
-    await Promise.all([ui.press({ key: 'sent-actions-submit' }), ui.press({ key: 'sent-actions-submit' })])
+    await Promise.all([ui.press({ key: 'sent-actions-send' }), ui.press({ key: 'sent-actions-send' })])
     expect(sent).toHaveLength(1)
-    expect(await ui.find({ key: 'sent-actions-submit' })).toBeUndefined()
+    expect(await ui.find({ key: 'sent-actions-send' })).toBeUndefined()
     expect(await ui.find({ type: 'Text', text: '✓ pendências enviadas' })).toBeDefined()
   })
 
@@ -845,8 +845,8 @@ describe('sending the items', () => {
       throw new Error('busy')
     })
     const ui = await mountMessage($, WITH_ACTIONS, 'failed')
-    await ui.press({ key: 'failed-actions-submit' })
-    expect(await ui.find({ key: 'failed-actions-submit' })).toBeDefined()
+    await ui.press({ key: 'failed-actions-send' })
+    expect(await ui.find({ key: 'failed-actions-send' })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: '✓ pendências enviadas' })).toBeUndefined()
     expect(toasts).toEqual(['⚠️ Não foi possível enviar as pendências'])
   })
@@ -856,12 +856,12 @@ describe('sending the items', () => {
     on('turn.complete', () => ({ text: '' }))
     await $.turn.start(startTurn())
     const ui = await mountMessage($, WITH_ACTIONS, 'busy')
-    expect(await ui.find({ key: 'busy-actions-submit' })).toBeUndefined()
+    expect(await ui.find({ key: 'busy-actions-send' })).toBeUndefined()
     expect(
       await ui.find({ type: 'Text', text: 'o envio fica disponível quando o Claude terminar de responder' }),
     ).toBeDefined()
     await $.turn.complete(completeTurn({ answer: WITH_ACTIONS }))
-    expect(await ui.find({ key: 'busy-actions-submit' })).toBeDefined()
+    expect(await ui.find({ key: 'busy-actions-send' })).toBeDefined()
   })
 
   test('an agent ending while Claude answers does not release sending', async ($, on) => {
@@ -872,7 +872,7 @@ describe('sending the items', () => {
 
     await $.turn.complete(completeTurn({ answer: ANSWER, turnId: 't2', agentId: 'sub1' }))
 
-    expect(await ui.find({ key: 'agent-end-actions-submit' })).toBeUndefined()
+    expect(await ui.find({ key: 'agent-end-actions-send' })).toBeUndefined()
   })
 
   test('a turn with an empty answer releases sending', async ($, on) => {
@@ -883,14 +883,14 @@ describe('sending the items', () => {
 
     await $.turn.complete(completeTurn({ answer: '' }))
 
-    expect(await ui.find({ key: 'empty-end-actions-submit' })).toBeDefined()
+    expect(await ui.find({ key: 'empty-end-actions-send' })).toBeDefined()
   })
 
   test('sending takes the checks as they are at the press, not as they were drawn', async ($, on) => {
     const sent = collectSent(on)
     const ui = await mountMessage($, WITH_ACTIONS, 'press-time')
 
-    await Promise.all([ui.press({ key: 'press-time-action-0' }), ui.press({ key: 'press-time-actions-submit' })])
+    await Promise.all([ui.press({ key: 'press-time-action-0' }), ui.press({ key: 'press-time-actions-send' })])
 
     expect(sent).toEqual(['Pendências:\n- [x] Rodar `npm test`\n- [ ] Já aprovado'])
   })
@@ -916,7 +916,7 @@ describe('sending the items', () => {
     on('prompt.submit', () => ({ text: '' }) as never)
     const ui = await mountMessage($, WITH_ACTIONS, 'frozen')
     await ui.press({ key: 'frozen-action-0' })
-    await ui.press({ key: 'frozen-actions-submit' })
+    await ui.press({ key: 'frozen-actions-send' })
 
     await ui.press({ key: 'frozen-action-1' })
     await ui.press({ key: 'frozen-action-0' })
@@ -932,7 +932,7 @@ describe('sending the items', () => {
 
     await $.turn.start(startTurn({ turnId: 't2', agentId: 'sub1' }))
     const ui = await mountMessage($, WITH_ACTIONS, 'sub')
-    expect(await ui.find({ key: 'sub-actions-submit' })).toBeDefined()
+    expect(await ui.find({ key: 'sub-actions-send' })).toBeDefined()
 
     await $.turn.complete(completeTurn({ answer: ANSWER, turnId: 't2', agentId: 'sub1' }))
     const pane = await mountPane($)
@@ -1060,7 +1060,7 @@ describe('the /topics pane', () => {
     await $.turn.complete(completeTurn({ answer: WITH_ACTIONS }))
 
     const ui = await mountPane($)
-    await ui.press({ key: 'topics-actions-submit' })
+    await ui.press({ key: 'topics-actions-send' })
     // An item the answer wrote checked is only a suggestion: it goes unchecked unless the user checks it.
     expect(sent).toEqual(['Pendências:\n- [ ] Rodar `npm test`\n- [ ] Já aprovado'])
   })
@@ -1071,12 +1071,12 @@ describe('the /topics pane', () => {
     const answer = '## Pendências\n- [ ] (recomendo) A\n- [ ] (avalie) B'
     await $.turn.complete(completeTurn({ answer }))
     const ui = await mountPane($)
-    await ui.press({ key: 'topics-actions-submit' })
+    await ui.press({ key: 'topics-actions-send' })
     expect(sent.at(-1)).toBe('Pendências:\n- [x] (recomendo) A\n- [ ] (avalie) B')
 
     await $.turn.complete(completeTurn({ answer, turnId: 't2' }))
     await ui.press({ key: 'topics-action-0' })
-    await ui.press({ key: 'topics-actions-submit' })
+    await ui.press({ key: 'topics-actions-send' })
     expect(sent.at(-1)).toBe('Pendências:\n- [ ] (recomendo) A\n- [ ] (avalie) B')
   })
 
@@ -1113,14 +1113,14 @@ describe('the /topics pane', () => {
     await ui.press({ key: 'topics-action-0' })
     await ui.press({ key: 'topics-topic-0' })
     await ui.press({ key: 'topics-action-0-explanation' })
-    await ui.press({ key: 'topics-actions-submit' })
+    await ui.press({ key: 'topics-actions-send' })
     expect(await ui.find({ type: 'Text', text: '✓ pendências enviadas' })).toBeDefined()
 
     await $.turn.complete(completeTurn({ answer, turnId: 't2' }))
     expect((await ui.find({ key: 'topics-action-0' }))?.text).toBe('(●) recomendo: Manter como está')
     expect((await ui.find({ key: 'topics-topic-0' }))?.text).toBe('▸ O caso')
     expect((await ui.find({ key: 'topics-action-0-explanation' }))?.text).toBe('▸ explicação: O caso')
-    expect(await ui.find({ key: 'topics-actions-submit' })).toBeDefined()
+    expect(await ui.find({ key: 'topics-actions-send' })).toBeDefined()
   })
 
   test('an empty answer keeps the previous one in the pane', async ($, on) => {
@@ -1143,9 +1143,9 @@ describe('the /topics pane', () => {
 
     await message.press({ key: 'shared-action-0' })
     expect((await pane.find({ key: 'topics-action-0' }))?.text).toBe('1. [✔] Rodar npm test')
-    await pane.press({ key: 'topics-actions-submit' })
+    await pane.press({ key: 'topics-actions-send' })
     expect(await message.find({ type: 'Text', text: '✓ pendências enviadas' })).toBeDefined()
-    expect(await message.find({ key: 'shared-actions-submit' })).toBeUndefined()
+    expect(await message.find({ key: 'shared-actions-send' })).toBeUndefined()
     expect(sent).toEqual(['Pendências:\n- [x] Rodar `npm test`\n- [ ] Já aprovado'])
   })
 

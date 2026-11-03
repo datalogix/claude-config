@@ -246,7 +246,7 @@ export const questionOf = (part: ActionPart | undefined): string | undefined => 
 }
 
 /** Sent as the user by "enviar pendências"; of the loose text, only the question right before items goes. */
-export const submitText = (actions: Actions, checked: readonly number[]): string =>
+export const sentText = (actions: Actions, checked: readonly number[]): string =>
   [
     `${ACTIONS_TITLE}:`,
     ...actions.parts.flatMap((part, i) => {

@@ -12,7 +12,7 @@ import {
   previewOf,
   questionOf,
   stanceOf,
-  submitText,
+  sentText,
   toggle,
   toggleChecked,
   withoutStanceMark,
@@ -176,7 +176,7 @@ type ActionsState = {
   isAnswering: boolean
   toggleItem: (i: number) => unknown
   toggleExplanation: (i: number) => unknown
-  submit: () => unknown
+  send: () => unknown
 }
 
 const STANCES: Record<Stance, { label: string; color: string }> = {
@@ -308,10 +308,10 @@ const renderActions = (
             <Text dimColor>o envio fica disponível quando o Claude terminar de responder</Text>
           ) : (
             <Button
-              key={`${id}-actions-submit`}
+              key={`${id}-actions-send`}
               variant="primary"
               label="enviar pendências"
-              onPress={() => state.submit()}
+              onPress={() => state.send()}
             />
           )}
         </Box>
@@ -405,7 +405,7 @@ export const register: Register = (on) => {
     const { Box, Button, Markdown, Text } = els
     const answer = await read($, lastAnswerAtom)
     const { intro, topics, actions } = parseMessage(PANE_ID, answer)
-    // A new answer may land between this drawing and a press of its submit button.
+    // A new answer may land between this drawing and a press of its send button.
     const isCurrent = async () => (await read($, lastAnswerAtom)) === answer
 
     if (topics.length === 0 && !actions) {
@@ -475,7 +475,7 @@ const actionsStateOf = async (
     },
     toggleExplanation: (i) => update($, explainedItems, (list) => toggle(list, i)),
     // Reads the state at press time: the drawing it came from may be older than the last check or send.
-    submit: async () => {
+    send: async () => {
       if ((await read($, isAnsweringAtom)) || !(await isCurrent())) return
       // Read and set in one update, so of two quick presses only the first finds it unsent and sends.
       let wasSent = false
@@ -486,7 +486,7 @@ const actionsStateOf = async (
       if (wasSent) return
       try {
         await $.prompt.submit({
-          text: submitText(actions, (await read($, checkedItems)) ?? defaultChecked(actions)),
+          text: sentText(actions, (await read($, checkedItems)) ?? defaultChecked(actions)),
           asUser: true,
         })
       } catch {

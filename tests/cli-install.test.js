@@ -499,6 +499,27 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.doesNotMatch(output, /updated:/)
   })
 
+  test('installs from a copy with only the published files', () => {
+    // What npm always ships, plus package.json's files; @clack/prompts is linked so the copy loads.
+    const copy = path.join(tmpDir, 'node_modules/claude-config')
+    fs.mkdirSync(copy, { recursive: true })
+    fs.cpSync(path.join(ROOT, 'package.json'), path.join(copy, 'package.json'))
+    const { files } = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'))
+    for (const file of fs.globSync(files, { cwd: ROOT })) {
+      fs.cpSync(path.join(ROOT, file), path.join(copy, file), { recursive: true })
+    }
+    fs.symlinkSync(path.join(ROOT, 'node_modules/@clack'), path.join(tmpDir, 'node_modules/@clack'))
+
+    fakeClaude()
+
+    const { status, output } = runCli(['install'], path.join(copy, 'bin/cli.js'))
+
+    assert.equal(status, 0, output)
+    for (const name of MODS) {
+      assert.ok(claudeCalls().includes(`plugin install ${name}@claude-config`), name)
+    }
+  })
+
   test('refuses --link outside a clone', () => {
     // A copy where npx leaves it; @clack/prompts is linked so the copy loads.
     const copy = path.join(tmpDir, 'node_modules/claude-config')

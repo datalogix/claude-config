@@ -142,7 +142,8 @@ describe('the supporting files of the review skill', () => {
     }
   })
 
-  test.each(['http', 'jobs'])('the extra checklist %s of the code step exists', (extra) => {
+  test.each(['http', 'jobs'])('the code step names its extra checklist %s, which exists', (extra) => {
     assert.ok(exists(`steps/${extra}.md`))
+    assert.ok(read('review/steps/code.md').includes(`\`${extra}.md\``))
   })
 })

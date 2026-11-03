@@ -73,7 +73,8 @@ skills ou tags novas, descubra e registre:
   - lib JS/TS (`types/js-library.md`): tem `package.json`, sem
     `composer.json` nem config de Nuxt/Next, com `exports`, `main`,
     `module` ou `bin`, e sem `private: true`, ou com ele e instalada
-    por git (`npx --allow-git=root github:...` no README)
+    por git (`npx github:...` no README, com ou sem
+    `--allow-git=root`)
   Na dúvida (monorepo com workspaces, app Vite sem framework, nenhum
   dos quatro), pergunte. Depois leia o arquivo do tipo e faça o
   reconhecimento extra que ele pede (estágio, requisitos de testes).
@@ -210,11 +211,16 @@ já está em "Decisões do projeto" (estágio, idioma, `/init`).
 - Se algo verificado mudou desde o commit registrado (`git -c
   core.quotePath=false diff --name-only <commit> -- <caminho>`),
   reanalise só o que mudou.
+- Correção pendente de um passo já feito (ou de arquivo que nenhum
+  passo restante cobre) não espera a próxima revisão: mostre-a no início
+  da chamada e, se eu aprovar, aplique-a como um passo só dela.
 
 ## 4. Linha de base e plano
-`help`, `status` e `reset` não rodam nada disto nem a seção 2: só
-leem os arquivos e o progresso (`reset` calcula o `<id>` da seção
-3). Sem progresso, `status` diz que a revisão não começou e para.
+`help` não roda nada disto nem a seção 2. `status` e `reset` também
+não: da seção 2, só detectam o tipo (sem o reconhecimento extra do
+arquivo do tipo), para calcular o `<id>` da seção 3, e leem o
+progresso. Sem progresso, `status` diz que a revisão não começou e
+para.
 
 - **Branch com data**: antes da linha de base, siga o item "Branch com
   data" do passo 1 de `${CLAUDE_SKILL_DIR}/../commit/SKILL.md`, com o
@@ -272,10 +278,9 @@ modo.
    falhar, pare e me diga o que resolver.
 1. Faça a ANÁLISE num subagente (ferramenta Task/Agent), para não lotar
    a conversa. Passe a ele: os caminhos absolutos do arquivo da
-   etapa/modo, dos que ele citar para o passo (no modo `docs`,
-   `steps/docs.md` e `steps/code.md`; na etapa `code`, `steps/http.md`
-   e `steps/jobs.md`; na etapa `resources`, `steps/code.md` e, numa
-   aplicação, `steps/http.md` e `steps/jobs.md`) e do arquivo do tipo
+   etapa/modo, de todos os que ele ou o arquivo do tipo citarem para o
+   passo (ex.: no modo `docs`, `steps/docs.md` e `steps/code.md`; na
+   etapa `code`, `steps/http.md` e `steps/jobs.md`) e do arquivo do tipo
    (para ler), os `SKILL.md` mapeados para a etapa, a lista de arquivos
    do passo (e, se for parte, os nomes dos arquivos das outras partes
    da pasta), o perfil, as "Decisões do projeto", as seções 6 (formato)
@@ -337,7 +342,7 @@ modo.
      renomeado, os dois caminhos); com mais de um, também
      `- [ ] Fazer tudo em um commit só`, com o detalhe "ignora os outros
      commits"; e `- [ ] Seguir para o próximo passo depois dos commits`.
-     Sem próximo passo (etapa avulsa, pasta, último passo de um modo
+     Sem próximo passo (etapa avulsa, caminho, último passo de um modo
      que se aplica), não mostre esse item. Sem o formato da seção 7,
      aceite em texto (ex.: "commita 1 e 2 e segue").
    - Se o arquivo do tipo exigir a checagem de git antes de cada
@@ -483,7 +488,8 @@ com data (seção 4), linha de base falhando, `CLAUDE.md` ausente,
 tipo do projeto em dúvida (seção 2), estágio não registrado (arquivo
 do tipo), idioma dos commits em dúvida (seção 2), requisito de testes
 ausente (arquivo do tipo), skill sem etapa clara, teste existente que
-parece errado, checagem de git falhando, ou ação irreversível ou não
+parece errado, checagem de git falhando, caches do Laravel já em
+`bootstrap/cache` (etapa `production`), ou ação irreversível ou não
 aprovada (apagar arquivos, editar migration, mudar versão mínima,
 quebrar API pública).
 

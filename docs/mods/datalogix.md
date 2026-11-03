@@ -26,9 +26,9 @@ check its skills.
   end of a single step or a focus mode, ask whether to run
   `/code-review` on the changes, and `/security-review` too, already
   suggested, when the changes touch sensitive areas (auth, validation,
-  raw queries, uploads, session, headers, secrets, dependencies) on a
-  branch other than the default one, since it only reviews what the
-  branch adds. The checked ones run in the same session: their
+  raw queries, uploads, session, headers, secrets, dependencies) and
+  there are commits `origin/HEAD` does not have yet, since it only
+  reviews those. The checked ones run in the same session: their
   reviewers are subagents that do not see the review's conversation.
   Every finding is shown, unfiltered, in one extra report, with the ones
   that repeat a refused item or a project decision marked as such;

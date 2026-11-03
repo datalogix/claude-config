@@ -23,7 +23,9 @@
 ## Caches e deploy
 Se já houver caches do Laravel em `bootstrap/cache` (`config.php`,
 `events.php`, `routes-*.php`; `packages.php` e `services.php` são
-normais), avise e espere minha resposta: a limpeza os apaga. Rode os
+normais), não rode os comandos abaixo: pergunte, porque a limpeza os
+apaga (na análise em subagente, devolva essa pergunta no relatório;
+seção 7 do `SKILL.md`). Sem eles, ou com a minha resposta, rode os
 comandos abaixo e depois limpe com `php artisan config:clear`,
 `route:clear`, `event:clear` e `view:clear`, mesmo se um deles falhar
 e antes de qualquer teste: com a config em cache, a suíte ignora o

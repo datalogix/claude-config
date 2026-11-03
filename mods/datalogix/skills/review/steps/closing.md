@@ -46,7 +46,8 @@ antes do resumo final.
 
 O que for gravado no projeto vai num commit sugerido como no item 5
 da seção 5 do `SKILL.md`, feito pelo fluxo de commit antes da seção 2
-deste arquivo.
+deste arquivo; o que a seção 2 atualizar, num commit sugerido antes do
+resumo final.
 
 Não crie tag nem release; eu faço.
 Em `report`: só descreva o que entraria nas notas, sem criar arquivos,

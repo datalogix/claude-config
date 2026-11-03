@@ -5,8 +5,8 @@ o README, a partir do que o npm publicaria. Os testes do projeto rodam
 sobre o código-fonte e não pegam `exports`, `files` ou tipos errados.
 
 ## Lib instalada por git
-Sem publicação (`private: true`, instalada com
-`npx --allow-git=root github:...`), não use `npm pack`: ele recusa
+Sem publicação (`private: true`, instalada com `npx github:...`, com
+ou sem `--allow-git=root`), não use `npm pack`: ele recusa
 package.json sem `version` e essa instalação não precisa dele; não
 sugira acrescentá-lo só por isso.
 Troque os dois `npm pack` e a instalação do `.tgz` da Preparação

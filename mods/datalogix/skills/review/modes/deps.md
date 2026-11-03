@@ -11,9 +11,10 @@ Passos, um por vez:
   equivalente) em três grupos: patch, minor e major
 - patch e minor dentro da faixa declarada (no npm, a coluna `Wanted`
   do `outdated`): um item por grupo; só o lockfile muda, sem tocar na
-  restrição (`composer update <pacotes>`, `npm update <pacotes>` ou
-  equivalente). Sem lockfile versionado (etapa `git`), não há o que
-  aplicar nem commitar: só liste
+  restrição (`composer update <pacotes>`, `npm update <pacotes>`,
+  `pnpm update --no-save <pacotes>`, `yarn upgrade <pacotes>` no Yarn 1
+  ou `yarn up -R <pacotes>` no Berry). Sem lockfile versionado (etapa
+  `git`), não há o que aplicar nem commitar: só liste
 - patch e minor fora da faixa (`^0.3` → `0.4`, `~1.2` → `1.3`): como
   major, um item por pacote
 - major: um item por pacote, com o que muda (changelog ou guia de

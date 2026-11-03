@@ -50,9 +50,12 @@ Respostas às seções `## Pendências`, em todos os passos:
     tiver a resposta, nunca com `-M`. Se falhar (ex.: o nome já
     existe), mostre o erro e siga com o nome atual.
   - Se a branch já estiver no remoto (`git ls-remote --exit-code
-    --heads origin <branch>` sai com 0), não pergunte: avise que o
-    nome tem data e que trocá-lo exigiria apagar a branch remota,
-    o que fecha um PR aberto dela, e siga. Nunca apague a remota.
+    --heads origin refs/heads/<branch>` sai com 0), não pergunte:
+    avise que o nome tem data e que trocá-lo exigiria apagar a
+    branch remota, o que fecha um PR aberto dela, e siga. Nunca
+    apague a remota. Só a saída 2 quer dizer que ela não está lá:
+    com outra (rede, credencial), avise que não deu para conferir,
+    não pergunte e mantenha o nome.
 - Listas de arquivos: leia os caminhos com `git -c
   core.quotePath=false status --porcelain -uall` e, no `git diff
   --name-only`, com o mesmo `-c`; sem isso, acentos saem como

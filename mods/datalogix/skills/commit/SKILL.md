@@ -236,9 +236,9 @@ Na divisão:
 - Confira com `git diff --cached --stat` que o stage tem só o
   commit da vez. Num arquivo dividido, leia `git show :<arquivo>` e
   confira que o conteúdo em stage não usa nada que só chega depois;
-  se usar, trate como um stage que não bate. Se um `git apply` falhar ou o stage não bater,
-  tire do stage o que entrou para este commit, mostre o erro e
-  pare, dizendo quais commits ficaram feitos.
+  se usar, trate como um stage que não bate. Se um `git apply`
+  falhar ou o stage não bater, tire do stage o que entrou para este
+  commit, mostre o erro e pare, dizendo quais commits ficaram feitos.
 - Com a confirmação de todos, faça cada commit (passo 5) e siga
   para o próximo, sem nova prévia. Com "Confirmar um commit por
   vez", antes de cada commit mostre a prévia só dele, com "O que

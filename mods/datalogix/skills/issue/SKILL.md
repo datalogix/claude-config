@@ -284,8 +284,8 @@ issue só`. Com a segunda, mostre a prévia de novo, com uma issue só.
 
 Todo label escolhido que não existe no destino aparece com
 "(novo)"; `claude` e `claude-plan`, se não existirem, já vêm na
-lista como `claude (novo)` e `claude-plan (novo)`. Compare os nomes sem diferenciar maiúsculas, como o
-GitHub: se o usuário escrever `bug` e o destino tiver `Bug`, use
+lista como `claude (novo)` e `claude-plan (novo)`. Compare os nomes
+sem diferenciar maiúsculas, como o GitHub: se o usuário escrever `bug` e o destino tiver `Bug`, use
 `Bug`, sem "(novo)". Ao dividir, as escolhas valem para todas as
 partes, menos `rollback`, que vai só na principal para reverter o
 ambiente uma única vez. A principal recebe só os labels, sem

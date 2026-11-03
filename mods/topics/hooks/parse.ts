@@ -50,7 +50,7 @@ const PREVIEW_MAX = 90
 
 // A fence of backticks cannot have a backtick in its info string (CommonMark). mods/status/hooks/register.ts keeps a
 // copy of this regex and of createCodeBlockTracker's closing rule (same character, at least as long, nothing after),
-// since each mod installs on its own: change both.
+// since each mod installs on its own: change both. tests/mods.test.js compares only the regex, not the closing rule.
 const FENCE = /^\s*(`{3,}(?!.*`)|~{3,})/
 
 /** Only tests the line: whether it opens or closes a block is createCodeBlockTracker's job. */

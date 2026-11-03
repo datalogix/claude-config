@@ -2,7 +2,10 @@ import type { AgentInfo, EngineInterface, Register, SessionRateLimit, TurnComple
 
 const FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 const FRAME_MS = 200
-/** Keeps "renova em" current when nothing else redraws the status. */
+/**
+ * Keeps "renova em" current when nothing else redraws the status, and sets how late the reset of a window at the limit
+ * is noticed.
+ */
 const REFRESH_MS = 60_000
 const FRAMES_PER_AGENT_LIST = 5
 
@@ -35,7 +38,7 @@ export const formatTimeLeft = (ms: number): string => {
   return `${Math.floor(h / 24)}d ${h % 24}h`
 }
 
-/** By code points, so an emoji is not cut in half. */
+/** By code points, so a surrogate pair is not cut in half. */
 const truncate = (text: string, max: number): string => {
   const chars = [...text]
   return chars.length > max
@@ -59,7 +62,7 @@ const EXCERPT_MAX = 80
 
 // A fence of backticks cannot have a backtick in its info string (CommonMark). mods/topics/hooks/parse.ts keeps a
 // copy of this regex and of createCodeBlockTracker's closing rule (same character, at least as long, nothing after),
-// since each mod installs on its own: change both.
+// since each mod installs on its own: change both. tests/mods.test.js compares only the regex, not the closing rule.
 const FENCE = /^\s*(`{3,}(?!.*`)|~{3,})/
 
 /** Called with each line in order: true for a fence or a line inside a code block. */
@@ -171,11 +174,11 @@ type State = {
   frame: number
   mainTurnStartedAt?: number
   agents: AgentInfo[]
-  endedAgentIds: Set<string> // already ended, even if the list still shows them
+  endedAgentIds: Set<string> // a run of theirs ended, even if the list still shows them as active
   workflows: Map<string, string> // running in the background, task id → name; $.agent.list() does not show them
   failedBackgroundAgentCount: number // since the main turn started
   seenAgentIds: Set<string> // since the main turn started, with those it found running: the total of the progress
-  failedAgentIds: Set<string> // of seenAgentIds, also those in the foreground, which failedBackgroundAgentCount leaves out
+  failedAgentIds: Set<string> // of seenAgentIds, foreground too, which failedBackgroundAgentCount leaves out
   windows: SessionRateLimit[]
   outcome?: { text: string; isSuccess: boolean } // how the last answer, or the background agents after it, ended
   isWaitingForAgents: boolean // answered with agents still running
@@ -190,7 +193,7 @@ const formatStatus = (s: State, now: number): string | undefined => {
   let main: string | undefined
   if (s.mainTurnStartedAt !== undefined)
     main = `${spinnerFrame} Claude está trabalhando… ${formatElapsed(now - s.mainTurnStartedAt)}`
-  // A ✅ next to work still running would read as if everything had ended; the failures stay.
+  // A ✅ next to work still running would read as if everything had ended; a failure or interruption stays.
   else if (hasBackgroundWork(s))
     main = [s.outcome?.isSuccess ? undefined : s.outcome?.text, `${spinnerFrame} em segundo plano`]
       .filter(Boolean)
@@ -266,7 +269,7 @@ async function checkAgentsEnded($: EngineInterface, s: State, agentCountBefore: 
 async function refreshAgents($: EngineInterface, s: State, hasSentEndNotice = false) {
   const agentCountBefore = s.agents.length
   const listed = await $.agent.list()
-  // An id the list no longer shows cannot come back as active.
+  // The lag only explains an id the list still shows: one that left and comes back is active again.
   for (const id of s.endedAgentIds) {
     if (!listed.some((a) => a.id === id)) s.endedAgentIds.delete(id)
   }
@@ -343,7 +346,10 @@ async function checkPlanReset($: EngineInterface, s: State, now: number) {
   }
 }
 
-/** Options arrive validated with defaults filled in, but an empty text passes for a number (Number('') is 0). */
+/**
+ * A number option arrives validated, with its default filled in, but an empty text passes for a number (Number('') is
+ * 0).
+ */
 const readNumberOption = (value: unknown, fallback: number): number => (typeof value === 'number' ? value : fallback)
 
 export const register: Register = (on, options) => {
@@ -355,6 +361,7 @@ export const register: Register = (on, options) => {
   const s: State = {
     planAlert,
     alertLevels: planAlertLevels(planAlert),
+    // Claude Code only warns about a value outside the options; sendNotice then treats it as `always`.
     notifyMode: options.notify as NotifyMode,
     // Off unless turned on: the notification may show on the lock screen. Not carried over from showExcerpt and
     // trecho: both defaulted to on and every install stored them, so a stored "true" may be a default nobody chose.
@@ -433,7 +440,7 @@ export const register: Register = (on, options) => {
     return r
   })
 
-  // What is in flight as the engine counts it, so a workflow whose task notification was missed does not stay on the status.
+  // What is in flight as the engine counts it, so a workflow whose task notification was missed leaves the status.
   on('classic.Stop', async ($, e, next) => {
     if (e.background_tasks) {
       const workflows = e.background_tasks.filter((task) => task.type === 'workflow')
@@ -470,7 +477,7 @@ export const register: Register = (on, options) => {
     if (e.origin?.kind === 'task-notification') {
       for (const id of s.workflows.keys()) if (e.text.includes(id)) s.workflows.delete(id)
     }
-    // The previous outcome stays until the next prompt.
+    // The previous outcome stays until the next prompt, a task notification included.
     if (s.mainTurnStartedAt === undefined) {
       s.outcome = undefined
       await showStatus($, s)
@@ -503,7 +510,7 @@ export const register: Register = (on, options) => {
       const remainingAgents = s.agents.length
       // Held on its own background work, it has not ended and would count itself as remaining.
       const isStillActive = s.agents.some((a) => a.id === e.agentId)
-      // The last agent's end is the "tudo pronto" notice instead.
+      // The last agent's end gets the final notice of checkAgentsEnded instead.
       if (isBackground && !failureText && !isStillActive && remainingAgents > 0 && e.durationMs >= minDurationMs) {
         await sendNotice($, s, `✅ ${who} terminou — ${formatRemainingAgents(remainingAgents)}`, {
           timeoutMs: 8000,

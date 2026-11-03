@@ -13,7 +13,7 @@
     "planAlert": {
       "type": "number",
       "title": "Alerta do plano (%)",
-      "description": "Destaca o plano e mostra um toast quando o uso chegar a este percentual, de 1 a 100 (também em 75%); no limite, envia também um aviso (notificação do sistema conforme a opção notify)",
+      "description": "Destaca o plano a partir deste percentual, de 1 a 100, e mostra um toast ao chegar nele ou em 75%; no limite, envia um aviso no lugar do toast (notificação do sistema conforme a opção notify)",
       "default": 90
     },
     "notify": {

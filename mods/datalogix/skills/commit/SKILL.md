@@ -53,9 +53,11 @@ Respostas às seções `## Pendências`, em todos os passos:
     --heads origin refs/heads/<branch>` sai com 0), não pergunte:
     avise que o nome tem data e que trocá-lo exigiria apagar a
     branch remota, o que fecha um PR aberto dela, e siga. Nunca
-    apague a remota. Só a saída 2 quer dizer que ela não está lá:
-    com outra (rede, credencial), avise que não deu para conferir,
-    não pergunte e mantenha o nome.
+    apague a remota. Sem remoto `origin` (`git remote get-url
+    origin` falha), ela não está em remoto: pergunte. Com `origin`,
+    só a saída 2 quer dizer que ela não está lá: com outra (rede,
+    credencial), avise que não deu para conferir, não pergunte e
+    mantenha o nome.
 - Listas de arquivos: leia os caminhos com `git -c
   core.quotePath=false status --porcelain -uall` e, no `git diff
   --name-only`, com o mesmo `-c`; sem isso, acentos saem como
@@ -108,8 +110,8 @@ Depois da resposta:
 - Com arquivos marcados, rode `git add -- <arquivo> ...` só com
   eles. Com "Fazer tudo em um commit só", rode `git add --` com os
   arquivos da leitura que gerou a pergunta, não de um status novo;
-  a pergunta "Dividir o commit?" não aparece. Com grupos marcados, os commits
-  são esses grupos, na ordem listada, e nada vai para o stage antes
+  a pergunta "Dividir o commit?" não aparece. Com grupos marcados,
+  os commits são esses grupos, na ordem listada, e nada vai para o stage antes
   da confirmação (divisão, passo 4); a pergunta "Dividir o commit?"
   não se repete. Nunca use `git add -A`, `git add .` nem `git
   commit -a`.

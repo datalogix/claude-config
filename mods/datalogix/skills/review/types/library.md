@@ -10,6 +10,8 @@ git (`private: true`, com `npx github:...`), sem Laravel: tem
   package.json.
   - **pré-v1**: nenhuma versão `1.0.0` ou superior
   - **v1+**: existe versão `1.0.0` ou superior
+  - lib instalada por git, sem tags nem `version`: nada diz o estágio,
+    então pergunte (pré-v1 ou v1+) e registre em "Decisões do projeto"
 - **Build**: a ferramenta (tsup, tsdown, unbuild, Vite em modo lib,
   `tsc`), a pasta de saída (`dist/` etc.), os formatos (ESM, CJS) e
   onde saem os tipos (`.d.ts`).

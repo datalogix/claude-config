@@ -36,7 +36,7 @@ Respostas às seções `## Pendências`, em todos os passos:
   execução, diga e pare. Com execução, a branch dos passos seguintes
   é a `headBranch` dela.
 - Com run: `gh run view <id> --json
-  databaseId,name,workflowName,headBranch,headSha,status,conclusion,url`.
+  databaseId,name,workflowName,headBranch,headSha,status,conclusion,createdAt,url`.
   - Concluído com sucesso (`conclusion` `success`): diga e pare.
   - Em andamento (`status` diferente de `completed`): siga só com
     os jobs que já falharam e avise que outros ainda podem falhar.
@@ -106,11 +106,12 @@ Para cada falha, ache a causa no código local e classifique:
   (`git diff origin/<branch base>...HEAD` nos arquivos envolvidos)
   para confirmar.
   Na branch padrão, compare com o commit da última execução que
-  passou (`gh run list --branch <branch padrão> --workflow
-  "<workflowName>" --status success --limit 1 --json headSha`),
-  depois de `git fetch origin <branch padrão>`: `git diff
-  <headSha>...HEAD`, e o que esse intervalo trouxe conta como causado
-  pela mudança. Sem execução que passou, ou sem esse commit depois
+  passou antes da analisada (`gh run list --branch <branch padrão>
+  --workflow "<workflowName>" --status success --created
+  "<<createdAt da analisada>" --limit 1 --json headSha`), depois de
+  `git fetch origin <branch padrão>`: `git diff
+  <headSha>...<commit da analisada>`, e o que esse intervalo trouxe
+  conta como causado pela mudança. Sem execução que passou, ou sem esse commit depois
   do `fetch`, diga e trate como pré-existente.
 - **Pré-existente**: falha igual na branch base (`gh run list
   --branch <branch base> --workflow "<workflowName>" --limit 5`) ou

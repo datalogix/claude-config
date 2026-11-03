@@ -127,6 +127,7 @@ node bin/cli.js install --link            # install from this clone: edits apply
   accents, backticks and bold/italics, the first matching topic winning) in `hooks/parse.ts`. An item the answer writes
   checked (`isSuggested`) starts unchecked, as a suggestion; a `(recomendo)` item starts checked (`defaultChecked`, one
   per radio group), so sending as is approves it. Keep it in sync with the format `docs/mods/topics.md` documents.
+  In the code, `Actions` is the whole list; in the docs and the instruction, an action is what one item asks.
 
 ### Skills (`mods/datalogix/skills/`)
 

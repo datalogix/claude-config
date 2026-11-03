@@ -16,7 +16,7 @@ check its skills.
   `<owner>/.github` repository already provides as the default.
   After each step it suggests one commit per feature or fix
   (refactoring and formatting apart), in the commits' language
-  (below), as unchecked boxes. The ones you check are made through
+  (below), as unchecked items. The ones you check are made through
   `/datalogix:commit`'s flow, which it reads and follows from step 2
   after its step 1 state checks: one preview, nothing committed before
   you confirm, never a push; their hashes go in the progress file.
@@ -138,9 +138,9 @@ the commits it suggests and keeps the result in the progress file.
 Conventional Commits types stay in English. The previews and questions
 of issue, pr, commit and ci end with a `## Pendências` list
 (`/datalogix:review` uses it only when `topics` is active), answered in
-place when the [topics](topics.md) mod is installed. Only the boxes
+place when the [topics](topics.md) mod is installed. Only the items
 checked when you send the list apply: an item a skill marks
-`(recomendo)` starts checked, so sending as is approves it, while a box
+`(recomendo)` starts checked, so sending as is approves it, while an item
 a preview wrote checked is a suggestion, which `topics` shows unchecked,
 so leaving one alone never removes anything. `tests/skills.test.js`
 checks that every item the skills describe parses as one.

@@ -1,7 +1,7 @@
 // An unstored default must stay unstored, so a later change of default in a
 // mod's plugin.json reaches it.
 import assert from 'node:assert/strict'
-import { test } from 'vitest'
+import { describe, test } from 'vitest'
 import {
   answerFor,
   configuredKeys,
@@ -29,6 +29,9 @@ test('keeps an option already configured, even at its default', () => {
 test('stores an option without a default only once filled in', () => {
   assert.deepEqual(valuesToStore(userConfig, { token: '' }, new Set()), {})
   assert.deepEqual(valuesToStore(userConfig, { token: 'abc' }, new Set()), { token: 'abc' })
+})
+
+test('keeps an option without a default already configured, even empty', () => {
   assert.deepEqual(valuesToStore(userConfig, { token: '' }, new Set(['token'])), { token: '' })
 })
 
@@ -36,6 +39,10 @@ test('leaves out an untouched boolean or select without a default', () => {
   const noDefaults = { flag: { type: 'boolean' }, pick: { type: 'string', options: ['a', 'b'] } }
   assert.deepEqual(valuesToStore(noDefaults, { flag: 'false', pick: 'a' }, new Set()), {})
   assert.deepEqual(valuesToStore(noDefaults, { flag: 'true', pick: 'b' }, new Set()), { flag: 'true', pick: 'b' })
+})
+
+test('does not count as configured an untouched boolean or select without a default', () => {
+  const noDefaults = { flag: { type: 'boolean' }, pick: { type: 'string', options: ['a', 'b'] } }
   assert.deepEqual(configuredKeys(undefined, { flag: 'false', pick: 'a' }, noDefaults), new Set())
 })
 
@@ -103,12 +110,13 @@ test('takes the configured options from the reply', () => {
   )
 })
 
-test('without the configured list, counts the options away from the default', () => {
-  const values = { minSeconds: '5', excerpt: 'false', token: '' }
-  assert.deepEqual(configuredKeys(undefined, values, userConfig), new Set(['minSeconds']))
-  assert.deepEqual(configuredKeys(null, values, userConfig), new Set(['minSeconds']))
-  assert.deepEqual(configuredKeys('x', values, userConfig), new Set(['minSeconds']))
-})
+test.each([[undefined], [null], ['x']])(
+  'with %j as the configured list, counts the options away from the default',
+  (configured) => {
+    const values = { minSeconds: '5', excerpt: 'false', token: '' }
+    assert.deepEqual(configuredKeys(configured, values, userConfig), new Set(['minSeconds']))
+  },
+)
 
 test('an answer for an option outside the userConfig is stored only when not empty', () => {
   assert.deepEqual(valuesToStore(userConfig, { extra: '' }, new Set()), {})
@@ -123,15 +131,15 @@ test('reads the current values as text, leaving out empty ones but free text', (
   }
   const inputs = { minSeconds: 30, excerpt: false, label: '', notify: '', token: null }
   assert.deepEqual(currentValues(inputs, options), { minSeconds: '30', excerpt: 'false', label: '' })
-  // A sensitive text starts empty, so an empty value there is no value.
+})
+
+// A sensitive text starts empty, so an empty value there is no value.
+test('leaves out an empty sensitive value', () => {
   assert.deepEqual(currentValues({ secret: '' }, { secret: { type: 'string', sensitive: true } }), {})
 })
 
-test('has no current values when the reply has no inputs object', () => {
-  assert.equal(currentValues(null, {}), undefined)
-  assert.equal(currentValues('x', {}), undefined)
-  assert.equal(currentValues(undefined, {}), undefined)
-  assert.equal(currentValues(['x'], {}), undefined)
+test.each([[null], ['x'], [undefined], [['x']]])('has no current values when the inputs are %j', (inputs) => {
+  assert.equal(currentValues(inputs, {}), undefined)
 })
 
 test('an empty answer clears free text and keeps the starting value of the rest', () => {
@@ -151,15 +159,28 @@ test('a filled answer stands as given', () => {
   assert.equal(answerFor({ type: 'boolean' }, 'false', 'true'), 'false')
 })
 
-test('a null default counts as no default everywhere', () => {
+describe('a null default counts as no default', () => {
   const nullDefaults = { label: { default: null } }
-  assert.deepEqual(valuesToStore(nullDefaults, { label: '' }, new Set()), {})
-  assert.deepEqual(configuredKeys(undefined, { label: '' }, nullDefaults), new Set())
-  assert.equal(initialValue({ default: null }, undefined, false), '')
+
+  test('when storing', () => {
+    assert.deepEqual(valuesToStore(nullDefaults, { label: '' }, new Set()), {})
+  })
+
+  test('when counting what is configured', () => {
+    assert.deepEqual(configuredKeys(undefined, { label: '' }, nullDefaults), new Set())
+  })
+
+  test('when starting a question', () => {
+    assert.equal(initialValue({ default: null }, undefined, false), '')
+  })
 })
 
 test('starts a select from its default when it is one of the choices', () => {
   assert.equal(defaultChoice({ type: 'string', default: 'b', options: ['a', 'b'] }), 'b')
+})
+
+test('compares a select with a default that is not text as text', () => {
+  assert.equal(defaultChoice({ type: 'string', default: 2, options: ['1', '2'] }), '2')
 })
 
 test('a select without choices starts empty', () => {

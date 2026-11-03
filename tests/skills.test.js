@@ -18,6 +18,8 @@ const flat = (file) => read(file).replace(/\s+/g, ' ')
 
 const CODE_SPAN = /(`+)(?!`)([\s\S]*?[^`])\1(?!`)/g
 const ITEM_MARK = /- (?:\[[ xX]\]|\([ xX•●]\))(?=\s|$)/
+// With any list marker and also a malformed mark, so only at the start of a line: **Text** (`span`) reads as ** ().
+const LINE_ITEM = /^\s*[-*+]\s+(?:\[[ xX]?\]|\([ xX•●]?\))/m
 
 /**
  * A span the skill wraps is joined into one line. A bare mark such as `- [x]`
@@ -28,7 +30,7 @@ const ITEM_MARK = /- (?:\[[ xX]\]|\([ xX•●]\))(?=\s|$)/
 const itemsOf = (markdown) =>
   [...markdown.matchAll(CODE_SPAN)]
     .map((match) => match[2].replace(/\s*\n\s*/g, ' ').trim())
-    .filter((span) => /^- [[(]/.test(span) && !/^- (?:\[[ xX]\]|\([ xX•●]\))$/.test(span))
+    .filter((span) => /^[-*+]\s+[[(]/.test(span) && !/^[-*+]\s+(?:\[[ xX]\]|\([ xX•●]\))$/.test(span))
 
 const markdownFiles = fs
   .readdirSync(skillsDir, { recursive: true, encoding: 'utf8' })
@@ -40,13 +42,15 @@ describe.each(skillNames)('/datalogix:%s', (name) => {
   test('still has items, under the topic topics looks for', () => {
     const skill = read(`${name}/SKILL.md`)
     assert.ok(itemsOf(skill).length > 0)
-    assert.ok(skill.includes(`## ${ACTIONS_TITLE}`))
+    assert.ok(skill.includes(`\`## ${ACTIONS_TITLE}\``))
   })
 })
 
 describe.each(markdownFiles)('%s', (file) => {
   test('has no item outside a code span', () => {
-    assert.doesNotMatch(read(file).replace(CODE_SPAN, ''), ITEM_MARK)
+    const text = read(file).replace(CODE_SPAN, '')
+    assert.doesNotMatch(text, ITEM_MARK)
+    assert.doesNotMatch(text, LINE_ITEM)
   })
 
   test.each(itemsOf(read(file)))('topics parses %s', (span) => {
@@ -55,8 +59,10 @@ describe.each(markdownFiles)('%s', (file) => {
     const [item] = parsed
     // Two items in one span read as one, with the second inside its text.
     assert.doesNotMatch(item.text, / - (?:\[[ xX]\]|\([ xX•●]\)) /)
-    assert.equal(item.isRadio, span.startsWith('- ('))
-    assert.equal(item.isSuggested, /^- (?:\[[xX]\]|\([xX•●]\))/.test(span))
+    assert.equal(item.isRadio, /^[-*+]\s+\(/.test(span))
+    assert.equal(item.isSuggested, /^[-*+]\s+(?:\[[xX]\]|\([xX•●]\))/.test(span))
+    // topics reads a ver: only on an indented line below the item.
+    assert.doesNotMatch(item.text, /\bver:/i)
     // A stance only at the start and with a known word: any other reads as plain text, with no mark on screen.
     assert.doesNotMatch(
       item.text.replace(/^\((?:recomendo|não recomendo|avalie)\) /, ''),
@@ -80,9 +86,12 @@ test('the issue skill still writes the language line the skills look for', () =>
   assert.ok(flat('issue/SKILL.md').includes('`- Issues and pull requests: <idioma>`'))
 })
 
-test('the language item still starts from the commit titles, and review keeps no fallback of its own', () => {
+test('the language item still starts from the commit titles', () => {
   assert.ok(flat('issue/SKILL.md').includes('detecte pelos últimos títulos de commit'))
-  assert.ok(!flat('review/SKILL.md').includes('sem essa linha, em português'))
+})
+
+test('the review skill keeps no language fallback of its own', () => {
+  assert.doesNotMatch(flat('review/SKILL.md'), /sem essa linha[^.]*portugu[êe]s/i)
 })
 
 test('the skills that follow the commit skill dated branch item still find it', () => {
@@ -110,11 +119,13 @@ test('the review skill still follows the commit skill from its step 2, with its 
   assert.ok(review.includes('fossem os grupos marcados no passo 1 dele'))
   assert.match(read('commit/SKILL.md'), /^## 2\. Contexto$/m)
   assert.ok(flat('commit/SKILL.md').includes('grupos marcados no passo 1'))
+  assert.ok(flat('commit/SKILL.md').includes('Com grupos marcados, os commits são esses grupos'))
 })
 
 test('the commit skill still takes the groups as an argument', () => {
   assert.match(read('commit/SKILL.md'), /^- `grupos: <título> \(<arquivos>\); \.\.\.`:/m)
-  assert.ok(flat('commit/SKILL.md').includes('Com `grupos:` nos argumentos'))
+  assert.ok(flat('commit/SKILL.md').includes('Com `grupos:` nos argumentos e algo em stage'))
+  assert.ok(flat('commit/SKILL.md').includes('Com `grupos:` nos argumentos, parta deles'))
 })
 
 test('the commit skill still reads paths safely', () => {
@@ -128,8 +139,10 @@ describe('the supporting files of the review skill', () => {
   const exists = (file) => fs.existsSync(new URL(`review/${file}`, skillsDir))
   const reviewFiles = markdownFiles.filter((file) => file.startsWith('review'))
 
-  test.each(fs.readdirSync(new URL('review/types/', skillsDir)))('every step of %s has its checklist', (type) => {
-    const steps = [...read(`review/types/${type}`).matchAll(/^\d+\. `([\w-]+)` /gm)].map((match) => match[1])
+  const typeFiles = fs.readdirSync(new URL('review/types/', skillsDir)).filter((file) => file.endsWith('.md'))
+
+  test.each(typeFiles)('every step of %s has its checklist', (type) => {
+    const steps = [...read(`review/types/${type}`).matchAll(/^\d+\. `?([\w-]+)`?/gm)].map((match) => match[1])
     assert.ok(steps.length > 0, 'lists no steps')
     for (const step of steps) assert.ok(exists(`steps/${step}.md`), step)
   })

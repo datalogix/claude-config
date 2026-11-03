@@ -12,11 +12,18 @@ const readJson = (file) => JSON.parse(read(file))
 
 const marketplace = readJson('.claude-plugin/marketplace.json')
 const testCommands = readJson('package.json').scripts.test.split(' && ')
-const modNames = fs.readdirSync(path.join(ROOT, 'mods'))
+// A folder without a manifest is no mod: a .DS_Store, or the ignored types of one removed since.
+const modNames = fs
+  .readdirSync(path.join(ROOT, 'mods'))
+  .filter((name) => fs.existsSync(path.join(ROOT, `mods/${name}/.claude-plugin/plugin.json`)))
 
 describe.each(modNames)('the mod %s', (name) => {
   const manifest = readJson(`mods/${name}/.claude-plugin/plugin.json`)
   const entry = marketplace.plugins.find((/** @type {{ name: string }} */ plugin) => plugin.name === name)
+
+  test('has the name of its folder', () => {
+    assert.equal(manifest.name, name)
+  })
 
   test('has no version, so every push reaches update', () => {
     assert.equal(manifest.version, undefined)

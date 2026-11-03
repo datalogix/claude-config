@@ -9,6 +9,7 @@ describe('quoteForCmd', () => {
     ['escapes spaces and cmd operators twice', 'a b&c|d', '^^^"a^^^ b^^^&c^^^|d^^^"'],
     ['escapes % and ! so cmd does not expand variables', '%PATH%!x!', '^^^"^^^%PATH^^^%^^^!x^^^!^^^"'],
     ['turns an inner quote into \\" and doubles the backslashes before it', 'say \\"hi', '^^^"say^^^ \\\\\\^^^"hi^^^"'],
+    ['turns every inner quote into \\"', 'a"b"c', '^^^"a\\^^^"b\\^^^"c^^^"'],
     ['doubles every backslash before an inner quote', 'a\\\\"', '^^^"a\\\\\\\\\\^^^"^^^"'],
     ['escapes carets, parentheses and redirections twice', '^(<>)', '^^^"^^^^^^^(^^^<^^^>^^^)^^^"'],
     ['doubles a trailing backslash so it does not escape the closing quote', 'C:\\dir\\', '^^^"C:\\dir\\\\^^^"'],

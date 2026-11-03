@@ -37,6 +37,7 @@ Respostas às seções `## Pendências`, em todos os passos:
   é a `headBranch` dela.
 - Com run: `gh run view <id> --json
   databaseId,name,workflowName,headBranch,headSha,status,conclusion,createdAt,url`.
+  A branch dos passos seguintes é a `headBranch`.
   - Concluído com sucesso (`conclusion` `success`): diga e pare.
   - Em andamento (`status` diferente de `completed`): siga só com
     os jobs que já falharam e avise que outros ainda podem falhar.
@@ -111,8 +112,8 @@ Para cada falha, ache a causa no código local e classifique:
   "<<createdAt da analisada>" --limit 1 --json headSha`), depois de
   `git fetch origin <branch padrão>`: `git diff
   <headSha>...<commit da analisada>`, e o que esse intervalo trouxe
-  conta como causado pela mudança. Sem execução que passou, ou sem esse commit depois
-  do `fetch`, diga e trate como pré-existente.
+  conta como causado pela mudança. Sem execução que passou, ou sem
+  esse commit depois do `fetch`, diga e trate como pré-existente.
 - **Pré-existente**: falha igual na branch base (`gh run list
   --branch <branch base> --workflow "<workflowName>" --limit 5`) ou
   em código que a branch não tocou. Na branch padrão, a própria
@@ -153,8 +154,9 @@ marcando as caixas e devolvendo a lista:
 - sem log legível, `- [ ] Reproduzir localmente rodando <check>`
   por check que falhou (ex.: ``- [ ] Reproduzir localmente rodando
   `vendor/bin/pest` ``);
-- se houver falha intermitente ou de infraestrutura, `- [ ] Rodar
-  de novo os jobs que falharam (gh run rerun <id> --failed)`.
+- se houver falha intermitente, de infraestrutura ou que não se
+  reproduziu, `- [ ] Rodar de novo os jobs que falharam (gh run
+  rerun <id> --failed)`.
 
 Sem nenhum item a propor, não escreva a seção: mostre o diagnóstico
 e pare. Sem nada marcado nem pedido no texto, pare. Nada é
@@ -163,7 +165,8 @@ alterado antes da resposta.
 ## 5. Correção
 - Reproduzir, se marcado: rode só os checks marcados, sem corrigir
   nada nesta rodada. Com o erro em mãos, volte ao passo 3 e mostre
-  uma nova prévia.
+  uma nova prévia. Se todos passarem, diga que a falha não se
+  reproduziu e mostre a nova prévia só com o item de rodar de novo.
 - Aplique só as correções marcadas.
 - Não adicione comentários ao corrigir, salvo os realmente
   necessários (regra não óbvia, workaround, motivo de um
@@ -183,7 +186,8 @@ alterado antes da resposta.
   nesse caso, é melhor desfazer à mão.
 - Rodar de novo, se marcado: `gh run rerun <id> --failed`, e mostre
   o link; se falhar, mostre o erro. Faça isso mesmo que uma validação
-  tenha falhado; com "Reproduzir" marcado, só depois da nova prévia.
+  tenha falhado; com "Reproduzir" marcado, não rode agora: o item
+  volta desmarcado na nova prévia.
 
 ## 6. Fim
 Mostre o resultado de cada validação e os arquivos alterados. Não

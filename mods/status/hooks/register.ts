@@ -126,14 +126,14 @@ export const formatWorkflows = (names: string[]): string | undefined => {
 }
 
 /** One name only, so the plan is not pushed out of the status line. */
-export const formatAgents = (agents: AgentInfo[], doneCount = 0, failedCount = 0): string | undefined => {
+export const formatAgents = (agents: AgentInfo[], endedCount = 0, failedCount = 0): string | undefined => {
   if (agents.length === 0) return undefined
-  const total = doneCount + agents.length
+  const total = endedCount + agents.length
   const name = shortAgentName(agents[0]!)
   if (total === 1) return `🤖 agente: ${name}`
   const failed = failedCount > 0 ? ` ⚠️${failedCount}` : ''
   const rest = agents.length > 1 ? ` +${agents.length - 1}` : ''
-  return `🤖 ${doneCount}/${total}${failed}: ${name}${rest}`
+  return `🤖 ${endedCount}/${total}${failed}: ${name}${rest}`
 }
 
 /** Past its reset time, the usage claude reports is from before the reset until the next API response. */
@@ -171,7 +171,7 @@ type State = {
   frame: number
   mainTurnStartedAt?: number
   agents: AgentInfo[]
-  finishedAgentIds: Set<string> // already ended, even if the list still shows them
+  endedAgentIds: Set<string> // already ended, even if the list still shows them
   workflows: Map<string, string> // running in the background, task id → name; $.agent.list() does not show them
   failedAgentCount: number // since the main turn started
   seenAgentIds: Set<string> // since the main turn started, with those it found running: the total of the progress
@@ -237,9 +237,9 @@ async function sendNotice($: EngineInterface, s: State, text: string, options: N
  * A workflow still running does not hold this back: its own end comes back as a new answer from Claude, so nothing
  * would send this notice later.
  *
- * @param hasNotifiedEnd the agent that just ended already sent a notice of its own failure
+ * @param hasSentEndNotice the agent that just ended already sent a notice of its own failure
  */
-async function checkAgentsDone($: EngineInterface, s: State, agentCountBefore: number, hasNotifiedEnd: boolean) {
+async function checkAgentsEnded($: EngineInterface, s: State, agentCountBefore: number, hasSentEndNotice: boolean) {
   if (s.isWaitingForAgents && agentCountBefore > 0 && s.agents.length === 0 && s.mainTurnStartedAt === undefined) {
     s.isWaitingForAgents = false
     const workflowsSuffix = s.workflows.size > 0 ? ` — ${formatRemainingWorkflows(s.workflows.size)}` : ''
@@ -247,7 +247,7 @@ async function checkAgentsDone($: EngineInterface, s: State, agentCountBefore: n
       const problems = `${s.failedAgentCount} com problema`
       s.outcome = { text: `⚠️ agentes terminaram, ${problems}`, isSuccess: false }
       // A summary of that one failure alone would repeat the notice just sent.
-      if (!(hasNotifiedEnd && s.failedAgentCount === 1))
+      if (!(hasSentEndNotice && s.failedAgentCount === 1))
         await sendNotice($, s, `⚠️ Os agentes em segundo plano terminaram, ${problems}${workflowsSuffix}`, {
           timeoutMs: 10000,
           isAboutBackgroundAgents: true,
@@ -263,19 +263,19 @@ async function checkAgentsDone($: EngineInterface, s: State, agentCountBefore: n
   }
 }
 
-async function refreshAgents($: EngineInterface, s: State, hasNotifiedEnd = false) {
+async function refreshAgents($: EngineInterface, s: State, hasSentEndNotice = false) {
   const agentCountBefore = s.agents.length
   const listed = await $.agent.list()
   // An id the list no longer shows cannot come back as active.
-  for (const id of s.finishedAgentIds) {
-    if (!listed.some((a) => a.id === id)) s.finishedAgentIds.delete(id)
+  for (const id of s.endedAgentIds) {
+    if (!listed.some((a) => a.id === id)) s.endedAgentIds.delete(id)
   }
   // A run ending is not the agent ending: one held on its own background work is `waiting`, which no lag explains.
   s.agents = listed.filter(
-    (a) => ACTIVE_STATUSES.has(a.status) && (a.status === 'waiting' || !s.finishedAgentIds.has(a.id)),
+    (a) => ACTIVE_STATUSES.has(a.status) && (a.status === 'waiting' || !s.endedAgentIds.has(a.id)),
   )
   for (const a of s.agents) s.seenAgentIds.add(a.id)
-  await checkAgentsDone($, s, agentCountBefore, hasNotifiedEnd)
+  await checkAgentsEnded($, s, agentCountBefore, hasSentEndNotice)
 }
 
 /** Agents still running stay in the count; those already ended belong to the progress before. */
@@ -361,7 +361,7 @@ export const register: Register = (on, options) => {
     shouldIncludeExcerpt: options.excerpt === true,
     frame: 0,
     agents: [],
-    finishedAgentIds: new Set(),
+    endedAgentIds: new Set(),
     workflows: new Map(),
     failedAgentCount: 0,
     seenAgentIds: new Set(),
@@ -449,7 +449,7 @@ export const register: Register = (on, options) => {
 
   on('turn.start', async ($, e, next) => {
     if (e.agentId !== undefined) {
-      s.finishedAgentIds.delete(e.agentId)
+      s.endedAgentIds.delete(e.agentId)
       s.failedAgentIds.delete(e.agentId)
       await refreshAgents($, s)
       startSpinner($, s)
@@ -490,13 +490,13 @@ export const register: Register = (on, options) => {
         s.failedAgentIds.add(e.agentId)
       }
       // An agent error always sends a notice; an interruption or refusal, only in the background.
-      const hasNotifiedEnd = Boolean(endText && (e.reason === 'error' || isBackground))
-      if (endText && hasNotifiedEnd) {
+      const hasSentEndNotice = Boolean(endText && (e.reason === 'error' || isBackground))
+      if (endText && hasSentEndNotice) {
         await sendNotice($, s, endText.replace('{}', who), { timeoutMs: 10000, isAboutBackgroundAgents: isBackground })
       }
       // The list may lag behind the end: this one no longer counts as active.
-      s.finishedAgentIds.add(e.agentId)
-      await refreshAgents($, s, hasNotifiedEnd)
+      s.endedAgentIds.add(e.agentId)
+      await refreshAgents($, s, hasSentEndNotice)
       const remaining = s.agents.length
       // Held on its own background work, it has not ended and would count itself as remaining.
       const isStillActive = s.agents.some((a) => a.id === e.agentId)

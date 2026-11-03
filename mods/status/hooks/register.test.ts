@@ -661,6 +661,17 @@ test('a failed agent stays in the final notice and the status with a workflow st
 const stopHook = (on: On) => on('classic.Stop', () => ({}) as never)
 const stopInput = (background_tasks: unknown[]) => ({ stop_hook_active: false, background_tasks }) as never
 
+test('Stop names a workflow with neither name nor description', async ($, on) => {
+  const { lastStatus } = setup(on)
+  stopHook(on)
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  await $.turn.complete(turnComplete(5_000))
+  await $.classic.Stop(stopInput([{ id: 'w1', type: 'workflow', status: 'running' }]))
+
+  expect(lastStatus()).toBe('⠋ em segundo plano  │  🔀 workflow: workflow')
+})
+
 test('Stop after the turn ends says which workflows are in flight', async ($, on) => {
   const { lastStatus } = setup(on)
   stopHook(on)

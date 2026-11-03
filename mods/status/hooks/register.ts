@@ -421,7 +421,7 @@ export const register: Register = (on, options) => {
   on('classic.Stop', async ($, e, next) => {
     if (e.background_tasks) {
       const workflows = e.background_tasks.filter((task) => task.type === 'workflow')
-      s.workflows = new Map(workflows.map((task) => [task.id, task.name ?? task.description]))
+      s.workflows = new Map(workflows.map((task) => [task.id, task.name ?? task.description ?? 'workflow']))
       // It may come after the main turn.complete, which then read the workflows before this.
       if (s.mainTurnStartedAt === undefined) {
         if (hasBackgroundWork(s)) startSpinner($, s)

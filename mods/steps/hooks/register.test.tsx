@@ -22,7 +22,7 @@ const mount = <C extends RenderComponent>(
 const isOriginalShown = async (ui: Pick<Mounted, 'find'>) =>
   (await ui.find({ type: 'Text', text: 'original' })) !== undefined
 
-/** Hidden: nothing drawn at all, neither the original nor anything in its place. */
+/** Hidden: no text drawn, neither the original nor anything in its place (the hook leaves an empty Box). */
 const isHidden = async (ui: Pick<Mounted, 'findAll'>) => (await ui.findAll({ type: 'Text' })).length === 0
 
 const toolUse = (overrides: Partial<RenderPropsOf['ToolUse']> = {}): RenderPropsOf['ToolUse'] => ({
@@ -43,7 +43,7 @@ const spinner = (overrides: Partial<RenderPropsOf['Spinner']> = {}): RenderProps
   ...overrides,
 })
 
-/** Stands in for the spinner's own row, with each field it may change in sight. */
+/** Stands in for the spinner's own row, with each field a hook may rewrite in sight. */
 const drawSpinnerRow = (on: On) =>
   on('ui.render', { component: 'Spinner' }, async ($, e) => {
     const { Text } = $.ui.resolve(e)

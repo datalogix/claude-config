@@ -68,7 +68,8 @@ export const register: Register = (on) => {
     // A mode added by a newer Claude Code has no label: the spinner stays alone.
     const label: string | undefined = MODE_LABELS[e.props.mode]
     if (!label) return next(e)
-    // VS Code draws a tree as a box of its own under the conversation: the step goes in the spinner's own row.
+    // VS Code draws a tree as a box of its own under the conversation: the step goes in the spinner's own row, as the
+    // word. While a message overrides the word, the row shows that message alone, so there is nothing to rewrite.
     if (e.surface === 'vscode') return e.props.message ? next(e) : next({ ...e, props: { ...e.props, word: label } })
     const { Box, Text } = $.ui.resolve(e)
 

@@ -109,7 +109,9 @@ Respostas às seções `## Pendências`, em todos os passos:
   repositório, como o GitHub aceita; se não houver, o do
   repositório `<owner>/.github` (`gh api
   repos/<owner>/.github/contents/<caminho>`). Repositório ou
-  arquivo inexistente significa sem template.
+  arquivo inexistente significa sem template. Com vários na pasta,
+  escolha o que combina com a mudança e diga na prévia qual foi
+  usado.
 - Leia os labels uma vez (`gh label list --limit 200 --json
   name,description`).
 
@@ -164,10 +166,15 @@ Depois da resposta:
   desmarcado, e avise se ela estiver fechada. Marcado, use o número
   dela no `Closes`; desmarcado, siga sem issue, citando a #<número>
   na "Motivação" sem `Closes`. Depois siga para o passo 5, sem
-  repetir as perguntas. Se o usuário cancelar, siga sem issue.
+  repetir as perguntas. Se o usuário cancelar, siga sem issue. Se a
+  criação falhar, mostre o erro e pergunte com `- [ ] Tentar criar
+  a issue de novo`; desmarcado, siga sem issue ou, se parte de uma
+  divisão foi criada, só com o `Closes` das que foram criadas.
 
 ## 5. Redação
-- Escreva no idioma dos passos 3 e 4.
+- Escreva no idioma dos passos 3 e 4, inclusive os títulos da
+  estrutura abaixo e os textos fixos ("Não informado", "Não
+  informada", "(com mudanças sem commit, fora do PR)").
 - Título em Conventional Commits: tipo em inglês (`feat`, `fix`,
   `refactor`, `docs`, `test`, `chore`, `perf`, `build`, `ci`,
   `style`) e a descrição nesse idioma, curta e no imperativo ou
@@ -238,9 +245,10 @@ Com "cancelar" marcado, pare sem enviar nada. O usuário também pode
 responder em texto, inclusive para ajustar o título, o corpo ou a
 issue. Sem nenhuma das duas marcada, ou a cada ajuste, mostre a
 prévia inteira de novo. Nada é enviado ao GitHub antes da
-confirmação explícita. Não crie labels para o PR; na issue criada
-pelo passo 4, crie só os "(novo)" marcados, como a skill de issue
-diz.
+confirmação explícita. Não crie labels para o PR: um label citado
+em texto que não existe no repositório fica de fora, com aviso na
+prévia. Na issue criada pelo passo 4, crie só os "(novo)" marcados,
+como a skill de issue diz.
 
 ## 7. Envio
 - Push marcado no passo 1: rode `git push -u origin <branch>` antes

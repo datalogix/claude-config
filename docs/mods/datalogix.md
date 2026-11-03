@@ -69,8 +69,9 @@ check its skills.
 - `pr/` — `/datalogix:pr`: opens the current branch's pull request in
   the format of Claude's pull requests in `datalogix/workflows`: a
   Conventional Commits title and _Resumo_, _Motivação_ (with
-  `Closes #<number>`), _Plano de Testes_ and _Observações_, or the
-  project's pull request template. It finds the issue from the
+  `Closes #<number>`), _Plano de Testes_ and _Observações_ (titles
+  follow the project's language), or the project's pull request
+  template. It finds the issue from the
   argument or the branch name (a number taken from the branch is
   always confirmed: suggested when the commits match the issue's
   title, unchecked with a warning otherwise), checks the

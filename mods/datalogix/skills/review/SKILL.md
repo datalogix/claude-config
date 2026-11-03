@@ -62,7 +62,8 @@ skills ou tags novas, descubra e registre:
     `next.config.*` na raiz, sem `composer.json`
   - lib JS/TS (`types/library.md`): tem `package.json`, sem
     `composer.json` nem config de Nuxt/Next, com `exports`, `main`,
-    `module` ou `bin` e sem `private: true`
+    `module` ou `bin`, e sem `private: true`, ou com ele e instalada
+    por git (`npx github:...` no README)
   Na dúvida (monorepo com workspaces, app Vite sem framework, nenhum
   dos quatro), pergunte. Depois leia o arquivo do tipo e faça o
   reconhecimento extra que ele pede (estágio, requisitos de testes).

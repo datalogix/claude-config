@@ -8,11 +8,11 @@ sobre o código-fonte e não pegam `exports`, `files` ou tipos errados.
 Sem publicação (`private: true`, instalada com `npx github:...`),
 não use `npm pack`: ele recusa package.json sem `version` e essa
 instalação não precisa dele; não sugira acrescentá-lo só por isso.
-Troque os dois `npm pack` da Preparação por: em `<sandbox>/app`,
-`npm init -y` e `npm i --allow-git=root
-git+file://<caminho absoluto do projeto>#<commit>`, que só leva o
-que tem commit (avise se a árvore estiver suja). Confira a lista
-de arquivos em `node_modules/<nome>`, com os mesmos critérios.
+Troque os dois `npm pack` e a instalação do `.tgz` da Preparação
+por: em `<sandbox>/app`, `npm init -y` (uma vez só) e `npm i
+--allow-git=root git+file://<caminho absoluto do projeto>#<commit>`,
+que só leva o que tem commit (avise se a árvore estiver suja). Confira
+a lista de arquivos em `node_modules/<nome>`, com os mesmos critérios.
 
 ## Preparação (tudo FORA do projeto)
 - Sandbox: `~/.claude/reviews/<id>/sandbox/` (`<sandbox>` abaixo).
@@ -65,5 +65,8 @@ As correções são feitas na lib (ou no README), nunca na sandbox.
 ## Ao aplicar
 Depois das correções aprovadas e da verificação completa da lib,
 refaça o pack e a instalação do zero na sandbox para confirmar.
+Na lib instalada por git, confirme só depois dos commits das correções,
+com o novo `#<commit>`; sem commit, diga que a correção não foi
+confirmada.
 
 A sandbox é apagada quando eu disser "próxima".

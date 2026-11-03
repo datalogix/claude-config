@@ -6,8 +6,9 @@
   `.claude-plugin/marketplace.json`
 - `bin/` — the installer (`cli.js`, `options.js`, `quote.js`) run by
   `npx`
-- `tests/` — Vitest tests of the installer and of the skills' Markdown;
-  each mod's own tests sit next to its hooks
+- `tests/` — Vitest tests of the installer, of the skills' Markdown and
+  of the rules every mod follows; each mod's own tests sit next to its
+  hooks
 - `docs/` — documentation of each mod and of development
 
 ## Working on this repository
@@ -29,8 +30,9 @@ uninstalls its mods and deletes their options and data.
 
 Run the tests with `npm test`: Vitest for `tests/` (the installer,
 the skills' Markdown against the `topics` parser and each other, the
-license) plus `claude plugin test` for each mod with hooks, so it
-needs the `claude` CLI.
+mods' manifests and marketplace entries, the license) plus
+`claude plugin test` for each mod with hooks, so it needs the `claude`
+CLI.
 
 Check formatting and lint with `npm run lint` (ESLint and Prettier,
 as CI does) and fix them with `npm run format`. Prettier skips `*.md`:
@@ -44,8 +46,8 @@ default. Only answers that differ from the default, and options you
 already configured, are stored, so a default you never changed follows
 the mod when it changes. An option without a default is compared with
 what its question starts from: `false` for a boolean, the first choice
-for a select. Without a terminal, no answer is stored and the mods use
-their defaults.
+for a select. Without a terminal, nothing is asked or stored: options
+already configured keep their values and the others use their defaults.
 
 ## Adding a mod
 
@@ -69,6 +71,9 @@ their defaults.
 
 3. Add `claude plugin test mods/<name>` to the `test` script in
    `package.json` (it fails for a mod without hooks).
+   `tests/mods.test.js` fails until these steps are done: it checks the
+   `name`, `license`, `author` and missing `version`, the marketplace
+   entry and this script.
 4. Run the installer again. Options declared in `userConfig` are asked
    during install (`number`, `string`, `boolean`, `options` for a fixed
    list, and `sensitive` for a hidden answer that keeps the stored value

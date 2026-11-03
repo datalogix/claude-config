@@ -6,13 +6,13 @@ has two or more of them or a `## Pendências` list (also in the ctrl+o
 transcript), with a one-line preview. Titles, items and previews are
 drawn as plain text: emphasis marks and backticks come off and what a
 code span holds stays as written; the list sent back keeps the original
-text. The thin rule after a title is drawn on the terminal only. `/topics`
-opens the last
-answer in a keyboard-driven pane (Tab, arrows, 1–9 for the topics,
-a/f to open or close all); its items and its send button are the ones
-of that answer in the conversation, so checking or sending in one
-shows in the other. With the same answer in several messages, the
-pane follows the newest one, even after an older one redraws.
+text. The thin rule after a title is drawn on the terminal only.
+`/topics` opens the last answer in a keyboard-driven pane (Tab, arrows,
+1–9 for the topics, a/f to open or close all); its items and its send
+button are the ones of that answer in the conversation, so checking or
+sending in one shows in the other. With the same answer in several
+messages, the pane follows the newest one, even after an older one
+redraws.
 
 A `## Pendências` topic (also written `## **Pendências**`,
 ``## `Pendências` `` or `## Pendências:`; the instruction puts it last,
@@ -46,23 +46,24 @@ Which database?
   instruction keeps destructive, hard to undo or outward-facing actions
   out of `(recomendo)`
 - indented lines below an item are its details (an indented fenced code
-  block is kept whole); the instruction asks for only what is specific to that
-  item, so the shared context is not repeated under every item
+  block is kept whole); the instruction asks for only what is specific
+  to that item, so the shared context is not repeated under every item.
+  A nested line written as an item (`  - [ ] B` under `- [ ] A`) is an
+  independent item, not a detail of A
 - `ver: <topic title>` becomes a button that opens that topic next to
   the item; the title is matched ignoring case, accents, backticks and
   bold or italic marks, the first matching topic winning, and with no
   match it stays as a plain detail. Only an item's first `ver:` counts;
   a later one stays as a detail. The instruction asks for it once per
-  decision, on the
-  first alternative of a group
+  decision, on the first alternative of a group
 - an item the answer wrote checked (`[x]`, `(x)`) starts unchecked, marked
   "sugerido" (not when it also has a stance): writing `[x]` never
   checks anything, though `(recomendo)` still does; the format
   instruction tells Claude that such an item coming back unchecked only
   means it was not checked
 - "enviar pendências" sends the list back as a message: the items as
-  checked on screen, each preceded by its question (the line of text
-  right before it) and no other loose text; it shows up once Claude
-  finishes answering
+  checked on screen, without their details, each preceded by its question
+  (the line of text right before it) and no other loose text; it shows up
+  once Claude finishes answering
 - the items do not change while Claude answers, or once the list was
   sent

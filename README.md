@@ -28,21 +28,23 @@ publish.
 npx --allow-git=root github:datalogix/claude-config#main
 ```
 
+Mods come from the GitHub marketplace `datalogix/claude-config`.
+
 `--allow-git=root` is required since npm 12, which refuses packages from
 git by default (`EALLOWGIT`); older npm versions ignore it.
 
-It asks which mods to install, all selected by default, and the options
-of each mod (`userConfig`). Only the options you change from the default
-are stored, so the others follow the mod's default when it changes; see
+This runs the default command, `install`. It asks which mods to install,
+all selected by default, and the options of each mod (`userConfig`).
+Only the options you change from the default are stored, so the others
+follow the mod's default when it changes; see
 [how options are stored](docs/development.md#how-options-are-stored).
-Without a terminal, it installs everything with the defaults. It is safe
-to run again:
+Without a terminal, it installs every mod and changes no option. It is
+safe to run again:
 
 - unselected mods that were installed are removed (they keep their data)
 - the marketplace and the mods already installed are updated, as with
   `update` (unless the marketplace was added from another source; see
   [Development](docs/development.md))
-- mods come from the GitHub marketplace `datalogix/claude-config`
 
 ## Update
 
@@ -54,11 +56,11 @@ npx --allow-git=root github:datalogix/claude-config#main update
 ```
 
 Mods have no `version`: each commit pushed to `main` is a new version,
-which `update` brings in. It updates what is already installed,
-without questions: the marketplace and the installed mods. New
-mods are not installed; run the install command again for them. If the
-install could not add the marketplace, `update` says the mods are not
-installed. Use `#main` so `npx` does not reuse an old copy.
+which `update` brings in. It updates what is already installed, without
+questions: the marketplace and the installed mods. New mods are not
+installed; run the install command again for them. If the install could
+not add the marketplace, `update` says the mods are not installed. Use
+`#main` so `npx` does not reuse an old copy.
 
 Run it with `--help` for usage. Unknown commands or flags (e.g.
 `update --link`) are errors; if any step fails, it ends with "Finished

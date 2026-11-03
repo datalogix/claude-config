@@ -30,10 +30,9 @@ check its skills.
   branch other than the default one, since it only reviews what the
   branch adds. The checked ones run in the same session: their
   reviewers are subagents that do not see the review's conversation.
-  Every finding is shown,
-  unfiltered, in one extra report, with the ones that repeat a refused
-  item or a project decision marked as such; `/code-review ultra` is
-  only mentioned, for you to run.
+  Every finding is shown, unfiltered, in one extra report, with the ones
+  that repeat a refused item or a project decision marked as such;
+  `/code-review ultra` is only mentioned, for you to run.
   - `SKILL.md` — the command itself
   - `types/` — rules per project type (`laravel-package`, `laravel-app`,
     `js-library`, `js-app`)
@@ -93,21 +92,20 @@ check its skills.
   -A`, and cancelling unstages what it staged. `grupos: <title>
   (<files>); ...` starts from a split you give. The preview also
   points out files that look generated (`dist/`, `vendor/`, minified
-  files), a commit that depends on an unchecked or later one, and one whose
-  content, split by hunk, was never tested. It warns about changes left
-  out of the commit, commits straight to
-  the default branch and parts of the diff that look sensitive, asks
-  whether to keep a branch name that ends in a date (`review/2026-11-01`),
-  suggesting a rename (`/datalogix:pr` and `/datalogix:review` ask too;
-  a branch already on the remote only gets a warning), and
-  suggests splitting a diff that mixes unrelated changes (not when a
-  staged file also has unstaged changes). A file with changes for
-  more than one commit is split by hunk (`git apply --cached`), never
-  touching the working tree. It adds an authorship trailer only when
-  the session's instructions ask for one, and shows it in the
-  preview. Only after confirmation does it run `git commit -F`, never
-  with `--amend` or `--no-verify`, and it never pushes. Run
-  `/datalogix:commit help` for details.
+  files), a commit that depends on an unchecked or later one, and one
+  whose content, split by hunk, was never tested. It warns about changes
+  left out of the commit, commits straight to the default branch and
+  parts of the diff that look sensitive, asks whether to keep a branch
+  name that ends in a date (`review/2026-11-01`), suggesting a rename
+  (`/datalogix:pr` and `/datalogix:review` ask too; a branch already on
+  the remote only gets a warning), and suggests splitting a diff that
+  mixes unrelated changes (not when a staged file also has unstaged
+  changes). A file with changes for more than one commit is split by
+  hunk (`git apply --cached`), never touching the working tree. It adds
+  an authorship trailer only when the session's instructions ask for
+  one, and shows it in the preview. Only after confirmation does it run
+  `git commit -F`, never with `--amend` or `--no-verify`, and it never
+  pushes. Run `/datalogix:commit help` for details.
 - `ci/` — `/datalogix:ci`: diagnoses the latest failed CI run of the
   current branch, of a pull request (`#<number>`) or a given run,
   looking first at the run of the current (or the pull request's head)
@@ -117,8 +115,8 @@ check its skills.
   classifies each failure as caused by the change, pre-existing, flaky
   or infrastructure. For failures the change caused in the code checks
   (Pint, PHPStan, Pest/PHPUnit, the `lint`, `test`, `typecheck` and
-  `build` scripts, `composer audit`) it proposes fixes, applies only the ones
-  you check and runs just what failed to validate them. Only if you
+  `build` scripts, `composer audit`) it proposes fixes, applies only the
+  ones you check and runs just what failed to validate them. Only if you
   check them does it reproduce a failure locally (when no log can be
   read) or rerun the failed jobs (`gh run rerun --failed`). It never
   commits, pushes or comments; on `claude/` branches,
@@ -137,9 +135,10 @@ add that line to `CLAUDE.md`. `/datalogix:review` does the same for
 the commits it suggests and keeps the result in the progress file.
 Conventional Commits types stay in English. The previews and questions
 of issue, pr, commit and ci end with a `## Pendências` list
-(`/datalogix:review` uses it only when `topics` is active), answered in
-place when the [topics](topics.md) mod is installed. Only the items
-checked when you send the list apply: an item a skill marks
+(`/datalogix:review` uses it for its reports only when `topics` is
+active, and always for the dated branch question and the commit flow),
+answered in place when the [topics](topics.md) mod is installed. Only
+the items checked when you send the list apply: an item a skill marks
 `(recomendo)` starts checked, so sending as is approves it, while an item
 a preview wrote checked is a suggestion, which `topics` shows unchecked,
 so leaving one alone never removes anything. `tests/skills.test.js`
@@ -155,5 +154,7 @@ alone. If `datalogix` could not be installed, they stay
 cannot be read or removed, the error is reported, the rest of the run
 goes on and it ends with "Finished with errors".
 
-To add a skill, create `mods/datalogix/skills/<name>/SKILL.md`; it needs
-no registration.
+To add a skill, create `mods/datalogix/skills/<name>/SKILL.md`; Claude
+Code needs no registration. `tests/skills.test.js` requires it to have
+items in code spans and the `` `## Pendências` `` title. List it here, in
+the README and in the `description` of this mod's `plugin.json`.

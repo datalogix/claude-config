@@ -72,23 +72,23 @@ Respostas às seções `## Pendências`, em todos os passos:
   - Sem nenhuma mudança (`git status --porcelain` vazio), diga e
     pare.
   - Senão, leia as mudanças (`git diff` e os arquivos novos de
-    `git status --porcelain -uall`; num diff grande, o `--stat` e
-    só o que importa) e agrupe-as em commits pelos critérios de
-    divisão do passo 3. Com `grupos:` nos argumentos, parta deles:
-    confira-os no diff, ponha num grupo a mais o que nenhum cobre e
-    deixe de fora o arquivo citado que não mudou, avisando acima da
-    lista. Pergunte "Quais commits fazer?", com um
+    `git -c core.quotePath=false status --porcelain -uall`; num diff
+    grande, o `--stat` e só o que importa) e agrupe-as em commits pelos
+    critérios de divisão do passo 3. Com `grupos:` nos argumentos,
+    parta deles: confira-os no diff, ponha num grupo a mais o que
+    nenhum cobre e deixe de fora o arquivo citado que não mudou,
+    avisando acima da lista. Pergunte "Quais commits fazer?", com um
     `- [ ] <título do commit>` por grupo, na ordem em que serão
-    feitos, todos desmarcados. Abaixo de cada um, os arquivos do
-    grupo (novos com "(novo)", apagados com "(apagado)") e, se um
-    arquivo for dividido entre grupos, o trecho que fica neste
+    feitos, todos desmarcados. Logo abaixo de cada um, indentados, os
+    arquivos do grupo (novos com "(novo)", apagados com "(apagado)") e,
+    se um arquivo for dividido entre grupos, o trecho que fica neste
     (função ou linhas). Os títulos são provisórios: escreva-os no
     idioma do item "Idioma" abaixo ou, se ele ainda vai perguntar,
     no idioma sugerido, e diga acima da lista que a mensagem final
     sai na prévia.
   - Depois dos grupos, `- [ ] Fazer tudo em um commit só` e `- [ ]
-    Escolher os arquivos um a um`, cada uma com o detalhe "ignora
-    os grupos". Com a segunda marcada, pergunte "Quais arquivos
+    Escolher os arquivos um a um`, cada uma com o detalhe indentado
+    "ignora os grupos". Com a segunda marcada, pergunte "Quais arquivos
     entram no commit?", com um `- [ ] <arquivo>` por arquivo, com
     as mesmas marcas, todos desmarcados. Com as duas marcadas,
     pergunte de novo só essas duas.
@@ -111,10 +111,10 @@ Depois da resposta:
   eles. Com "Fazer tudo em um commit só", rode `git add --` com os
   arquivos da leitura que gerou a pergunta, não de um status novo;
   a pergunta "Dividir o commit?" não aparece. Com grupos marcados,
-  os commits são esses grupos, na ordem listada, e nada vai para o stage antes
-  da confirmação (divisão, passo 4); a pergunta "Dividir o commit?"
-  não se repete. Nunca use `git add -A`, `git add .` nem `git
-  commit -a`.
+  os commits são esses grupos, na ordem listada, e nada vai para o
+  stage antes da confirmação (divisão, passo 4); a pergunta "Dividir
+  o commit?" não se repete. Nunca use `git add -A`, `git add .` nem
+  `git commit -a`.
 
 ## 2. Contexto
 - Leia o diff em stage (`git diff --cached`) ou, com grupos
@@ -216,8 +216,9 @@ novo. Nenhum commit é feito antes da confirmação explícita.
 
 Na divisão:
 - Antes do primeiro commit, se houver algo em stage, guarde a lista
-  (`git diff --cached --name-only --no-renames`, que traz os dois
-  lados de um arquivo renomeado) e tire todos do stage: `git
+  (`git -c core.quotePath=false diff --cached --name-only
+  --no-renames`, que traz os dois lados de um arquivo renomeado) e
+  tire todos do stage: `git
   restore --staged -- <arquivo> ...` ou, sem nenhum commit ainda,
   `git rm --cached -q -- <arquivo> ...`.
   Nunca use `git reset --hard` nem `git checkout`. Nenhum tem

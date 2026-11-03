@@ -35,8 +35,8 @@ check its skills.
   item or a project decision marked as such; `/code-review ultra` is
   only mentioned, for you to run.
   - `SKILL.md` — the command itself
-  - `types/` — rules per project type (`package`, `application`,
-    `library`, `web-app`)
+  - `types/` — rules per project type (`laravel-package`, `laravel-app`,
+    `js-library`, `js-app`)
   - `steps/` — one checklist per review step, plus extra checklists
     (`http`, `jobs`) applied in the `code` step; the JS types use
     `code-js` for their `code` step, Nuxt/Next applications also

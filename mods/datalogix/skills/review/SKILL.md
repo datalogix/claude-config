@@ -25,8 +25,9 @@ Argumentos: $ARGUMENTS
 - Uma etapa avulsa da revisão completa, pelo nome do arquivo em `steps/`
   (ex.: `git`, `ci`, `composer`, `npm`, `resources`, `frontend`,
   `install`, `pack`, `production`). Etapas de outro tipo de projeto
-  são recusadas com aviso. Nos tipos JS, `code` e `production` usam
-  `steps/code-js.md` e `steps/production-js.md`.
+  são recusadas com aviso. Nos tipos JS, `code` usa `steps/code-js.md`;
+  nas aplicações Nuxt/Next, `production` usa `steps/production-js.md`.
+  Esses dois arquivos não são nomes de etapa.
   `http` e `jobs` não são etapas: são checklists extras que a etapa
   `code` aplica nas pastas certas de uma aplicação. `docs` é sempre o
   modo; o passo 1 dele aplica `steps/docs.md`, o mesmo checklist da
@@ -37,9 +38,9 @@ Argumentos: $ARGUMENTS
 ## 1. Arquivos de apoio
 Ficam na pasta desta skill (`${CLAUDE_SKILL_DIR}`).
 Caminhos abaixo são relativos a ela; passe-os absolutos aos subagentes.
-- `types/package.md` / `types/application.md` / `types/library.md` /
-  `types/web-app.md`: regras do tipo de projeto. Leia SÓ o do tipo
-  detectado, uma vez por sessão.
+- `types/laravel-package.md` / `types/laravel-app.md` /
+  `types/js-library.md` / `types/js-app.md`: regras do tipo de projeto.
+  Leia SÓ o do tipo detectado, uma vez por sessão.
 - `steps/<etapa>.md`: checklist de cada etapa. Leia só a etapa da vez.
 - `modes/<modo>.md`: instruções de cada modo. Leia só o modo pedido.
 - `templates/LICENSE`: modelo de licença dos pacotes (etapa `composer`).
@@ -54,13 +55,13 @@ Se o "Perfil do projeto" no progresso não existir, ou se `composer.json`
 ou `package.json` mudou desde o commit registrado nele, ou surgiram
 skills ou tags novas, descubra e registre:
 - **Tipo**:
-  - pacote Laravel (`types/package.md`): tem `extra.laravel` no
+  - pacote Laravel (`types/laravel-package.md`): tem `extra.laravel` no
     composer.json, ou `type: library`
-  - aplicação Laravel (`types/application.md`): tem `artisan` e
+  - aplicação Laravel (`types/laravel-app.md`): tem `artisan` e
     `bootstrap/app.php`
-  - aplicação Nuxt/Next (`types/web-app.md`): tem `nuxt.config.*` ou
+  - aplicação Nuxt/Next (`types/js-app.md`): tem `nuxt.config.*` ou
     `next.config.*` na raiz, sem `composer.json`
-  - lib JS/TS (`types/library.md`): tem `package.json`, sem
+  - lib JS/TS (`types/js-library.md`): tem `package.json`, sem
     `composer.json` nem config de Nuxt/Next, com `exports`, `main`,
     `module` ou `bin`, e sem `private: true`, ou com ele e instalada
     por git (`npx github:...` no README)

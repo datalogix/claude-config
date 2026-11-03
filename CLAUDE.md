@@ -178,9 +178,10 @@ node bin/cli.js install --link            # install from this clone: edits apply
   - `SKILL.md` drives the flow. It makes the commits the user checks at the end of a step by reading and following
     `../commit/SKILL.md` from its step 2 (commit has `disable-model-invocation` too), with the checked commits as
     step 1's groups: renumbering the commit skill's steps breaks that reference.
-  - `types/` holds the rules per project type, including the step order: `package` and `application` (Laravel),
-    `library` (JS/TS) and `web-app` (Nuxt and Next in one type, with a section per framework where they differ).
-    The JS types reuse the shared steps, which have sections for them, and add `code-js`, `production-js` and `pack`.
+  - `types/` holds the rules per project type, including the step order: `laravel-package` and `laravel-app`,
+    `js-library` and `js-app` (Nuxt and Next in one type, with a section per framework where they differ).
+    The JS types reuse the shared steps, which have sections for them, and use `code-js`; `js-app` adds `production-js`
+    and `js-library` adds `pack`.
     Their `ci` step reviews the project's own workflows, since `datalogix/workflows` has no JS stack yet.
   - `steps/` has one checklist per step; `http` and `jobs` are extra checklists that the `code` step applies.
   - `modes/` holds the focus modes.

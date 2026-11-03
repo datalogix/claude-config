@@ -22,7 +22,7 @@
   },
   "repository": "github:datalogix/claude-config",
   "dependencies": {
-    "@clack/prompts": "^1.8.1"
+    "@clack/prompts": "1.8.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

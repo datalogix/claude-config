@@ -131,7 +131,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
   test('fails the run when claude --version hangs, instead of calling it not installed', () => {
     fakeClaude({ '--version': 'exec /bin/sleep 10' })
 
-    const { status, output } = runCli(['install'], CLI, { CLAUDE_CONFIG_TIMEOUT_MS: '500' })
+    const { status, output } = runCli(['install'], CLI, { DATALOGIX_CLAUDE_TIMEOUT_MS: '500' })
 
     assert.equal(status, 1, output)
     assert.match(output, /mods skipped: claude --version timed out after 0\.5s/)
@@ -297,7 +297,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
 
     assert.equal(status, 0, output)
     assert.match(output, /; not updated/)
-    assert.match(output, new RegExp(`ok: ${PLAIN_MOD}\\n`))
+    assert.match(output, new RegExp(`unchanged: ${PLAIN_MOD}\\n`))
     const calls = claudeCalls()
     assert.ok(!calls.includes('plugin marketplace update claude-config'))
     assert.ok(!calls.some((call) => call.startsWith('plugin update ')))
@@ -477,7 +477,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.match(output, new RegExp(`updated: ${PLAIN_MOD}\\n`))
     // The fake update prints no versions, which counts as a change.
     assert.match(output, /reload-plugins/)
-    assert.doesNotMatch(output, /ok: /)
+    assert.doesNotMatch(output, /unchanged: /)
     const calls = claudeCalls()
     assert.ok(calls.includes('plugin marketplace update claude-config'))
     assert.ok(calls.includes(`plugin update ${PLAIN_MOD}@claude-config --json`))

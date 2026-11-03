@@ -17,7 +17,7 @@ const SKILLS_DIR = path.join(CLAUDE_DIR, 'skills')
 const SETTINGS_FILE = path.join(process.env.CLAUDE_CONFIG_DIR || CLAUDE_DIR, 'settings.json')
 
 /** A claude call that hangs (network, a git waiting for input) fails after this; tests lower it. */
-const CLAUDE_TIMEOUT_MS = Number(process.env.CLAUDE_CONFIG_TIMEOUT_MS) || 120_000
+const CLAUDE_TIMEOUT_MS = Number(process.env.DATALOGIX_CLAUDE_TIMEOUT_MS) || 120_000
 
 /** Written by earlier versions into each copied skill: only those are removed. */
 const MARKER_FILE = '.claude-config'
@@ -615,7 +615,7 @@ async function syncMod(mod, installedIds, { isSelected, canInstall, canUpdate })
   if (isInstalled && !hasChanges) {
     // Without an update nothing else names it; a skipped one already has its error.
     if (!canUpdate && !hasReadFailed) {
-      p.log.info(`ok: ${mod.name}`)
+      p.log.info(`unchanged: ${mod.name}`)
     }
     return
   }

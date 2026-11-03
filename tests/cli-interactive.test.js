@@ -266,7 +266,7 @@ describe('prompts', { skip: process.platform === 'win32' }, () => {
 
     assert.equal(status, 0, output)
     assert.ok(!claudeCalls().some((call) => call.endsWith('--values-stdin')))
-    assert.doesNotMatch(output, /configured: status|ok: status/)
+    assert.doesNotMatch(output, /configured: status|unchanged: status/)
   })
 
   test('asks for /reload-plugins when storing the options is the only change', async () => {
@@ -284,7 +284,7 @@ describe('prompts', { skip: process.platform === 'win32' }, () => {
     assert.match(output, /and \/reload-plugins/)
   })
 
-  test('names an unchanged mod with ok when it was not updated', async () => {
+  test('names an unchanged mod when it was not updated', async () => {
     fakeClaude({
       'plugin list --json': installedMods('status'),
       'plugin marketplace list --json': `echo '[{"name":"claude-config","path":"${tmpDir}"}]'`,
@@ -294,7 +294,7 @@ describe('prompts', { skip: process.platform === 'win32' }, () => {
     const { status, output } = await runInteractive([['status'], ...STATUS_DEFAULT_ANSWERS])
 
     assert.equal(status, 0, output)
-    assert.match(output, /ok: status/)
+    assert.match(output, /unchanged: status/)
   })
 
   test('starts each question from the configured value, else from the default in this checkout', async () => {
@@ -493,7 +493,7 @@ describe('prompts', { skip: process.platform === 'win32' }, () => {
     assert.ok(!claudeCalls().some((call) => call.endsWith('--values-stdin')))
   })
 
-  test('does not name a mod with ok when its options cannot be read and it was not updated', async () => {
+  test('does not name a mod unchanged when its options cannot be read and it was not updated', async () => {
     fakeClaude({
       'plugin list --json': installedMods('status'),
       'plugin marketplace list --json': `echo '[{"name":"claude-config","path":"${tmpDir}"}]'`,
@@ -504,7 +504,7 @@ describe('prompts', { skip: process.platform === 'win32' }, () => {
 
     assert.equal(status, 1, output)
     assert.match(output, /could not read its options \(skipped configuring\)/)
-    assert.doesNotMatch(output, /ok: status/)
+    assert.doesNotMatch(output, /unchanged: status/)
   })
 
   test('asks for /reload-plugins when an uninstall is the only change', async () => {

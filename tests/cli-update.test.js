@@ -381,7 +381,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
       'plugin marketplace update claude-config': 'exec /bin/sleep 10',
     })
 
-    const { status, output } = runCli(['update'], CLI, { CLAUDE_CONFIG_TIMEOUT_MS: '3000' })
+    const { status, output } = runCli(['update'], CLI, { DATALOGIX_CLAUDE_TIMEOUT_MS: '3000' })
 
     assert.equal(status, 1, output)
     assert.match(output, /marketplace: timed out after 3s/)

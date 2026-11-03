@@ -934,7 +934,8 @@ describe('sending the items', () => {
     ])
   })
 
-  // Runs between the drawing and the button's own press handler, as an answer landing right before the press would.
+  // Runs between the drawing and the button's own press handler, as a turn starting or an answer landing right before
+  // the press would.
   const interceptPress = (on: On) => {
     const between: { run?: () => Promise<unknown> } = {}
     on('ui.press', async (_$, e, next) => {

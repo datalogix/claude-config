@@ -8,7 +8,7 @@ declare module 'claude-code' {
       /** null until the user changes one, meaning the `(recomendo)` items; `[x]` written in the answer never counts */
       checkedItems: StateFamily<number[] | null>
       isSent: StateFamily<boolean>
-      /** Main turn only (agent turns don't count); sending waits for complete items */
+      /** Main turn only (agent turns don't count); items may be half written, so checking and sending are off */
       isAnswering: boolean
       /** Key of the focused element in the /topics pane, to draw the ❯ */
       focusedKey: string

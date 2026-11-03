@@ -406,7 +406,7 @@ export const register: Register = (on) => {
     const { Box, Button, Markdown, Text } = els
     const answer = await read($, lastAnswerAtom)
     const { intro, topics, actions } = parseMessage(PANE_ID, answer)
-    // A new answer may land between this drawing and a press of its send button.
+    // A new answer may land between this drawing and a press of one of its items or its send button.
     const isCurrent = async () => (await read($, lastAnswerAtom)) === answer
 
     if (topics.length === 0 && !actions) {
@@ -447,7 +447,7 @@ export const register: Register = (on) => {
   })
 }
 
-/** `isCurrent` turns false once the pane got a new answer: sending then does nothing. */
+/** `isCurrent` turns false once the pane got a new answer: checking and sending then do nothing. */
 const actionsStateOf = async (
   $: EngineInterface,
   actions: Actions,

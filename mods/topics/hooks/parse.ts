@@ -1,7 +1,7 @@
 export type Topic = { title: string; body: string }
 export type ActionItem = {
   text: string
-  /** Written checked (`[x]`, `(x)`): only a suggestion, the item still starts unchecked. */
+  /** Written checked (`[x]`, `(x)`): only a suggestion, the mark checks nothing; `(recomendo)` still does. */
   isSuggested: boolean
   /** Written `- ( )`: an exclusive alternative of the `( )` items next to it. */
   isRadio: boolean
@@ -219,7 +219,10 @@ export const alternativesOf = (actions: Actions, i: number): number[] => {
   return group
 }
 
-/** What starts checked: the items written `(recomendo)`, and in a radio group only the first of them. */
+/**
+ * What starts checked: the items written `(recomendo)`, and in a radio group only the first of them. `isSuggested`
+ * plays no part: sending a suggested item as checked would be an approval never given.
+ */
 export const defaultChecked = (actions: Actions): number[] => {
   const checked: number[] = []
   actions.items.forEach((item, i) => {
@@ -230,7 +233,6 @@ export const defaultChecked = (actions: Actions): number[] => {
   return checked
 }
 
-/** `isSuggested` plays no part: sending a suggested item as checked would be an approval never given. */
 export const toggleChecked = (actions: Actions, checked: readonly number[], i: number): number[] => {
   const after = toggle(checked, i)
   if (!after.includes(i)) return after

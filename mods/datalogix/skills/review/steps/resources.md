@@ -7,7 +7,7 @@ Nomenclatura, documentação no código e docblocks: mesmas regras de
 ## config/
 - toda chave usada no código existe no config, e toda chave dos
   arquivos de config próprios do projeto/pacote é usada (busque
-  `config(`, `Config::get`); arquivos padrão do Laravel ficam fora
+  `config(`, `Config::`); arquivos padrão do Laravel ficam fora
 - `env()` só dentro de `config/`; nunca no código (quebra com
   `config:cache`)
 - padrões seguros (expirações curtas, recursos sensíveis desligados)

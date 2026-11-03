@@ -1,10 +1,13 @@
 # Etapa: production (só aplicações) — configuração de produção
 
 ## Ambiente
-- `.env.example` com todas as chaves lidas via `env()` no config, com
-  valores de exemplo e nenhum segredo real
-- padrões seguros: `APP_DEBUG=false` e `APP_ENV=production` como
-  referência de produção documentada
+- `.env.example` com as chaves lidas via `env()` nos arquivos de config
+  próprios do projeto e as que ele acrescentou aos padrões do Laravel,
+  com valores de exemplo e nenhum segredo real; opções padrão sem uso
+  no projeto (`AWS_ENDPOINT`, `DB_SOCKET`) não precisam estar lá
+- `APP_DEBUG=false` e `APP_ENV=production` documentados como referência
+  de produção; o `.env.example` pode trazer `local` e `true`, como o do
+  Laravel
 - nenhum segredo no código ou versionado
 
 ## Segurança
@@ -18,10 +21,19 @@
   teste) desligadas ou protegidas em produção
 
 ## Caches e deploy
-Se já houver caches em `bootstrap/cache`, avise antes. Rode e depois
-limpe (`php artisan optimize:clear`); no `report`, pule:
+Se já houver caches do Laravel em `bootstrap/cache` (`config.php`,
+`events.php`, `routes-*.php`; `packages.php` e `services.php` são
+normais), avise e espere minha resposta: a limpeza os apaga. Rode os
+comandos abaixo e depois limpe com `php artisan config:clear`,
+`route:clear`, `event:clear` e `view:clear`, mesmo se um deles falhar
+e antes de qualquer teste: com a config em cache, a suíte ignora o
+`phpunit.xml` e pode usar o banco do `.env`. Não use `optimize:clear`:
+ele também roda `cache:clear` e apaga o cache da aplicação. No
+`report`, pule:
 - `php artisan config:cache`; ele não acusa `env()` fora de `config/`
-  (com cache, retorna `null`): procure `env(` fora de `config/`
+  (com cache, retorna `null`): procure a chamada `env(` em `app/`,
+  `routes/`, `database/` e `resources/`, sem contar `getenv(` e
+  `putenv(`
 - `php artisan route:cache` (falha com nomes de rota duplicados)
 - `php artisan view:cache` e `php artisan event:cache`
 

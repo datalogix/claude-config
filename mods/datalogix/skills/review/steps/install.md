@@ -15,23 +15,25 @@ pegam isso.
   variável não passa para a seguinte e o `HEAD` entraria sem aviso),
   `ref=$(git stash create); git archive --worktree-attributes
   --format=tar "${ref:-HEAD}" | tar -x -C <sandbox>/package`. Inclui
-  mudanças não commitadas em
-  arquivos versionados (com árvore limpa, `git stash create` não
-  imprime nada e o `HEAD` é usado). Arquivos novos ainda não
-  adicionados ao git NÃO entram: se houver (`git status --porcelain`
-  com `??`), avise.
+  mudanças não commitadas em arquivos versionados (com árvore limpa,
+  `git stash create` não imprime nada e o `HEAD` é usado). Arquivos
+  novos ainda não adicionados ao git NÃO entram: se houver
+  (`git status --porcelain` com `??`), avise.
 - Aplicação limpa com a versão mais recente do Laravel suportada pelo
   pacote:
-  `composer create-project laravel/laravel <sandbox>/app "<versão>"`
-  com SQLite. Se não houver rede ou falhar, pare e me avise.
+  `composer create-project laravel/laravel <sandbox>/app "<versão>"`;
+  confira `DB_CONNECTION=sqlite` no `.env` dela. Se não houver rede ou
+  falhar, pare e me avise.
 - No `composer.json` da app, um repositório `path` com
   `"url": "../package"` e `"options": {"symlink": false}`.
 
 ## Seguir o README à risca
 Execute exatamente o que o README manda, na ordem, sem completar nada
-de cabeça:
-1. `composer require <pacote>` (com `@dev` se for necessário pelo
-   repositório local; anote isso, não é falha do pacote)
+de cabeça, tudo com `cd <sandbox>/app && ...` na mesma chamada: na raiz
+do projeto, um `composer require` do README alteraria o `composer.json`
+do pacote.
+1. `composer require <pacote>` (ou `composer require "<pacote>:@dev"`,
+   se o repositório local exigir; anote isso, não é falha do pacote)
 2. publicações, migrations, configuração e qualquer passo descrito
 3. o exemplo de uso rápido: transforme-o numa rota, comando ou teste
    na app e execute
@@ -46,6 +48,12 @@ de cabeça:
    - nada de `tests/`, `docs/` ou arquivos de desenvolvimento dentro de
      `vendor/<pacote>`
 
+Passo do README que altere algo fora de `<sandbox>` (`composer global`,
+`npm i -g`, arquivo em `~`, serviço externo, banco que não seja o
+SQLite da app): não execute; anote e confira só o texto. Credencial
+que o README peça: use um valor falso no `.env` da app; nunca copie o
+`.env` do projeto.
+
 ## Relatório
 Cada problema vira item no formato normal: README errado ou incompleto,
 passo que falha, tag de publicação faltando, incompatível com cache,
@@ -54,7 +62,8 @@ As correções são feitas no pacote (ou no README), nunca na sandbox.
 
 ## Ao aplicar
 Depois das correções aprovadas e da verificação completa do pacote,
-refaça a instalação do zero na sandbox para confirmar. Se eu pedir,
+apague `<sandbox>/package` e `<sandbox>/app`, sem perguntar (são desta
+sessão), e refaça a instalação do zero para confirmar. Se eu pedir,
 repita com a versão MÍNIMA do Laravel suportada.
 
 A sandbox é apagada quando eu disser "próxima" ou, na etapa avulsa,

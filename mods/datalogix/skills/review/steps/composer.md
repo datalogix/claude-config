@@ -61,9 +61,12 @@ Rode, quando disponíveis: `composer validate --strict`,
   aplicado só se eu aprovar.
 - **Blade**: com views Blade, o Pint também as formata (versão 1.30+,
   com `--blade` ou a regra `Pint/laravel_blade` num `pint.json` já
-  existente). Pint mais antigo ou script sem `--blade` é item
-  "importante". Precisa de Node; na primeira execução o Pint pede para
-  instalar as dependências do Prettier: só aceite com minha aprovação.
+  existente). Pint mais antigo, ou script sem `--blade` e sem essa regra
+  no `pint.json`, é item "importante". Precisa de Node e das
+  dependências do Prettier. Sem terminal, o Pint não pergunta: termina
+  com erro e cita os pacotes que faltam. Isso não é falha de formatação:
+  mostre os pacotes e instale-os só se eu aprovar, pelo gerenciador do
+  projeto, como dependência de desenvolvimento.
 - **Ferramentas ausentes**: se faltar PHPStan/Larastan ou Rector,
   sugira (severidade "sugestão") com o motivo, sem instalar.
 

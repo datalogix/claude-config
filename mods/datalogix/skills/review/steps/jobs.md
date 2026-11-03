@@ -8,13 +8,15 @@ recebe este checklist na etapa `resources`, pasta `routes/`.
 ## Jobs
 - idempotentes: rodar duas vezes não duplica efeito (cobrança, e-mail)
 - `tries`, `timeout`, `backoff` (e `maxExceptions`/`retryUntil` quando
-  fizer sentido) definidos, com `timeout` menor que o `retry_after` da
+  fizer sentido) definidos no job (propriedade ou, no Laravel 13,
+  atributo como `#[Tries]`) ou no worker (`--tries`, `--timeout`,
+  config do Horizon), com `timeout` menor que o `retry_after` da
   conexão
 - `ShouldBeUnique` ou middleware `WithoutOverlapping` quando duas
   execuções simultâneas causam problema
 - método `failed()` quando a falha precisa de tratamento ou aviso
 - `SerializesModels` com model que pode ser apagado:
-  `deleteWhenMissingModels`
+  `deleteWhenMissingModels` (propriedade ou atributo)
 - payload pequeno: IDs ou models, não coleções enormes ou arquivos
 - disparo depois do commit (`afterCommit`) quando depende de dados
   recém-gravados
@@ -29,7 +31,7 @@ recebe este checklist na etapa `resources`, pasta `routes/`.
 - eventos com dados suficientes, sem objetos pesados
 
 ## Notificações e e-mails
-- enfileirados (`ShouldQueue`)
+- enfileirados (`ShouldQueue` ou `Mail::to(...)->queue(...)`)
 - sem dados sensíveis no conteúdo além do necessário
 
 ## Comandos e agendamento

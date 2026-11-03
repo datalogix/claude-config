@@ -68,7 +68,9 @@ As correções são feitas na lib (ou no README), nunca na sandbox.
 
 ## Ao aplicar
 Depois das correções aprovadas e da verificação completa da lib,
-refaça o pack e a instalação do zero na sandbox para confirmar.
+apague `<sandbox>/app` e o `.tgz` em `<sandbox>`, se houver, sem
+perguntar (são desta sessão), e refaça o pack e a instalação do zero
+para confirmar.
 Na lib instalada por git, confirme só depois dos commits das correções,
 com o novo `#<commit>`; sem commit, diga que a correção não foi
 confirmada.

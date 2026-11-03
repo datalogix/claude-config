@@ -221,7 +221,8 @@ leem os arquivos e o progresso (`reset` calcula o `<id>` da seção
 - **Verificação PHP**: suíte PHP e ferramentas PHP existentes (Pint em
   modo `--test`, com `--blade` se houver views Blade e o Pint for 1.30+,
   a menos que o `pint.json` já ative `Pint/laravel_blade`). Roda em todo
-  passo.
+  passo. Se o Pint acusar dependências do Prettier faltando, siga o item
+  "Blade" de `steps/composer.md`.
 - **Verificação front-end** (só se houver front-end): dependências pelo
   lockfile se faltar `node_modules` (ex.: `npm ci`), e os scripts
   existentes de testes JS/TS, `typecheck`/`tsc --noEmit`, lint (ESLint,
@@ -267,14 +268,15 @@ modo.
    a conversa. Passe a ele: os caminhos absolutos do arquivo da
    etapa/modo, dos que ele citar para o passo (no modo `docs`,
    `steps/docs.md` e `steps/code.md`; na etapa `code`, `steps/http.md`
-   e `steps/jobs.md`) e do arquivo do tipo (para ler), os `SKILL.md`
-   mapeados para a etapa, a lista de arquivos do passo (e, se for
-   parte, os nomes dos arquivos das outras partes da pasta), o perfil,
-   as "Decisões do projeto", as seções 6 (formato) e 7 (perguntas:
-   decidir antes de perguntar) deste arquivo, e a regra de idioma
-   (seção 11) com o que o `CLAUDE.md` disser sobre idioma; na etapa
-   `docs` e no passo 1 do modo `docs`, também a lista "Mudanças para
-   documentar". Ele devolve só o relatório.
+   e `steps/jobs.md`; na etapa `resources`, `steps/code.md` e, numa
+   aplicação, `steps/http.md` e `steps/jobs.md`) e do arquivo do tipo
+   (para ler), os `SKILL.md` mapeados para a etapa, a lista de arquivos
+   do passo (e, se for parte, os nomes dos arquivos das outras partes
+   da pasta), o perfil, as "Decisões do projeto", as seções 6 (formato)
+   e 7 (perguntas: decidir antes de perguntar) deste arquivo, e a regra
+   de idioma (seção 11) com o que o `CLAUDE.md` disser sobre idioma; na
+   etapa `docs` e no passo 1 do modo `docs`, também a lista "Mudanças
+   para documentar". Ele devolve só o relatório.
    Antes de mostrar, confira o relatório: descarte itens que repetem
    uma "Decisão do projeto", que já foram recusados antes, ou cujo
    trecho citado não existe no arquivo; transforme em item as perguntas

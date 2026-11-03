@@ -3,6 +3,8 @@
 Leia todos os arquivos do passo e analise. Numa aplicação, aplique
 também os checklists extras que o arquivo do tipo indica para a pasta:
 `http.md` e `jobs.md` (nesta mesma pasta).
+Num pacote, publicação no service provider (tags, caminhos) fica para
+a etapa `resources`.
 
 - **Bugs e casos de borda**: null, coleções vazias, tipos, timezone.
 - **Segurança**: validação de entrada, autorização, mass assignment,
@@ -27,9 +29,10 @@ Classes, métodos, propriedades, parâmetros e variáveis:
 - convenções do Laravel: camelCase em métodos e propriedades de classe;
   atributos de model seguem as colunas (snake_case); chaves de config
   e eventos no padrão já usado no projeto
-- renomear algo que é API pública (definição no arquivo do tipo): marque
-  "Quebra a API pública: sim" e siga as regras de estágio do tipo
-  (alias `@deprecated` ou renomeação direta)
+- renomear algo que é API pública (definição no arquivo do tipo): diga
+  "sim" em "quebra API pública?" no Impacto e siga as regras de estágio
+  do tipo (alias `@deprecated`, renomeação direta ou plano de
+  compatibilidade)
 
 ## Documentação no código (só o realmente necessário)
 - documente apenas as partes importantes: regra de negócio não óbvia,

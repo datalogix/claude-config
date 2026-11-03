@@ -23,12 +23,13 @@ Aplicado junto com `code.md` (nesta mesma pasta) em `app/Http`,
 - limites em paginação e listas (`per_page` máximo)
 
 ## Models
-- `$fillable` ou `$guarded` definidos; sem `forceFill`/`unguard` com
-  dado do usuário
-- `$hidden` para senhas, tokens e segredos; `casts` corretos (datas,
-  enums, `encrypted`, `hashed`)
+- `$fillable` ou `$guarded` definidos (ou os atributos `#[Fillable]` e
+  `#[Guarded]`, no Laravel 13); sem `forceFill`/`unguard` com dado do
+  usuário
+- `$hidden` (ou `#[Hidden]`) para senhas, tokens e segredos; `casts`
+  corretos (datas, enums, `encrypted`, `hashed`)
 - relacionamentos com tipo de retorno; scopes nomeados
-- eventos de model com efeitos colaterais escondidos
+- sem eventos de model com efeitos colaterais escondidos
 
 ## Policies
 - uma por recurso, cobrindo todas as ações usadas
@@ -44,7 +45,13 @@ Aplicado junto com `code.md` (nesta mesma pasta) em `app/Http`,
 - ordem e grupos corretos; exceções de CSRF justificadas
 - `throttle` nas ações sensíveis
 
+## Livewire
+- métodos públicos com autorização e validação próprias: o navegador
+  pode chamar qualquer um
+- propriedades públicas que o navegador não pode alterar com `#[Locked]`
+
 ## Testes
-Feature test por rota: sucesso, validação (422), sem autenticação (401
-ou redirect) e sem permissão (403). Testes de policy para regras não
-triviais.
+Feature test por rota, nos casos que se aplicam a ela: sucesso,
+validação (422 em JSON; redirect com erros na sessão em formulário
+web), sem autenticação (401 ou redirect) e sem permissão (403). Testes
+de policy para regras não triviais.

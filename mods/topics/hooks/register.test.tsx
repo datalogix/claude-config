@@ -425,6 +425,16 @@ describe('previewOf', () => {
     expect(previewOf('_ênfase_ e __forte__')).toBe('ênfase e forte')
   })
 
+  test('keeps globs, paths and names outside a code span', () => {
+    expect(previewOf('Apagar src/*.ts e lib/*.ts')).toBe('Apagar src/*.ts e lib/*.ts')
+    expect(previewOf('Ver *.md e *.txt')).toBe('Ver *.md e *.txt')
+    expect(previewOf('Ver src/**/foo e **/bar')).toBe('Ver src/**/foo e **/bar')
+    expect(previewOf('Ler $_ENV e $_POST')).toBe('Ler $_ENV e $_POST')
+    expect(previewOf('Apagar _cache/ e _tmp/')).toBe('Apagar _cache/ e _tmp/')
+    expect(previewOf('Editar __init__.py e __tests__/a')).toBe('Editar __init__.py e __tests__/a')
+    expect(previewOf('Usar **isto**. E _aquilo_.')).toBe('Usar isto. E aquilo.')
+  })
+
   test('keeps what a code span holds as written', () => {
     expect(previewOf('Edite `__init__.py` e rode')).toBe('Edite __init__.py e rode')
     expect(previewOf('Use `src/*.ts` e `lib/*.js` no glob')).toBe('Use src/*.ts e lib/*.js no glob')

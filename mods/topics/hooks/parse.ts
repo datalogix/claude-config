@@ -78,9 +78,9 @@ export const plainText = (t: string) => {
         (_, _ticks, code: string) => `${CODE_MARK}${spans.push(code) - 1}${CODE_MARK}`,
       )
       .replace(/`/g, '')
-      // Emphasis pairs only: a lone * (2 * 3), globs (src/*.ts) and underscores inside words (user_id) stay.
-      .replace(/(?<![\p{L}\p{N}*])(\*{1,3})(?=[^\s*])(.+?)(?<=[^\s*])\1(?![\p{L}\p{N}*])/gu, '$2')
-      .replace(/(?<![\p{L}\p{N}])_+|_+(?![\p{L}\p{N}])/gu, '')
+      // Emphasis pairs only: a lone * (2 * 3), globs (src/*.ts, *.md), paths (__init__.py) and $_ENV stay.
+      .replace(/(?<![\p{L}\p{N}*/.])(\*{1,3})(?=[^\s*/.])(.+?)(?<=[^\s*])\1(?![\p{L}\p{N}*/]|\.[\p{L}\p{N}])/gu, '$2')
+      .replace(/(?<![\p{L}\p{N}_/.])(_{1,3})(?=[^\s_/.])(.+?)(?<=[^\s_])\1(?![\p{L}\p{N}_/]|\.[\p{L}\p{N}])/gu, '$2')
       .replace(new RegExp(`${CODE_MARK}(\\d+)${CODE_MARK}`, 'g'), (_, i: string) => spans[Number(i)]!)
   )
 }

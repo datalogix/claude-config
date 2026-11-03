@@ -1238,7 +1238,7 @@ test('after Esc it still sends a notice when the background agents finish', asyn
 
   agents.length = 0
   await $.turn.complete(turnComplete(30_000, { agentId: 'bg', turnId: 't2' }))
-  expect(lastStatus()).toBe('✅ tudo pronto')
+  expect(lastStatus()).toBe('⏹️ interrompido após 10s')
   expect(notifications).toEqual(['✅ Os agentes em segundo plano terminaram'])
 })
 

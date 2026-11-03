@@ -29,7 +29,7 @@ running when a new prompt starts stay in the count; the ended ones leave it.
 
 While agents or workflows run in the background, the status line shows
 them and no "pronto": an answer that succeeded is only reported again
-once they end. A failed or interrupted answer stays next to them. The
+once they end. A failed or interrupted answer stays next to them and after they end. The
 final notice for background agents goes out when the last one ends,
 saying how many workflows still run; a workflow's own end comes back as
 a new answer from Claude. An agent held on its own background work still

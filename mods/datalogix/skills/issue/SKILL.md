@@ -192,6 +192,9 @@ O que corrigir e onde.
   alternativa; uma pergunta aberta fica como texto na seção, para o
   usuário responder em texto. A pergunta de idioma do passo 2 entra
   nessa mesma seção.
+  Pergunta aberta sem resposta: o assunto dela vai para "Dúvidas em
+  aberto" (ou a seção equivalente do template), sem inventar nada,
+  e a prévia diz isso.
 - Nenhuma informação da descrição se perde: o que não couber nas
   seções vai para "Contexto" (ou a seção equivalente do template).
   Preserve a informação, não a redação: corrija ortografia e
@@ -286,10 +289,10 @@ Todo label escolhido que não existe no destino aparece com
 "(novo)"; `claude` e `claude-plan`, se não existirem, já vêm na
 lista como `claude (novo)` e `claude-plan (novo)`. Compare os nomes
 sem diferenciar maiúsculas, como o GitHub: se o usuário escrever
-`bug` e o destino tiver `Bug`, use `Bug`, sem "(novo)". Ao dividir, as escolhas valem para todas as
-partes, menos `rollback`, que vai só na principal para reverter o
-ambiente uma única vez. A principal recebe só os labels, sem
-`claude` nem `claude-plan`.
+`bug` e o destino tiver `Bug`, use `Bug`, sem "(novo)". Ao dividir,
+as escolhas valem para todas as partes, menos `rollback`, que vai
+só na principal para reverter o ambiente uma única vez. A principal
+recebe só os labels, sem `claude` nem `claude-plan`.
 
 Com "cancelar" marcado, pare sem enviar nada; com "comentar na
 #<número>", siga para o comentário (abaixo). O usuário também pode
@@ -305,8 +308,11 @@ escreva só o que a descrição acrescenta a ela: o caso novo, o
 contexto ou os critérios de aceite que faltam. Não repita o que a
 issue e os comentários já dizem, nem as seções da estrutura do
 passo 3. Se a descrição não acrescentar nada, diga isso e sugira
-cancelar. Mostre o comentário como prévia e espere outra
-confirmação. Se o usuário marcou labels, `claude` ou `claude-plan`,
+cancelar. Mostre o comentário como prévia e termine com uma seção
+`## Pendências`: "O que fazer?", com `- ( ) Confirmar e comentar`
+e `- ( ) Cancelar`. Com "Cancelar", pare sem enviar nada; sem
+resposta, ou a cada ajuste em texto, mostre essa prévia de novo.
+Se o usuário marcou labels, `claude` ou `claude-plan`,
 avise nessa prévia que eles não serão aplicados: comentar não muda
 os labels da issue. Numa issue fechada, avise que o comentário não
 a reabre.

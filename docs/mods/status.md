@@ -33,7 +33,8 @@ counts as running, so no "finished" notice goes out until it really ends.
 A plan window whose reset time has passed leaves the status line
 until the next answer from the API brings the new window; a window
 that hit the limit sends a notice when it resets. `/clear` and resuming a
-session clear the previous answer's outcome from the status line.
+session clear the previous answer's outcome and workflows from the status
+line, and no "finished" notice goes out for the agents already waited on.
 
 An empty `minSeconds` or `planAlert` takes its default; a non-numeric
 one keeps the mod from loading. A `notify` outside its options counts

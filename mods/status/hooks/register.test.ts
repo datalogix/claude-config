@@ -908,6 +908,39 @@ for (const reason of ['clear', 'resume']) {
   })
 }
 
+for (const reason of ['clear', 'resume']) {
+  test(`a session ended by ${reason} drops the workflows of the previous one`, async ($, on) => {
+    const { lastStatus } = setup(on)
+    stopHook(on)
+    on('session.end', (_$, e) => ({ sessionId: e.sessionId }) as never)
+
+    await $.turn.start({ text: 'oi', turnId: 't1' })
+    await $.turn.complete(turnComplete(5_000))
+    await $.classic.Stop(stopInput([{ id: 'w1', type: 'workflow', status: 'running', name: 'deploy' }]))
+    expect(lastStatus()).toBe('⠋ em segundo plano  │  🔀 workflow: deploy')
+
+    await $.session.end(sessionEndInput(reason))
+    expect(lastStatus()).toBeUndefined()
+  })
+
+  test(`a session ended by ${reason} sends no end notice for the agents of the previous one`, async ($, on) => {
+    const { notifications, toasts, agents } = setup(on)
+    on('session.end', (_$, e) => ({ sessionId: e.sessionId }) as never)
+
+    await $.turn.start({ text: 'oi', turnId: 't1' })
+    agents.push(agent('a1', 'Revisar'))
+    await $.agent.spawn({ prompt: 'x', description: 'Revisar' } as never)
+    await $.turn.complete(turnComplete(5_000))
+    const noticesBefore = notifications.length + toasts.length
+
+    await $.session.end(sessionEndInput(reason))
+    agents.length = 0
+    await $.turn.complete(turnComplete(1_000, { agentId: 'a1', turnId: 't2' }))
+
+    expect(notifications.length + toasts.length).toBe(noticesBefore)
+  })
+}
+
 test('a session that ends for good leaves the status alone', async ($, on) => {
   const { statuses } = setup(on)
   on('session.end', (_$, e) => ({ sessionId: e.sessionId }) as never)

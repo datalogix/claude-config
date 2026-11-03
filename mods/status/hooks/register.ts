@@ -377,10 +377,15 @@ export const register: Register = (on, options) => {
     return r
   })
 
-  // /clear and resume start another conversation, with no session.start: the last outcome was of the one before.
+  // /clear and resume start another conversation, with no session.start: what was tracked was of the one before.
+  // s.agents is left to refreshAgents, and a workflow that goes on comes back with the next Stop.
   on('session.end', async ($, e, next) => {
     if (e.reason === 'clear' || e.reason === 'resume') {
       s.outcome = undefined
+      s.workflows = new Map()
+      s.isWaitingForAgents = false
+      s.failedAgentCount = 0
+      if (s.mainTurnStartedAt === undefined && !hasBackgroundWork(s)) stopSpinner(s)
       await showStatus($, s)
     }
     return next(e)

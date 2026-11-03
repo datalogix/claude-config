@@ -285,7 +285,7 @@ describe('surfaces', () => {
   for (const surface of ['terminal', 'desktop', 'vscode', 'mobile'] as const) {
     test(`hides the tool rows on ${surface}, and /steps shows them again`, async ($, on) => {
       drawOriginal(on, 'ToolUse')
-      const input = {
+      const props = {
         tool_use_id: 'tu1',
         tool: 'Bash',
         input: {},
@@ -293,7 +293,7 @@ describe('surfaces', () => {
         isErrored: false,
         isInterrupted: false,
       }
-      const ui = await mount($, 'ToolUse', input, surface)
+      const ui = await mount($, 'ToolUse', props, surface)
       expect(await isOriginalShown(ui)).toBe(false)
 
       await runStepsCommand($)
@@ -301,14 +301,14 @@ describe('surfaces', () => {
     })
   }
 
-  const drawSpinnerWord = (on: On) =>
+  const drawSpinnerRow = (on: On) =>
     on('ui.render', { component: 'Spinner' }, async ($, e) => {
       const { Text } = $.ui.resolve(e)
       return <Text>{e.props.message ?? e.props.word}</Text>
     })
 
   test('on vscode, says the current step in the spinner row, with no box of its own', async ($, on) => {
-    drawSpinnerWord(on)
+    drawSpinnerRow(on)
     const props = { word: 'Sauteing', message: null, suffix: '…', mode: 'thinking' } as const
     const ui = await mount($, 'Spinner', props, 'vscode')
 
@@ -317,7 +317,7 @@ describe('surfaces', () => {
   })
 
   test('on vscode, a message of the engine stays in the spinner row', async ($, on) => {
-    drawSpinnerWord(on)
+    drawSpinnerRow(on)
     const props = { word: 'Sauteing', message: 'Compactando', suffix: '…', mode: 'thinking' } as const
     const ui = await mount($, 'Spinner', props, 'vscode')
 

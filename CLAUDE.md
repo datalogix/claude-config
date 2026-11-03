@@ -52,7 +52,7 @@ node bin/cli.js install --link            # install from this clone: edits apply
   `updated: <name>`, and a failed marketplace update still updates the mods. A failed update still asks for
   the mod's options. A marketplace added from another source than the one asked for (GitHub with `--link`, or the
   other way around) is only pointed out: neither it nor the mods are updated, and an installed mod with nothing to
-  configure logs `ok: <name>`, unless its options could not be read (`isSkipped`), which is already reported. A
+  configure logs `ok: <name>`, unless its options could not be read (`hasReadFailed`), which is already reported. A
   marketplace with no readable source (no text in its source fields) still updates. A mod also loaded inline
   (`<name>@inline` in `plugin list`) is pointed out on `install`.
 - It no longer writes skills. Earlier versions copied them into `~/.claude/skills/<name>` with a `.claude-config`

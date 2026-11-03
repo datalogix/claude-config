@@ -127,8 +127,8 @@ export function initialValue(option, current, isConfigured) {
  */
 export function defaultChoice(option) {
   const choices = option.options ?? []
-  const fallback = defaultText(option)
-  return choices.includes(fallback) ? fallback : (choices[0] ?? '')
+  const defaultValue = defaultText(option)
+  return choices.includes(defaultValue) ? defaultValue : (choices[0] ?? '')
 }
 
 /**

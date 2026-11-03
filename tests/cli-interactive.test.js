@@ -200,7 +200,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
     assert.doesNotMatch(output, /steps is also loaded inline/)
   })
 
-  test('with nothing checked, uninstalls every mod, renamed ones and old skills included', async () => {
+  test('with nothing selected, uninstalls every mod, renamed ones and old skills included', async () => {
     fakeClaude({
       'plugin list --json': installedMods('steps', 'passos'),
     })
@@ -516,7 +516,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
     assert.match(output, /and \/reload-plugins/)
   })
 
-  test('offers every mod checked and lets the user check none', async () => {
+  test('offers every mod selected and lets the user select none', async () => {
     fakeClaude()
 
     const { status, output } = await runInteractive([[]])

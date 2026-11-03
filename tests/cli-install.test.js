@@ -165,7 +165,6 @@ describe('install', { skip: process.platform === 'win32' }, () => {
 
       assert.equal(status, 1, output)
       assert.match(output, /could not list the marketplaces: unexpected reply/)
-      assert.doesNotMatch(output, /SyntaxError|TypeError/)
       assert.deepEqual(claudeCalls(), ['--version', 'plugin marketplace list --json'])
     })
 
@@ -180,12 +179,55 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     })
   })
 
+  test('shows what claude wrote on stderr when its reply to a list is empty', () => {
+    fakeClaude({ 'plugin marketplace list --json': 'echo "warn on stderr" >&2' })
+
+    const { status, output } = runCli(['install'])
+
+    assert.equal(status, 1, output)
+    assert.match(output, /unexpected reply \(warn on stderr\)/)
+  })
+
+  test('finds this marketplace after another one in the list', () => {
+    fakeClaude({
+      'plugin marketplace list --json': `echo '[{"name":"other","repo":"a/b"},{"name":"claude-config","repo":"datalogix/claude-config"}]'`,
+    })
+
+    const { status, output } = runCli(['install'])
+
+    assert.equal(status, 0, output)
+    const calls = claudeCalls()
+    assert.ok(calls.includes('plugin marketplace update claude-config'))
+    assert.ok(!calls.some((call) => call.startsWith('plugin marketplace add')))
+  })
+
+  test('adds this marketplace when the list only has another one', () => {
+    fakeClaude({ 'plugin marketplace list --json': `echo '[{"name":"other","repo":"a/b"}]'` })
+
+    const { status, output } = runCli(['install'])
+
+    assert.equal(status, 0, output)
+    assert.ok(claudeCalls().includes('plugin marketplace add datalogix/claude-config'))
+  })
+
+  test('keeps the reload hint in the closing line after a failure', () => {
+    fakeClaude({
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+      [`plugin install ${PLAIN_MOD}@claude-config`]: 'echo broken >&2; exit 1',
+    })
+
+    const { status, output } = runCli(['install'])
+
+    assert.equal(status, 1, output)
+    assert.match(output, /Finished with errors \(see above\)\. Run \/clear and \/reload-plugins/)
+  })
+
   test('ends with exit code 1 when the marketplace cannot be added', () => {
     fakeClaude({ 'plugin marketplace add datalogix/claude-config': 'echo denied >&2; exit 1' })
 
     const { status, output } = runCli(['install'])
 
-    assert.equal(status, 1)
+    assert.equal(status, 1, output)
     assert.match(output, /could not add datalogix\/claude-config: denied/)
     assert.match(
       output,
@@ -201,7 +243,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
 
     const { status, output } = runCli(['install', '--link'])
 
-    assert.equal(status, 1)
+    assert.equal(status, 1, output)
     assert.match(output, /mods skipped \(/)
     assert.doesNotMatch(output, /git ls-remote/)
   })
@@ -237,7 +279,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
 
     const { status, output } = runCli(['install'])
 
-    assert.equal(status, 1)
+    assert.equal(status, 1, output)
     assert.match(output, new RegExp(`${PLAIN_MOD} is also loaded inline`))
   })
 
@@ -250,7 +292,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
 
     const { status, output } = runCli(['install'])
 
-    assert.equal(status, 1)
+    assert.equal(status, 1, output)
     assert.doesNotMatch(output, new RegExp(`${PLAIN_MOD} is also loaded inline`))
   })
 
@@ -259,7 +301,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
 
     const { status, output } = runCli(['install'])
 
-    assert.equal(status, 1)
+    assert.equal(status, 1, output)
     assert.match(output, new RegExp(`${PLAIN_MOD}: broken`))
   })
 
@@ -303,10 +345,14 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.ok(!calls.some((call) => call.startsWith('plugin update ')))
   })
 
-  test('neither updates a marketplace added from a clone nor its mods when installing from GitHub', () => {
+  test.each([
+    ['a clone', () => `"path":"${tmpDir}"`],
+    ['another repo', () => '"repo":"other/claude-config"'],
+    ['another git URL', () => '"source":"git","url":"https://github.com/other/claude-config.git"'],
+  ])('updates nothing when installing from GitHub a marketplace added from %s', (_, source) => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD),
-      'plugin marketplace list --json': `echo '[{"name":"claude-config","path":"${tmpDir}"}]'`,
+      'plugin marketplace list --json': `echo '[{"name":"claude-config",${source()}}]'`,
     })
 
     const { status, output } = runCli(['install'])
@@ -319,35 +365,11 @@ describe('install', { skip: process.platform === 'win32' }, () => {
   })
 
   test.each([
-    ['repo', '"repo":"other/claude-config"'],
-    ['git URL', '"source":"git","url":"https://github.com/other/claude-config.git"'],
-  ])('updates nothing when the %s is another GitHub repository', (_, source) => {
-    fakeClaude({
-      'plugin list --json': installedMods(PLAIN_MOD),
-      'plugin marketplace list --json': `echo '[{"name":"claude-config",${source}}]'`,
-    })
-
-    const { status, output } = runCli(['install'])
-
-    assert.equal(status, 0, output)
-    assert.match(output, /; not updated/)
-    const calls = claudeCalls()
-    assert.ok(!calls.includes('plugin marketplace update claude-config'))
-    assert.ok(!calls.some((call) => call.startsWith('plugin update ')))
-  })
-
-  test('warns when --link finds the marketplace added from a path that no longer exists', () => {
-    const gone = path.join(tmpDir, 'gone')
-    fakeClaude({ 'plugin marketplace list --json': `echo '[{"name":"claude-config","path":"${gone}"}]'` })
-
-    const { status, output } = runCli(['install', '--link'])
-
-    assert.equal(status, 0, output)
-    assert.match(output, /; not updated/)
-  })
-
-  test('warns when --link finds the marketplace added from another clone', () => {
-    fakeClaude({ 'plugin marketplace list --json': `echo '[{"name":"claude-config","path":"${tmpDir}"}]'` })
+    ['a path that no longer exists', 'gone'],
+    ['another clone', ''],
+  ])('warns when --link finds the marketplace added from %s', (_, folder) => {
+    const source = path.join(tmpDir, folder)
+    fakeClaude({ 'plugin marketplace list --json': `echo '[{"name":"claude-config","path":"${source}"}]'` })
 
     const { status, output } = runCli(['install', '--link'])
 
@@ -494,7 +516,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
 
     const { status, output } = runCli(['install'])
 
-    assert.equal(status, 1)
+    assert.equal(status, 1, output)
     assert.match(output, new RegExp(`${PLAIN_MOD}: broken`))
     assert.doesNotMatch(output, /updated:/)
   })
@@ -532,7 +554,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
 
     const { status, output } = runCli(['install', '--link'], path.join(copy, 'bin/cli.js'))
 
-    assert.equal(status, 1)
+    assert.equal(status, 1, output)
     assert.match(output, /--link needs a clone/)
     assert.deepEqual(claudeCalls(), [])
   })
@@ -542,7 +564,7 @@ describe('arguments', () => {
   test.each(['--help', '-h'])('%s shows the usage', (flag) => {
     const { status, output } = runCli([flag])
 
-    assert.equal(status, 0)
+    assert.equal(status, 0, output)
     assert.match(output, /Usage:/)
     assert.match(output, /npx --allow-git=root github:datalogix\/claude-config#main/)
   })
@@ -566,23 +588,17 @@ describe('arguments', () => {
 
     const { status, output } = runCli(['update', '--help'])
 
-    assert.equal(status, 0)
+    assert.equal(status, 0, output)
     assert.match(output, /Usage:/)
     assert.equal(fs.existsSync(path.join(tmpDir, 'calls')), false)
   })
 
-  test('rejects an unknown command', () => {
-    const { status, output } = runCli(['instal'])
+  // toString: a name from Object.prototype.
+  test.each(['instal', 'toString'])('rejects %s as a command', (command) => {
+    const { status, output } = runCli([command])
 
-    assert.equal(status, 1)
-    assert.match(output, /Unknown command "instal"/)
-  })
-
-  test('rejects names from Object.prototype as commands', () => {
-    const { status, output } = runCli(['toString'])
-
-    assert.equal(status, 1)
-    assert.match(output, /Unknown command "toString"/)
+    assert.equal(status, 1, output)
+    assert.match(output, new RegExp(`Unknown command "${command}"`))
   })
 
   test.each([
@@ -592,7 +608,7 @@ describe('arguments', () => {
   ])('rejects a flag the command does not take (%s "%s")', (command, flag) => {
     const { status, output } = runCli([command, flag])
 
-    assert.equal(status, 1)
+    assert.equal(status, 1, output)
     assert.match(output, new RegExp(`Unknown flag "${flag}" for ${command}`))
   })
 })

@@ -48,6 +48,31 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     assert.doesNotMatch(output, /mods not installed/)
   })
 
+  test('skips the mods and keeps the old skills when the claude CLI is missing', () => {
+    addOldSkill('review')
+
+    const { status, output } = runCli(['update'])
+
+    assert.equal(status, 0, output)
+    assert.match(output, /mods skipped: the claude CLI is not installed/)
+    assert.doesNotMatch(output, /could not list/)
+    assert.ok(fs.existsSync(skillPath('review')))
+  })
+
+  test('keeps the old skills and installs nothing when the installed mods cannot be listed', () => {
+    fakeClaude({
+      'plugin list --json': 'echo broken >&2; exit 1',
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+    })
+    addOldSkill('review')
+
+    const { status, output } = runCli(['update'])
+
+    assert.equal(status, 1, output)
+    assert.ok(!claudeCalls().some((call) => call.startsWith('plugin install')))
+    assert.ok(fs.existsSync(skillPath('review')))
+  })
+
   test('updates a marketplace added from another source, unlike install', () => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD),
@@ -69,7 +94,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
 
     const { status, output } = runCli(['update'])
 
-    assert.equal(status, 1)
+    assert.equal(status, 1, output)
     assert.match(output, /marketplace: failed/)
   })
 
@@ -78,47 +103,35 @@ describe('update', { skip: process.platform === 'win32' }, () => {
 
     const { status, output } = runCli(['update'])
 
-    assert.equal(status, 1)
+    assert.equal(status, 1, output)
     assert.match(output.replace(/\s+/g, ''), new RegExp(`unexpectedreply\\(x{200}\\)`))
   })
 
-  test('asks for /reload-plugins only when an update brings a new version', () => {
-    /** @param {string} newVersion */
-    const updateTo = (newVersion) => {
-      fakeClaude({
-        'plugin list --json': installedMods(PLAIN_MOD),
-        'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
-        [`plugin update ${PLAIN_MOD}@claude-config --json`]: `echo '{"oldVersion":"abc","newVersion":"${newVersion}"}'`,
-      })
-      return runCli(['update'])
-    }
-
-    const unchanged = updateTo('abc')
-    assert.equal(unchanged.status, 0, unchanged.output)
-    assert.match(unchanged.output, new RegExp(`updated: ${PLAIN_MOD}\\n`))
-    assert.doesNotMatch(unchanged.output, /reload-plugins/)
-
-    assert.match(updateTo('def').output, /reload-plugins/)
-  })
-
-  test('counts an update reply that is not JSON as a change', () => {
+  test.each([
+    ['does not ask for /reload-plugins', 'abc', false],
+    ['asks for /reload-plugins', 'def', true],
+  ])('%s when the update brings version %s', (_, newVersion, asksReload) => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD),
       'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
-      [`plugin update ${PLAIN_MOD}@claude-config --json`]: 'echo not json',
+      [`plugin update ${PLAIN_MOD}@claude-config --json`]: `echo '{"oldVersion":"abc","newVersion":"${newVersion}"}'`,
     })
 
     const { status, output } = runCli(['update'])
 
     assert.equal(status, 0, output)
-    assert.match(output, /reload-plugins/)
+    assert.match(output, new RegExp(`updated: ${PLAIN_MOD}\\n`))
+    assert.equal(/reload-plugins/.test(output), asksReload, output)
   })
 
-  test('counts an update reply of null as a change', () => {
+  test.each([
+    ['text that is not JSON', 'echo not json'],
+    ['null', 'echo null'],
+  ])('counts an update reply of %s as a change', (_, reply) => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD),
       'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
-      [`plugin update ${PLAIN_MOD}@claude-config --json`]: 'echo null',
+      [`plugin update ${PLAIN_MOD}@claude-config --json`]: reply,
     })
 
     const { status, output } = runCli(['update'])
@@ -207,7 +220,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
 
     const { status, output } = runCli(['update'])
 
-    assert.equal(status, 1)
+    assert.equal(status, 1, output)
     const calls = claudeCalls()
     assert.ok(!calls.includes('plugin install steps@claude-config'))
     assert.ok(!calls.includes('plugin uninstall --keep-data passos@claude-config'))
@@ -240,9 +253,8 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     try {
       const { status, output } = runCli(['update'])
 
-      assert.equal(status, 1)
+      assert.equal(status, 1, output)
       assert.ok(fs.existsSync(path.join(skillPath('review'), 'SKILL.md')), 'removed something before failing')
-      assert.ok(fs.existsSync(skillPath('review')))
       assert.match(output, /could not remove ~\/\.claude\/skills\/review/)
       assert.match(output, /Finished with errors/)
       assert.ok(claudeCalls().includes(`plugin update ${PLAIN_MOD}@claude-config --json`))
@@ -268,7 +280,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     try {
       const { status, output } = runCli(['update'])
 
-      assert.equal(status, 1)
+      assert.equal(status, 1, output)
       assert.match(output, /could not remove ~\/\.claude\/skills\/review/)
       assert.ok(fs.existsSync(path.join(skillPath('review'), '.claude-config')))
     } finally {
@@ -286,7 +298,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     try {
       const { status, output } = runCli(['update'])
 
-      assert.equal(status, 1)
+      assert.equal(status, 1, output)
       assert.equal(output.match(/could not read ~\/\.claude\/skills/g)?.length, 1, output)
     } finally {
       fs.chmodSync(skills, 0o755)
@@ -326,18 +338,23 @@ describe('update', { skip: process.platform === 'win32' }, () => {
 
     const { status, output } = runCli(['update'])
 
-    assert.equal(status, 1)
+    assert.equal(status, 1, output)
     assert.match(output, /could not list the installed mods: broken/)
     assert.ok(fs.existsSync(skillPath('review')))
   })
 
-  test('reads the old options from CLAUDE_CONFIG_DIR when set', () => {
-    const configDir = path.join(tmpDir, 'config')
+  /** @param {string} configDir */
+  const writeOldOptions = (configDir) => {
     fs.mkdirSync(configDir)
     fs.writeFileSync(
       path.join(configDir, 'settings.json'),
       JSON.stringify({ pluginConfigs: { 'status@claude-config': { options: { notificar: 'nunca' } } } }),
     )
+  }
+
+  test('reads the old options from CLAUDE_CONFIG_DIR when set', () => {
+    const configDir = path.join(tmpDir, 'config')
+    writeOldOptions(configDir)
     fakeClaude({
       'plugin list --json': installedMods('status'),
       'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
@@ -369,11 +386,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
 
   test('shows a CLAUDE_CONFIG_DIR that only starts like HOME in full', () => {
     const configDir = `${home}-x`
-    fs.mkdirSync(configDir)
-    fs.writeFileSync(
-      path.join(configDir, 'settings.json'),
-      JSON.stringify({ pluginConfigs: { 'status@claude-config': { options: { notificar: 'nunca' } } } }),
-    )
+    writeOldOptions(configDir)
     fakeClaude({
       'plugin list --json': installedMods('status'),
       'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
@@ -386,25 +399,22 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     assert.doesNotMatch(output, /~-x/)
   })
 
-  test('ignores a settings.json it cannot read the options from', () => {
+  test.each([
+    ['broken JSON', '{'],
+    ['options of null', JSON.stringify({ pluginConfigs: { 'status@claude-config': { options: null } } })],
+    ['options of text', JSON.stringify({ pluginConfigs: { 'status@claude-config': { options: 'x' } } })],
+  ])('ignores a settings.json with %s', (_, settings) => {
     fakeClaude({
       'plugin list --json': installedMods('status'),
       'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
     })
     fs.mkdirSync(path.join(home, '.claude'))
+    fs.writeFileSync(path.join(home, '.claude/settings.json'), settings)
 
-    for (const settings of [
-      '{',
-      JSON.stringify({ pluginConfigs: { 'status@claude-config': { options: null } } }),
-      JSON.stringify({ pluginConfigs: { 'status@claude-config': { options: 'x' } } }),
-    ]) {
-      fs.writeFileSync(path.join(home, '.claude/settings.json'), settings)
+    const { status, output } = runCli(['update'])
 
-      const { status, output } = runCli(['update'])
-
-      assert.equal(status, 0, output)
-      assert.doesNotMatch(output, /ignoring options/)
-    }
+    assert.equal(status, 0, output)
+    assert.doesNotMatch(output, /ignoring options/)
   })
 
   test('fails a claude call that hangs and still updates the mods', () => {
@@ -443,7 +453,7 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
 
     const { status, output } = runCli([command])
 
-    assert.equal(status, 1)
+    assert.equal(status, 1, output)
     assert.match(output, /could not list the installed mods: broken/)
     assert.match(output, /Finished with errors/)
     assert.doesNotMatch(output, /reload-plugins/)
@@ -455,7 +465,7 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
 
     const { status, output } = runCli([command])
 
-    assert.equal(status, 1)
+    assert.equal(status, 1, output)
     assert.match(output, /marketplace: could not list the marketplaces: broken/)
     assert.doesNotMatch(output, /mods not installed/)
     assert.ok(!claudeCalls().some((call) => /^plugin (marketplace add|marketplace update|install) /.test(call)))
@@ -472,7 +482,7 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
 
       const { status, output } = runCli([command])
 
-      assert.equal(status, 1)
+      assert.equal(status, 1, output)
       assert.match(output, /marketplace: offline/)
       assert.ok(claudeCalls().includes(`plugin update ${PLAIN_MOD}@claude-config --json`))
     },
@@ -487,7 +497,7 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
 
     const { status, output } = runCli([command])
 
-    assert.equal(status, 1)
+    assert.equal(status, 1, output)
     assert.ok(fs.existsSync(skillPath('review')))
     assert.match(output, /kept: review in ~\/\.claude\/skills \(datalogix is not installed yet/)
   })
@@ -518,7 +528,7 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
 
     const { status, output } = runCli([command])
 
-    assert.equal(status, 1)
+    assert.equal(status, 1, output)
     assert.ok(!claudeCalls().includes('plugin uninstall --keep-data passos@claude-config'))
     assert.match(output, /kept: passos \(steps is not installed yet/)
   })

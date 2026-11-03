@@ -47,16 +47,18 @@ vi.mock('@clack/prompts', () => {
     }
     return Promise.resolve(prompts.answers.shift())
   }
+  const askAs = (/** @type {string} */ kind) => (/** @type {Record<string, any>} */ question) =>
+    ask({ ...question, kind })
   return {
     intro: show,
     outro: show,
     cancel: show,
     log: { info: show, warn: show, success: show, error: show },
-    multiselect: ask,
-    confirm: ask,
-    select: ask,
-    text: ask,
-    password: (/** @type {Record<string, any>} */ question) => ask({ ...question, isPassword: true }),
+    multiselect: askAs('multiselect'),
+    confirm: askAs('confirm'),
+    select: askAs('select'),
+    text: askAs('text'),
+    password: (/** @type {Record<string, any>} */ question) => ask({ ...question, kind: 'password', isPassword: true }),
     isCancel: (/** @type {unknown} */ value) => value === prompts.CANCEL,
   }
 })
@@ -473,6 +475,47 @@ describe('prompts', { skip: process.platform === 'win32' }, () => {
     }
   })
 
+  test('asks each option with the prompt of its type and its choices', async () => {
+    fakeClaude({ 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
+
+    await runInteractive([['status'], ...STATUS_DEFAULT_ANSWERS])
+
+    assert.deepEqual(
+      prompts.questions.map((question) => question.kind),
+      ['multiselect', 'text', 'text', 'select', 'confirm'],
+    )
+    assert.deepEqual(prompts.questions[3].options, [
+      { value: 'always', label: 'always' },
+      { value: 'agents', label: 'agents' },
+    ])
+  })
+
+  test('offers each mod with its description', async () => {
+    fakeClaude()
+
+    await runInteractive([[]])
+
+    const { options } = prompts.questions[0]
+    assert.deepEqual(
+      options.map((/** @type {{ value: string }} */ option) => option.value),
+      MODS,
+    )
+    const { description } = JSON.parse(fs.readFileSync(STATUS_MANIFEST, 'utf8'))
+    assert.equal(options.find((/** @type {{ value: string }} */ option) => option.value === 'status').hint, description)
+  })
+
+  test.each([
+    ['its title', { type: 'string', title: 'Label' }, 'status · Label'],
+    ['its key, without a title', { type: 'string' }, 'status · label'],
+  ])('names an option without a description by %s', async (_, option, message) => {
+    statusOptions = { label: option }
+    fakeClaude({ 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
+
+    await runInteractive([['status'], ''])
+
+    assert.equal(prompts.questions[1].message, message)
+  })
+
   test('accepts any text in an option that is not a number', async () => {
     statusOptions = { label: { type: 'string', title: 'Label' } }
     fakeClaude({ 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
@@ -592,7 +635,7 @@ describe('prompts', { skip: process.platform === 'win32' }, () => {
 
     const { status, output } = await runInteractive([prompts.CANCEL])
 
-    assert.equal(status, 1)
+    assert.equal(status, 1, output)
     assert.match(output, /Cancelled\. Run \/clear in open Claude Code sessions\./)
     assert.doesNotMatch(output, /reload-plugins/)
     assert.ok(!claudeCalls().some((call) => call.startsWith('plugin install')))
@@ -604,7 +647,7 @@ describe('prompts', { skip: process.platform === 'win32' }, () => {
     // datalogix installs before status asks its first option.
     const { status, output } = await runInteractive([['datalogix', 'status'], prompts.CANCEL])
 
-    assert.equal(status, 1)
+    assert.equal(status, 1, output)
     assert.ok(claudeCalls().includes('plugin install datalogix@claude-config'))
     assert.match(output, /Cancelled\. Run \/clear and \/reload-plugins/)
   })

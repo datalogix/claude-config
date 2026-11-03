@@ -48,8 +48,8 @@ node bin/cli.js install --link            # install from this clone: edits apply
   that mod; a reply without an `inputs` object only warns and skips it too. Cancelling a prompt ends with the run's
   closing hint (`reloadHint`): `/clear`, and `/reload-plugins` when a mod already changed (`hasModChanges`).
 - `install` also updates the marketplace (only when it was already added) and the mods already installed
-  (`updateMarketplace`, `refreshMod`), as `update` does, so either command leaves them current. It logs
-  `refreshed: <name>`, and a failed marketplace update still refreshes the mods. A failed refresh still asks for
+  (`updateMarketplace`, `updateMod`), as `update` does, so either command leaves them current. It logs
+  `updated: <name>`, and a failed marketplace update still updates the mods. A failed update still asks for
   the mod's options. A marketplace added from another source than the one asked for (GitHub with `--link`, or the
   other way around) is only pointed out: neither it nor the mods are updated, and an installed mod with nothing to
   configure logs `ok: <name>`, unless its options could not be read (`isSkipped`), which is already reported. A
@@ -57,7 +57,7 @@ node bin/cli.js install --link            # install from this clone: edits apply
   (`<name>@inline` in `plugin list`) is pointed out on `install`.
 - It no longer writes skills. Earlier versions copied them into `~/.claude/skills/<name>` with a `.claude-config`
   marker (or symlinked them with `--link`); `removeOldSkills` deletes those folders, and only those, once the
-  `datalogix` mod (`SKILLS_MOD`) is installed or unchecked. `update` installs `datalogix` when such folders exist.
+  `datalogix` mod (`SKILLS_MOD`) is installed or unselected. `update` installs `datalogix` when such folders exist.
   Failing to read or remove one is reported with `reportFailure` and does not stop the run.
 - Mods go through the `claude` CLI, never by writing Claude Code's files directly (`warnOldOptions` only reads
   `settings.json`, from `$CLAUDE_CONFIG_DIR` when set, else `~/.claude`). The installer calls

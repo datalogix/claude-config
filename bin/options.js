@@ -58,13 +58,13 @@ export function currentValues(inputs, userConfig) {
  * back masked.
  *
  * @param {Option} option
- * @param {string} input what the user answered
+ * @param {string} rawAnswer what the user answered
  * @param {string} initial the value the question started from (`initialValue`)
  * @returns {string | undefined}
  */
-export function answerFor(option, input, initial) {
-  if (input !== '' || isFreeText(option)) {
-    return input
+export function answerFor(option, rawAnswer, initial) {
+  if (rawAnswer !== '' || isFreeText(option)) {
+    return rawAnswer
   }
   return option.sensitive ? undefined : initial || undefined
 }

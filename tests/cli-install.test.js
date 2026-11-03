@@ -206,7 +206,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.doesNotMatch(output, /git ls-remote/)
   })
 
-  test('refreshes the mods already installed when the marketplace was just added', () => {
+  test('updates the mods already installed when the marketplace was just added', () => {
     fakeClaude({ 'plugin list --json': installedMods(PLAIN_MOD) })
 
     const { status, output } = runCli(['install'])
@@ -287,7 +287,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     )
   })
 
-  test('neither updates the marketplace nor refreshes the mods when it comes from another source', () => {
+  test('neither updates the marketplace nor the mods when it comes from another source', () => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
@@ -303,7 +303,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.ok(!calls.some((call) => call.startsWith('plugin update ')))
   })
 
-  test('neither updates a marketplace added from a clone nor refreshes its mods when installing from GitHub', () => {
+  test('neither updates a marketplace added from a clone nor its mods when installing from GitHub', () => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD),
       'plugin marketplace list --json': `echo '[{"name":"claude-config","path":"${tmpDir}"}]'`,
@@ -321,7 +321,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
   test.each([
     ['repo', '"repo":"other/claude-config"'],
     ['git URL', '"source":"git","url":"https://github.com/other/claude-config.git"'],
-  ])('neither updates nor refreshes when the %s is another GitHub repository', (_, source) => {
+  ])('updates nothing when the %s is another GitHub repository', (_, source) => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD),
       'plugin marketplace list --json': `echo '[{"name":"claude-config",${source}}]'`,
@@ -465,7 +465,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.doesNotMatch(output, /comes from/)
   })
 
-  test('updates the marketplace and refreshes the mods already installed', () => {
+  test('updates the marketplace and the mods already installed', () => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
@@ -474,7 +474,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     const { status, output } = runCli(['install'])
 
     assert.equal(status, 0, output)
-    assert.match(output, new RegExp(`refreshed: ${PLAIN_MOD}\\n`))
+    assert.match(output, new RegExp(`updated: ${PLAIN_MOD}\\n`))
     // The fake update prints no versions, which counts as a change.
     assert.match(output, /reload-plugins/)
     assert.doesNotMatch(output, /ok: /)
@@ -485,7 +485,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.ok(!calls.includes('plugin update topics@claude-config --json'))
   })
 
-  test('ends with exit code 1 when an installed mod fails to refresh', () => {
+  test('ends with exit code 1 when an installed mod fails to update', () => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
@@ -496,7 +496,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
 
     assert.equal(status, 1)
     assert.match(output, new RegExp(`${PLAIN_MOD}: broken`))
-    assert.doesNotMatch(output, /refreshed:/)
+    assert.doesNotMatch(output, /updated:/)
   })
 
   test('refuses --link outside a clone', () => {

@@ -27,7 +27,7 @@ const USAGE = `Usage:
                                 installed ones
   claude-config install --link  add the marketplace from this clone instead
                                 of GitHub (for editing the repository)
-  claude-config update          refresh what is installed, without questions
+  claude-config update          update what is installed, without questions
   claude-config --help          show this help
 
 Through npx, put the command after the package:
@@ -135,7 +135,7 @@ function listMods() {
  * @param {{ name: string, description: string }[]} mods
  * @returns {Promise<string[]>}
  */
-async function chooseMods(mods) {
+async function selectMods(mods) {
   const names = mods.map((mod) => mod.name)
   if (!isInteractive) {
     return names
@@ -201,18 +201,18 @@ function removeOldSkill(folder) {
 }
 
 /**
- * Only once their mod is installed or unchecked: a failed install never leaves
+ * Only once their mod is installed or unselected: a failed install never leaves
  * them out.
  *
  * @param {Set<string>} installed
- * @param {string[]} [unchecked] mods the user chose not to install
+ * @param {string[]} [unselected] mods the user chose not to install
  * @param {string[]} [names] the old skills, when already listed
  */
-function removeOldSkills(installed, unchecked = [], names = listOldSkills()) {
+function removeOldSkills(installed, unselected = [], names = listOldSkills()) {
   if (names.length === 0) {
     return
   }
-  if (!installed.has(modId(SKILLS_MOD)) && !unchecked.includes(SKILLS_MOD)) {
+  if (!installed.has(modId(SKILLS_MOD)) && !unselected.includes(SKILLS_MOD)) {
     p.log.warn(
       `kept: ${names.join(', ')} in ~/.claude/skills (${SKILLS_MOD} is not installed yet; run again to replace them)`,
     )
@@ -301,29 +301,29 @@ function runClaudeList(label, args, key) {
 
 /** @returns {Set<string> | undefined} undefined when claude could not list them */
 function listInstalledModIds() {
-  const plugins = runClaudeList('could not list the installed mods', ['plugin', 'list', '--json'], 'id')
-  if (!plugins) {
+  const mods = runClaudeList('could not list the installed mods', ['plugin', 'list', '--json'], 'id')
+  if (!mods) {
     return undefined
   }
-  return new Set(plugins.map((plugin) => /** @type {string} */ (plugin.id)))
+  return new Set(mods.map((mod) => /** @type {string} */ (mod.id)))
 }
 
 const RENAMED_MODS = { passos: 'steps', topicos: 'topics' }
 
 /**
- * Only once the new name is installed or unchecked: a failed install never
+ * Only once the new name is installed or unselected: a failed install never
  * leaves the mod out.
  *
  * @param {Set<string>} installed
- * @param {string[]} [unchecked] mods the user chose not to install
+ * @param {string[]} [unselected] mods the user chose not to install
  */
-function uninstallRenamedMods(installed, unchecked = []) {
+function uninstallRenamedMods(installed, unselected = []) {
   for (const [oldName, newName] of Object.entries(RENAMED_MODS)) {
     const id = modId(oldName)
     if (!installed.has(id)) {
       continue
     }
-    if (!installed.has(modId(newName)) && !unchecked.includes(newName)) {
+    if (!installed.has(modId(newName)) && !unselected.includes(newName)) {
       p.log.warn(`kept: ${oldName} (${newName} is not installed yet; run again to replace it)`)
       continue
     }
@@ -437,12 +437,12 @@ function githubRepo(source) {
 }
 
 /**
- * Added from another source, it is only pointed out and not refreshed:
- * refreshing would move the mods away from the source asked for (with
+ * Added from another source, it is only pointed out and not updated:
+ * updating would move the mods away from the source asked for (with
  * --link, to GitHub's main).
  *
  * @param {boolean} shouldLink
- * @returns {{ canInstall: boolean, canRefresh: boolean } | undefined}
+ * @returns {{ canInstall: boolean, canUpdate: boolean } | undefined}
  */
 function ensureMarketplace(shouldLink) {
   const listed = findMarketplace()
@@ -465,13 +465,13 @@ function ensureMarketplace(shouldLink) {
       p.log.warn(
         `marketplace: ${marketplace.name} comes from ${tildify(currentSource)}, not ${tildify(requestedSource)}; to switch, run "claude plugin marketplace remove ${marketplace.name}" (this uninstalls its mods and deletes their options and data) and install again; not updated`,
       )
-      return { canInstall: true, canRefresh: false }
+      return { canInstall: true, canUpdate: false }
     }
     p.log.info(
       `marketplace: ${marketplace.name} (already added${currentSource ? ` from ${tildify(currentSource)}` : ''})`,
     )
     updateMarketplace()
-    return { canInstall: true, canRefresh: true }
+    return { canInstall: true, canUpdate: true }
   }
 
   const isAdded = checkResult(
@@ -481,7 +481,7 @@ function ensureMarketplace(shouldLink) {
   if (isAdded) {
     p.log.success(`marketplace: ${marketplace.name} (${tildify(requestedSource)})`)
   }
-  return { canInstall: isAdded, canRefresh: isAdded }
+  return { canInstall: isAdded, canUpdate: isAdded }
 }
 
 /** @returns {boolean} whether the marketplace was updated */
@@ -497,13 +497,13 @@ function updateMarketplace() {
  * @param {string} name
  * @param {string} id
  */
-function refreshMod(name, id) {
+function updateMod(name, id) {
   const result = runClaude(['plugin', 'update', id, '--json'])
   if (!checkResult(name, result)) {
     return
   }
-  p.log.success(`refreshed: ${name}`)
-  // claude refreshes even when nothing changed; only a new version needs
+  p.log.success(`updated: ${name}`)
+  // claude succeeds even when nothing changed; only a new version needs
   // /reload-plugins. A reply without the versions counts as a change.
   const json = parseJson(result.stdout, {})
   if (json?.oldVersion === undefined || json.oldVersion !== json.newVersion) {
@@ -540,11 +540,11 @@ async function askOptions(mod, isInstalled) {
     const initial = initialValue(option, current[key], configured.has(key))
     const message = `${mod.name} · ${option.title ?? key}${option.description ? ` — ${option.description}` : ''}`
 
-    let value
+    let rawAnswer
     if (option.type === 'boolean') {
-      value = String(exitIfCancelled(await p.confirm({ message, initialValue: initial === 'true' })))
+      rawAnswer = String(exitIfCancelled(await p.confirm({ message, initialValue: initial === 'true' })))
     } else if (option.options) {
-      value = exitIfCancelled(
+      rawAnswer = exitIfCancelled(
         await p.select({
           message,
           options: option.options.map((choice) => ({ value: choice, label: choice })),
@@ -553,7 +553,7 @@ async function askOptions(mod, isInstalled) {
       )
     } else {
       const prompt = option.sensitive ? p.password : p.text
-      value = exitIfCancelled(
+      rawAnswer = exitIfCancelled(
         await prompt({
           message,
           initialValue: option.sensitive ? undefined : initial,
@@ -567,7 +567,7 @@ async function askOptions(mod, isInstalled) {
       )
     }
 
-    const answer = answerFor(option, value, initial)
+    const answer = answerFor(option, rawAnswer, initial)
     if (answer !== undefined) {
       answers[key] = answer
     }
@@ -588,11 +588,11 @@ function warnInline(name, installed) {
 /**
  * @param {Mod} mod
  * @param {Set<string>} installed loses or gets the mod's id when it changes
- * @param {{ isChosen: boolean, canInstall: boolean, canRefresh: boolean }} state
+ * @param {{ isSelected: boolean, canInstall: boolean, canUpdate: boolean }} state
  */
-async function syncMod(mod, installed, { isChosen, canInstall, canRefresh }) {
+async function syncMod(mod, installed, { isSelected, canInstall, canUpdate }) {
   const isInstalled = installed.has(mod.id)
-  if (!isChosen) {
+  if (!isSelected) {
     if (isInstalled && checkResult(mod.name, runClaude(['plugin', 'uninstall', '--keep-data', mod.id]))) {
       p.log.info(`uninstalled: ${mod.name}`)
       installed.delete(mod.id)
@@ -603,18 +603,18 @@ async function syncMod(mod, installed, { isChosen, canInstall, canRefresh }) {
   if (!canInstall) {
     return
   }
-  // Refreshed first, so the options asked match its userConfig. A failed
-  // refresh still asks: configuring does not need the network.
-  if (isInstalled && canRefresh) {
-    refreshMod(mod.name, mod.id)
+  // Updated first, so the options asked match its userConfig. A failed
+  // update still asks: configuring does not need the network.
+  if (isInstalled && canUpdate) {
+    updateMod(mod.name, mod.id)
   }
   if (isInstalled) {
     warnOldOptions(mod)
   }
   const { toStore, hasChanges, isSkipped } = await askOptions(mod, isInstalled)
   if (isInstalled && !hasChanges) {
-    // Without a refresh nothing else names it; a skipped one already has its error.
-    if (!canRefresh && !isSkipped) {
+    // Without an update nothing else names it; a skipped one already has its error.
+    if (!canUpdate && !isSkipped) {
       p.log.info(`ok: ${mod.name}`)
     }
     return
@@ -641,17 +641,17 @@ async function installMods(shouldLink) {
   }
 
   const mods = listMods()
-  const chosenMods = await chooseMods(mods)
-  // Nothing chosen: the marketplace is left alone and the installed mods are still uninstalled below.
+  const selectedMods = await selectMods(mods)
+  // Nothing selected: the marketplace is left alone and the installed mods are still uninstalled below.
   const marketplaceState =
-    chosenMods.length === 0 ? { canInstall: true, canRefresh: false } : ensureMarketplace(shouldLink)
+    selectedMods.length === 0 ? { canInstall: true, canUpdate: false } : ensureMarketplace(shouldLink)
   if (!marketplaceState) {
     return
   }
-  const { canInstall, canRefresh } = marketplaceState
+  const { canInstall, canUpdate } = marketplaceState
   if (!canInstall) {
     const hint = shouldLink ? '' : `; check access with "git ls-remote https://github.com/${REPO}.git"`
-    p.log.warn(`mods skipped (${chosenMods.join(', ')})${hint}`)
+    p.log.warn(`mods skipped (${selectedMods.join(', ')})${hint}`)
   }
 
   // Without the list every mod would look new: installed again, asked from the defaults.
@@ -660,15 +660,15 @@ async function installMods(shouldLink) {
     return
   }
   for (const mod of mods) {
-    await syncMod(mod, installed, { isChosen: chosenMods.includes(mod.name), canInstall, canRefresh })
+    await syncMod(mod, installed, { isSelected: selectedMods.includes(mod.name), canInstall, canUpdate })
     if (installed.has(mod.id)) {
       warnInline(mod.name, installed)
     }
   }
 
-  const unchecked = mods.map((mod) => mod.name).filter((name) => !chosenMods.includes(name))
-  uninstallRenamedMods(installed, unchecked)
-  removeOldSkills(installed, unchecked)
+  const unselected = mods.map((mod) => mod.name).filter((name) => !selectedMods.includes(name))
+  uninstallRenamedMods(installed, unselected)
+  removeOldSkills(installed, unselected)
 }
 
 /** @param {boolean} shouldLink */
@@ -736,7 +736,7 @@ async function update() {
   removeOldSkills(installedAfterRenames, [], oldSkills)
   for (const mod of listMods()) {
     if (installed.has(mod.id)) {
-      refreshMod(mod.name, mod.id)
+      updateMod(mod.name, mod.id)
       warnOldOptions(mod)
     }
   }

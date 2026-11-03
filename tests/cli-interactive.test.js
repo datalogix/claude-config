@@ -149,10 +149,10 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
   // minSeconds, planAlert, notify and excerpt, in that order.
   const STATUS_KEPT_ANSWERS = ['', '', 'always', false]
   const STATUS_CHANGED_ANSWERS = ['10', '', 'always', false]
-  // A refresh that found no new version, so it needs no /reload-plugins.
-  const UNCHANGED_REFRESH_REPLY = `echo '{"oldVersion":"a","newVersion":"a"}'`
+  // An update that found no new version, so it needs no /reload-plugins.
+  const UNCHANGED_UPDATE_REPLY = `echo '{"oldVersion":"a","newVersion":"a"}'`
 
-  test('uninstalls an installed mod left unchecked, keeping its data', async () => {
+  test('uninstalls an installed mod left unselected, keeping its data', async () => {
     fakeClaude({
       'plugin list --json': installedMods('status', 'steps'),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
@@ -172,7 +172,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
     assert.match(output, /reload-plugins/)
   })
 
-  test('ends with exit code 1 when an unchecked mod fails to uninstall', async () => {
+  test('ends with exit code 1 when an unselected mod fails to uninstall', async () => {
     fakeClaude({
       'plugin list --json': installedMods('status'),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
@@ -186,7 +186,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
     assert.doesNotMatch(output, /uninstalled: status/)
   })
 
-  test('warns about an unchecked mod also loaded inline only while it stays installed', async () => {
+  test('warns about an unselected mod also loaded inline only while it stays installed', async () => {
     fakeClaude({
       'plugin list --json': installedMods('status', 'status@inline', 'steps', 'steps@inline'),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
@@ -217,7 +217,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
     assert.ok(!fs.existsSync(skillPath('review')))
   })
 
-  test('removes the old skills when datalogix is left unchecked', async () => {
+  test('removes the old skills when datalogix is left unselected', async () => {
     fakeClaude({ 'plugin marketplace list --json': ADDED_MARKETPLACE })
     addOldSkill('review')
 
@@ -274,7 +274,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
       'plugin list --json': installedMods('status'),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
       [READ_STATUS_OPTIONS]: STATUS_DEFAULTS_REPLY,
-      'plugin update status@claude-config --json': UNCHANGED_REFRESH_REPLY,
+      'plugin update status@claude-config --json': UNCHANGED_UPDATE_REPLY,
     })
 
     const { status, output } = await runInteractive([['status'], ...STATUS_CHANGED_ANSWERS])
@@ -284,7 +284,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
     assert.match(output, /and \/reload-plugins/)
   })
 
-  test('names an unchanged mod with ok when it was not refreshed', async () => {
+  test('names an unchanged mod with ok when it was not updated', async () => {
     fakeClaude({
       'plugin list --json': installedMods('status'),
       'plugin marketplace list --json': `echo '[{"name":"claude-config","path":"${tmpDir}"}]'`,
@@ -415,7 +415,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
     assert.ok(!claudeCalls().some((call) => call.endsWith('--values-stdin')))
   })
 
-  test('still asks the options when the refresh fails', async () => {
+  test('still asks the options when the update fails', async () => {
     fakeClaude({
       'plugin list --json': installedMods('status'),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
@@ -444,7 +444,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
     assert.doesNotMatch(output, /configured: status/)
   })
 
-  test('without the marketplace, still uninstalls the unchecked mods and installs none', async () => {
+  test('without the marketplace, still uninstalls the unselected mods and installs none', async () => {
     fakeClaude({
       'plugin list --json': installedMods('status'),
       'plugin marketplace add datalogix/claude-config': 'echo denied >&2; exit 1',
@@ -493,7 +493,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
     assert.ok(!claudeCalls().some((call) => call.endsWith('--values-stdin')))
   })
 
-  test('does not name a mod with ok when its options cannot be read and it was not refreshed', async () => {
+  test('does not name a mod with ok when its options cannot be read and it was not updated', async () => {
     fakeClaude({
       'plugin list --json': installedMods('status'),
       'plugin marketplace list --json': `echo '[{"name":"claude-config","path":"${tmpDir}"}]'`,
@@ -537,7 +537,7 @@ describe('interactive install', { skip: process.platform === 'win32' }, () => {
     assert.doesNotMatch(output, /configured: status/)
   })
 
-  test('refreshes an installed mod before reading its options', async () => {
+  test('updates an installed mod before reading its options', async () => {
     fakeClaude({
       'plugin list --json': installedMods('status'),
       'plugin marketplace list --json': ADDED_MARKETPLACE,

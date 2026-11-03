@@ -151,7 +151,7 @@ with `--link`). `install` and `update` install `datalogix` and only then
 remove those folders; folders the installer did not create are left
 alone. If `datalogix` could not be installed, they stay
 (`kept: ...`) and running the command again replaces them. With
-`install`, unchecking `datalogix` also removes them. If a folder
+`install`, unselecting `datalogix` also removes them. If a folder
 cannot be read or removed, the error is reported, the rest of the run
 goes on and it ends with "Finished with errors".
 

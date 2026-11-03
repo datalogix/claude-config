@@ -22,7 +22,7 @@ import {
 useTempHome()
 
 describe('update', { skip: process.platform === 'win32' }, () => {
-  test('refreshes its own mods and leaves the rest alone', () => {
+  test('updates its own mods and leaves the rest alone', () => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD, 'other@elsewhere'),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
@@ -48,9 +48,9 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     assert.doesNotMatch(output, /mods not installed/)
   })
 
-  test('asks for /reload-plugins only when a refresh brings a new version', () => {
+  test('asks for /reload-plugins only when an update brings a new version', () => {
     /** @param {string} newVersion */
-    const refreshTo = (newVersion) => {
+    const updateTo = (newVersion) => {
       fakeClaude({
         'plugin list --json': installedMods(PLAIN_MOD),
         'plugin marketplace list --json': ADDED_MARKETPLACE,
@@ -59,15 +59,15 @@ describe('update', { skip: process.platform === 'win32' }, () => {
       return runCli(['update'])
     }
 
-    const unchanged = refreshTo('abc')
+    const unchanged = updateTo('abc')
     assert.equal(unchanged.status, 0, unchanged.output)
-    assert.match(unchanged.output, new RegExp(`refreshed: ${PLAIN_MOD}\\n`))
+    assert.match(unchanged.output, new RegExp(`updated: ${PLAIN_MOD}\\n`))
     assert.doesNotMatch(unchanged.output, /reload-plugins/)
 
-    assert.match(refreshTo('def').output, /reload-plugins/)
+    assert.match(updateTo('def').output, /reload-plugins/)
   })
 
-  test('counts a refresh reply that is not JSON as a change', () => {
+  test('counts an update reply that is not JSON as a change', () => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
@@ -80,7 +80,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     assert.match(output, /reload-plugins/)
   })
 
-  test('counts a refresh reply of null as a change', () => {
+  test('counts an update reply of null as a change', () => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
@@ -193,7 +193,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
   })
 
   // Root writes through the read-only modes below.
-  test.skipIf(process.getuid?.() === 0)('still refreshes the mods when an old skill cannot be removed', () => {
+  test.skipIf(process.getuid?.() === 0)('still updates the mods when an old skill cannot be removed', () => {
     fakeClaude({
       'plugin list --json': installedMods('datalogix', PLAIN_MOD),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
@@ -373,7 +373,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     }
   })
 
-  test('fails a claude call that hangs and still refreshes the mods', () => {
+  test('fails a claude call that hangs and still updates the mods', () => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD),
       'plugin marketplace list --json': ADDED_MARKETPLACE,
@@ -428,7 +428,7 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
   })
 
   test.each(COMMANDS)(
-    'still refreshes the mods when the marketplace update fails, ending with exit code 1 (%s)',
+    'still updates the mods when the marketplace update fails, ending with exit code 1 (%s)',
     (command) => {
       fakeClaude({
         'plugin list --json': installedMods(PLAIN_MOD),

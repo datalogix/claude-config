@@ -5,7 +5,7 @@ projects.
 
 ## Mods
 
-Each mod is picked during install; its options can be changed by running
+Each mod is selected during install; its options can be changed by running
 the installer again or with `/config`.
 
 - [datalogix](docs/mods/datalogix.md) — the skills `/datalogix:review`,
@@ -54,8 +54,8 @@ npx --allow-git=root github:datalogix/claude-config#main update
 ```
 
 Mods have no `version`: each commit pushed to `main` is a new version,
-which `update` brings in. It refreshes what is already installed,
-without questions: updates the marketplace and the installed mods. New
+which `update` brings in. It updates what is already installed,
+without questions: the marketplace and the installed mods. New
 mods are not installed; run the install command again for them. If the
 install could not add the marketplace, `update` says the mods are not
 installed. Use `#main` so `npx` does not reuse an old copy.
@@ -83,9 +83,9 @@ mods and old skill copies (see below) are still handled by `update` (or
   is installed and only then the old one is uninstalled, keeping its
   data; if the new one could not be installed, the old one stays
   (`kept: ...`) and running the command again replaces it. With
-  `install`, unchecking the new name also removes the old one.
+  `install`, unselecting the new name also removes the old one.
 - Skills copied into `~/.claude/skills/` by earlier versions (`/review`,
-  `/issue`) are removed once `datalogix` is installed, or unchecked;
+  `/issue`) are removed once `datalogix` is installed, or unselected;
   `update` installs `datalogix` when such copies exist. Without the
   `claude` CLI they are left in place. See
   [datalogix](docs/mods/datalogix.md).

@@ -2,7 +2,7 @@
 
 Shows in the status line what Claude is doing, the running agents and
 how much of the plan was used, and sends a notice (toast and
-system notification) when an answer or the background agents finish.
+system notification) when an answer or the background agents end.
 
 | Option | Default | |
 |---|---|---|
@@ -33,13 +33,13 @@ once they end. A failed or interrupted answer stays next to them and after they 
 final notice for background agents goes out when the last one ends,
 saying how many workflows still run; a workflow's own end comes back as
 a new answer from Claude. An agent held on its own background work still
-counts as running, so no "finished" notice goes out until it really ends.
+counts as running, so no end notice goes out until it really ends.
 
 A plan window whose reset time has passed leaves the status line
 until the next API response brings the new window; a window
 that hit the limit sends a notice when it resets. `/clear` and resuming a
 session clear the previous answer's outcome and workflows from the status
-line, and no "finished" notice goes out for the agents already waited on.
+line, and no end notice goes out for the agents already waited on.
 
 An empty `minSeconds` or `planAlert` takes its default; a non-numeric
 one keeps the mod from loading. A `notify` outside its options counts

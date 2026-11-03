@@ -22,7 +22,7 @@ export const formatDuration = (ms: number): string => {
   return `${Math.floor(seconds / 60)}min ${String(seconds % 60).padStart(2, '0')}s`
 }
 
-const formatClock = (ms: number): string => {
+const formatElapsed = (ms: number): string => {
   const seconds = Math.floor(ms / 1000)
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 }
@@ -108,7 +108,7 @@ export const extractExcerpt = (answer: string | undefined): string | undefined =
 }
 
 /** `{}` is replaced by who it was. */
-const AGENT_END_TEXTS: Partial<Record<TurnCompleteReason, string>> = {
+const AGENT_FAILURE_TEXTS: Partial<Record<TurnCompleteReason, string>> = {
   error: '❌ {} parou com erro',
   aborted: '⏹️ {} foi interrompido',
   refusal: '⚠️ {} recusou a tarefa',
@@ -173,9 +173,9 @@ type State = {
   agents: AgentInfo[]
   endedAgentIds: Set<string> // already ended, even if the list still shows them
   workflows: Map<string, string> // running in the background, task id → name; $.agent.list() does not show them
-  failedAgentCount: number // since the main turn started
+  failedBackgroundAgentCount: number // since the main turn started
   seenAgentIds: Set<string> // since the main turn started, with those it found running: the total of the progress
-  failedAgentIds: Set<string> // of seenAgentIds, also those in the foreground, which failedAgentCount leaves out
+  failedAgentIds: Set<string> // of seenAgentIds, also those in the foreground, which failedBackgroundAgentCount leaves out
   windows: SessionRateLimit[]
   outcome?: { text: string; isSuccess: boolean } // how the last answer, or the background agents after it, ended
   isWaitingForAgents: boolean // answered with agents still running
@@ -189,7 +189,7 @@ const formatStatus = (s: State, now: number): string | undefined => {
   const spinnerFrame = FRAMES[s.frame]
   let main: string | undefined
   if (s.mainTurnStartedAt !== undefined)
-    main = `${spinnerFrame} Claude está trabalhando… ${formatClock(now - s.mainTurnStartedAt)}`
+    main = `${spinnerFrame} Claude está trabalhando… ${formatElapsed(now - s.mainTurnStartedAt)}`
   // A ✅ next to work still running would read as if everything had ended; the failures stay.
   else if (hasBackgroundWork(s))
     main = [s.outcome?.isSuccess ? undefined : s.outcome?.text, `${spinnerFrame} em segundo plano`]
@@ -243,11 +243,11 @@ async function checkAgentsEnded($: EngineInterface, s: State, agentCountBefore: 
   if (s.isWaitingForAgents && agentCountBefore > 0 && s.agents.length === 0 && s.mainTurnStartedAt === undefined) {
     s.isWaitingForAgents = false
     const workflowsSuffix = s.workflows.size > 0 ? ` — ${formatRemainingWorkflows(s.workflows.size)}` : ''
-    if (s.failedAgentCount > 0) {
-      const problems = `${s.failedAgentCount} com problema`
+    if (s.failedBackgroundAgentCount > 0) {
+      const problems = `${s.failedBackgroundAgentCount} com problema`
       s.outcome = { text: `⚠️ agentes terminaram, ${problems}`, isSuccess: false }
       // A summary of that one failure alone would repeat the notice just sent.
-      if (!(hasSentEndNotice && s.failedAgentCount === 1))
+      if (!(hasSentEndNotice && s.failedBackgroundAgentCount === 1))
         await sendNotice($, s, `⚠️ Os agentes em segundo plano terminaram, ${problems}${workflowsSuffix}`, {
           timeoutMs: 10000,
           isAboutBackgroundAgents: true,
@@ -363,7 +363,7 @@ export const register: Register = (on, options) => {
     agents: [],
     endedAgentIds: new Set(),
     workflows: new Map(),
-    failedAgentCount: 0,
+    failedBackgroundAgentCount: 0,
     seenAgentIds: new Set(),
     failedAgentIds: new Set(),
     windows: [],
@@ -399,7 +399,7 @@ export const register: Register = (on, options) => {
       s.outcome = undefined
       s.workflows = new Map()
       s.isWaitingForAgents = false
-      s.failedAgentCount = 0
+      s.failedBackgroundAgentCount = 0
       startAgentProgress(s)
       if (s.mainTurnStartedAt === undefined && !hasBackgroundWork(s)) stopSpinner(s)
       await showStatus($, s)
@@ -433,7 +433,7 @@ export const register: Register = (on, options) => {
     return r
   })
 
-  // What is in flight as the engine counts it, so a workflow whose end notice was missed does not stay on the status.
+  // What is in flight as the engine counts it, so a workflow whose task notification was missed does not stay on the status.
   on('classic.Stop', async ($, e, next) => {
     if (e.background_tasks) {
       const workflows = e.background_tasks.filter((task) => task.type === 'workflow')
@@ -459,7 +459,7 @@ export const register: Register = (on, options) => {
     s.mainTurnStartedAt = await $.clock.now()
     s.outcome = undefined
     s.isWaitingForAgents = false
-    s.failedAgentCount = 0
+    s.failedBackgroundAgentCount = 0
     startAgentProgress(s)
     startSpinner($, s)
     await showStatus($, s)
@@ -482,27 +482,30 @@ export const register: Register = (on, options) => {
     if (e.agentId !== undefined) {
       const agent = s.agents.find((a) => a.id === e.agentId)
       const who = agent ? `O agente “${agentName(agent)}”` : 'Um agente'
-      const endText = AGENT_END_TEXTS[e.reason]
+      const failureText = AGENT_FAILURE_TEXTS[e.reason]
       const isBackground = s.isWaitingForAgents
-      if (endText && isBackground) s.failedAgentCount++
-      if (endText) {
+      if (failureText && isBackground) s.failedBackgroundAgentCount++
+      if (failureText) {
         s.seenAgentIds.add(e.agentId)
         s.failedAgentIds.add(e.agentId)
       }
       // An agent error always sends a notice; an interruption or refusal, only in the background.
-      const hasSentEndNotice = Boolean(endText && (e.reason === 'error' || isBackground))
-      if (endText && hasSentEndNotice) {
-        await sendNotice($, s, endText.replace('{}', who), { timeoutMs: 10000, isAboutBackgroundAgents: isBackground })
+      const shouldSendEndNotice = Boolean(failureText && (e.reason === 'error' || isBackground))
+      if (failureText && shouldSendEndNotice) {
+        await sendNotice($, s, failureText.replace('{}', who), {
+          timeoutMs: 10000,
+          isAboutBackgroundAgents: isBackground,
+        })
       }
       // The list may lag behind the end: this one no longer counts as active.
       s.endedAgentIds.add(e.agentId)
-      await refreshAgents($, s, hasSentEndNotice)
-      const remaining = s.agents.length
+      await refreshAgents($, s, shouldSendEndNotice)
+      const remainingAgents = s.agents.length
       // Held on its own background work, it has not ended and would count itself as remaining.
       const isStillActive = s.agents.some((a) => a.id === e.agentId)
       // The last agent's end is the "tudo pronto" notice instead.
-      if (isBackground && !endText && !isStillActive && remaining > 0 && e.durationMs >= minDurationMs) {
-        await sendNotice($, s, `✅ ${who} terminou — ${formatRemainingAgents(remaining)}`, {
+      if (isBackground && !failureText && !isStillActive && remainingAgents > 0 && e.durationMs >= minDurationMs) {
+        await sendNotice($, s, `✅ ${who} terminou — ${formatRemainingAgents(remainingAgents)}`, {
           timeoutMs: 8000,
           isAboutBackgroundAgents: true,
         })
@@ -515,12 +518,12 @@ export const register: Register = (on, options) => {
     const duration = formatDuration(e.durationMs)
     const isAborted = e.reason === 'aborted'
     await refreshAgents($, s)
-    const remaining = s.agents.length
+    const remainingAgents = s.agents.length
     // Before the notices, which wait on the user's hooks: an agent may end meanwhile. Even after Esc, agents that stay
     // active still send a notice when they end.
-    s.isWaitingForAgents = remaining > 0
+    s.isWaitingForAgents = remainingAgents > 0
     const remainingWork = [
-      remaining > 0 && formatRemainingAgents(remaining),
+      remainingAgents > 0 && formatRemainingAgents(remainingAgents),
       s.workflows.size > 0 && formatRemainingWorkflows(s.workflows.size),
     ]
       .filter(Boolean)

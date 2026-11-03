@@ -308,7 +308,7 @@ test('an agent missing from the list still sends a notice for its error', async 
   expect(toasts).toEqual(['❌ Um agente parou com erro'])
 })
 
-test('an interrupted or refusing background agent does not say it finished', async ($, on) => {
+test('an interrupted or refusing background agent does not say it ended', async ($, on) => {
   const { notifications, agents } = setup(on)
 
   await $.turn.start({ text: 'oi', turnId: 't1' })
@@ -389,7 +389,7 @@ test("the background agents' end notice sums failures even when the last one sen
   expect(toastTimeouts).toEqual([10000, 10000, 10000])
 })
 
-test('only says everything is done when the background agents finish', async ($, on) => {
+test('only says everything is done when the background agents end', async ($, on) => {
   const { toasts, toastTimeouts, agents, lastStatus, clock } = setup(on)
 
   await $.turn.start({ text: 'oi', turnId: 't1' })
@@ -513,7 +513,7 @@ test('a failed answer stays in the status after the background agents end well',
 test('a Workflow reply or a Stop task with an empty name shows what stands in for it', async ($, on) => {
   const { lastStatus } = setup(on)
   on('classic.Stop', () => ({}) as never)
-  launchWorkflow(on, 'w1', '')
+  stubWorkflowLaunch(on, 'w1', '')
 
   await $.turn.start({ text: 'oi', turnId: 't1' })
   await $.tool.call({ tool: 'Workflow', script: 'x' } as never)
@@ -536,7 +536,7 @@ test('a failed answer stays in the status next to the background agents', async 
   expect(lastStatus()).toBe('❌ deu erro após 3s · ⠋ em segundo plano  │  🤖 agente: Revisar')
 })
 
-test('an agent that ended a run and is held on its own work does not read as done', async ($, on) => {
+test('an agent that ended a run and is held on its own work does not read as ended', async ($, on) => {
   const { notifications, agents, lastStatus } = setup(on)
 
   await $.turn.start({ text: 'oi', turnId: 't1' })
@@ -551,7 +551,7 @@ test('an agent that ended a run and is held on its own work does not read as don
   expect(notifications).toEqual([])
 })
 
-test('a long run of an agent still held on its own work does not say it finished', async ($, on) => {
+test('a long run of an agent still held on its own work does not say it ended', async ($, on) => {
   const { notifications, agents } = setup(on)
 
   await $.turn.start({ text: 'oi', turnId: 't1' })
@@ -578,15 +578,15 @@ test('an idle agent does not count as running', async ($, on) => {
 
 test('an agent that ends while the notice of the answer goes out still gets the final notice', async ($, on) => {
   let reachNotify = () => {}
-  const isNotifying = new Promise<void>((resolve) => (reachNotify = resolve))
+  const notifyReached = new Promise<void>((resolve) => (reachNotify = resolve))
   let releaseNotify = () => {}
-  const isReleased = new Promise<void>((resolve) => (releaseNotify = resolve))
+  const notifyReleased = new Promise<void>((resolve) => (releaseNotify = resolve))
   let notifyCount = 0
   const { toasts, agents } = setup(on, {
     notify: (async () => {
       if (++notifyCount === 1) {
         reachNotify()
-        await isReleased
+        await notifyReleased
       }
       return { value: { isSent: true, channel: 'terminal_bell' } }
     }) as never,
@@ -596,7 +596,7 @@ test('an agent that ends while the notice of the answer goes out still gets the 
   agents.push(agent('bg', 'Revisar'))
   await $.agent.spawn({ prompt: 'x', description: 'Revisar' } as never)
   const answerEnd = $.turn.complete(turnComplete(40_000))
-  await isNotifying
+  await notifyReached
 
   agents.length = 0
   await $.turn.complete(turnComplete(1_000, { agentId: 'bg', turnId: 't2' }))
@@ -609,14 +609,14 @@ test('an agent that ends while the notice of the answer goes out still gets the 
   ])
 })
 
-const launchWorkflow = (on: On, taskId: string, workflowName?: string) =>
+const stubWorkflowLaunch = (on: On, taskId: string, workflowName?: string) =>
   on('tool.call', { tool: 'Workflow' }, () => ({ result: { status: 'async_launched', taskId, workflowName } }) as never)
 
-const notification = (text: string) => ({ text, origin: { kind: 'task-notification' }, wait: false }) as never
+const taskNotification = (text: string) => ({ text, origin: { kind: 'task-notification' }, wait: false }) as never
 
-test('a workflow still running does not read as done', async ($, on) => {
+test('a workflow still running does not read as ended', async ($, on) => {
   const { toasts, lastStatus, clock } = setup(on)
-  launchWorkflow(on, 'w1', 'revisao')
+  stubWorkflowLaunch(on, 'w1', 'revisao')
 
   await $.turn.start({ text: 'oi', turnId: 't1' })
   await $.tool.call({ tool: 'Workflow', script: 'x' } as never)
@@ -628,18 +628,18 @@ test('a workflow still running does not read as done', async ($, on) => {
   expect(lastStatus()).toBe('⠙ em segundo plano  │  🔀 workflow: revisao')
 })
 
-test('the notice of the end of a workflow takes it off the status', async ($, on) => {
+test('the task notification of a workflow takes it off the status', async ($, on) => {
   const { lastStatus, clock, statuses } = setup(on)
-  launchWorkflow(on, 'w1', 'revisao')
+  stubWorkflowLaunch(on, 'w1', 'revisao')
 
   await $.turn.start({ text: 'oi', turnId: 't1' })
   await $.tool.call({ tool: 'Workflow', script: 'x' } as never)
   await $.turn.complete(turnComplete(5_000))
 
-  await $.prompt.submit(notification('<task-id>outro</task-id>'))
+  await $.prompt.submit(taskNotification('<task-id>outro</task-id>'))
   expect(lastStatus()).toMatch(/🔀 workflow: revisao$/)
 
-  await $.prompt.submit(notification('<task-id>w1</task-id>'))
+  await $.prompt.submit(taskNotification('<task-id>w1</task-id>'))
   expect(lastStatus()).toBeUndefined()
 
   // With nothing left, the spinner stopped too.
@@ -651,7 +651,7 @@ test('the notice of the end of a workflow takes it off the status', async ($, on
 
 test('the last agent sends its final notice even with a workflow still running', async ($, on) => {
   const { notifications, agents, lastStatus } = setup(on)
-  launchWorkflow(on, 'w1', 'revisao')
+  stubWorkflowLaunch(on, 'w1', 'revisao')
 
   await $.turn.start({ text: 'oi', turnId: 't1' })
   agents.push(agent('bg', 'Revisar'))
@@ -668,7 +668,7 @@ test('the last agent sends its final notice even with a workflow still running',
 
 test('a failed agent stays in the final notice and the status with a workflow still running', async ($, on) => {
   const { notifications, agents, lastStatus } = setup(on)
-  launchWorkflow(on, 'w1', 'revisao')
+  stubWorkflowLaunch(on, 'w1', 'revisao')
 
   await $.turn.start({ text: 'oi', turnId: 't1' })
   agents.push(agent('a1', 'Revisar'), agent('a2', 'Testar'))
@@ -684,7 +684,7 @@ test('a failed agent stays in the final notice and the status with a workflow st
   expect(lastStatus()).toBe('⚠️ agentes terminaram, 1 com problema · ⠋ em segundo plano  │  🔀 workflow: revisao')
 
   // The workflow's end sends no second notice about the agents.
-  await $.prompt.submit(notification('<task-id>w1</task-id>'))
+  await $.prompt.submit(taskNotification('<task-id>w1</task-id>'))
   expect(notifications).toHaveLength(2)
 })
 
@@ -740,7 +740,7 @@ test('Stop before the turn ends counts in the notice of the answer, in the plura
 test('Stop with a workflow gone leaves the wait for the agents alone', async ($, on) => {
   const { notifications, agents } = setup(on)
   stopHook(on)
-  launchWorkflow(on, 'w1', 'revisao')
+  stubWorkflowLaunch(on, 'w1', 'revisao')
 
   await $.turn.start({ text: 'oi', turnId: 't1' })
   agents.push(agent('bg', 'Revisar'))
@@ -757,7 +757,7 @@ test('Stop with a workflow gone leaves the wait for the agents alone', async ($,
 test('a workflow without a name shows what stands in for it', async ($, on) => {
   const { lastStatus } = setup(on)
   stopHook(on)
-  launchWorkflow(on, 'w1')
+  stubWorkflowLaunch(on, 'w1')
 
   await $.turn.start({ text: 'oi', turnId: 't1' })
   await $.tool.call({ tool: 'Workflow', script: 'x' } as never)
@@ -780,13 +780,13 @@ test('a Workflow call that failed does not count as running', async ($, on) => {
   expect(lastStatus()).toBe('✅ pronto em 5s')
 })
 
-test('the notice of the end of a workflow during a turn takes it off the status', async ($, on) => {
+test('the task notification of a workflow during a turn takes it off the status', async ($, on) => {
   const { lastStatus } = setup(on)
-  launchWorkflow(on, 'w1', 'revisao')
+  stubWorkflowLaunch(on, 'w1', 'revisao')
 
   await $.turn.start({ text: 'oi', turnId: 't1' })
   await $.tool.call({ tool: 'Workflow', script: 'x' } as never)
-  await $.prompt.submit(notification('<task-id>w1</task-id>'))
+  await $.prompt.submit(taskNotification('<task-id>w1</task-id>'))
   await $.turn.complete(turnComplete(5_000))
 
   expect(lastStatus()).toBe('✅ pronto em 5s')
@@ -1186,7 +1186,7 @@ test('sends a notice when the plan resets after the limit', async ($, on) => {
   expect(notifications).toHaveLength(2)
 })
 
-test('a reading from before the reset is neither shown nor noticed again', async ($, on) => {
+test('a reading from before the reset is neither shown nor sends a notice again', async ($, on) => {
   const { notifications, lastStatus, clock } = setup(on)
   const now = clock.now()
   // No API response since the limit: claude still reports the old window.
@@ -1228,7 +1228,7 @@ test('a new plan window shows a toast again at the same levels', async ($, on) =
   expect(toasts).toEqual(['⚠️ Você já usou 80% do plano (5h)', '⚠️ Você já usou 80% do plano (5h)'])
 })
 
-test('after Esc it still sends a notice when the background agents finish', async ($, on) => {
+test('after Esc it still sends a notice when the background agents end', async ($, on) => {
   const { notifications, agents, lastStatus } = setup(on)
 
   await $.turn.start({ text: 'oi', turnId: 't1' })
@@ -1287,7 +1287,7 @@ describe('formatTimeLeft', () => {
 })
 
 describe('formatAgents', () => {
-  test('counts the agents already done', () => {
+  test('counts the agents already ended', () => {
     expect(formatAgents([agent('a', 'A'), agent('b', 'B')], 3)).toBe('🤖 3/5: A +1')
     expect(formatAgents([agent('a', 'A')], 1)).toBe('🤖 1/2: A')
   })
@@ -1323,7 +1323,7 @@ describe('formatWorkflows', () => {
   for (const [name, names, text] of cases) test(name, () => expect(formatWorkflows(names)).toBe(text))
 })
 
-describe('excerpt', () => {
+describe('extractExcerpt', () => {
   for (const [answer, text] of [
     ['\n- Feito: `x` **ok**', 'Feito: x ok'],
     ['Renomeei `my_var` para _snake_case_ e __init__', 'Renomeei my_var para snake_case e init'],

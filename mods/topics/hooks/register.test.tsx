@@ -162,6 +162,14 @@ describe('parseAnswer', () => {
     ['a ### title stays inside its topic', ['## A', '### Sub', 'x', '## B'], ['A', 'B']],
     ['a longer fence closes the block', ['## A', '```', '## dentro', '`````', '## B'], ['A', 'B']],
     ['a tilde fence may have a backtick after it', ['## A', '~~~ a`b', '## dentro', '~~~', '## B'], ['A', 'B']],
+    ['a fence opened on a numbered item closes', ['1. ```bash', '   ## dentro', '   ```', '## A', '## B'], ['A', 'B']],
+    ['a fence opened on a bullet item closes', ['- ```bash', '  ## dentro', '  ```', '## A', '## B'], ['A', 'B']],
+    [
+      'a fence after a list marker does not close a block',
+      ['## A', '```', '- ```', '## dentro', '```', '## B'],
+      ['A', 'B'],
+    ],
+    ['a title of only spaces is not a topic', ['x', '##  ', 'y', '## A', 'z'], ['A']],
   ] as const) {
     test(name, () => {
       expect(parseAnswer(lines.join('\n')).topics.map((t) => t.title)).toEqual(titles)

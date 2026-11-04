@@ -34,8 +34,15 @@ Respostas às seções `## Pendências`, em todos os passos:
 
 ## 1. Estado
 - Confirme que o `gh` está autenticado e enxerga o repositório
-  (`gh repo view --json nameWithOwner,visibility,defaultBranchRef`).
+  (`gh repo view --json
+  nameWithOwner,visibility,isFork,defaultBranchRef`).
   Se falhar, diga o motivo e pare; não tente configurar nada.
+- Fork: os passos abaixo usam o `origin` e um `--head` sem dono, que
+  o `gh` procura no próprio repositório do PR. Se a URL do `origin`
+  (`git remote get-url origin`) não tiver o `nameWithOwner`, diga
+  que a skill só abre PR dentro de um mesmo repositório, mostre os
+  dois nomes e pare. Com `isFork` verdadeiro, avise na prévia que o
+  PR fica no fork, não no original.
 - Base: `--base` ou a branch padrão. Se a branch atual for a base,
   diga que é preciso uma branch própria e pare. HEAD destacado
   (`git branch --show-current` vazio): diga o mesmo e pare.
@@ -215,6 +222,8 @@ Mostre, nesta ordem:
 - repositório, base ← branch, issue (com link) e template usado (ou
   "padrão"); sem issue, "sem issue: o merge não fecha nenhuma issue
   nem tarefa do gerenciador";
+- o idioma, se foi detectado pelos commits (passo 3), e o aviso de
+  fork (passo 1), se for o caso;
 - se o repositório for público (`visibility` `PUBLIC`), um aviso de
   que o PR ficará visível para qualquer pessoa, citando os trechos
   que parecem sensíveis (dados de cliente, URLs internas, tokens,

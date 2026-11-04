@@ -445,6 +445,20 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     assert.ok(claudeCalls().includes(`plugin update ${PLAIN_MOD}@claude-config --json`))
   })
 
+  test('stops at the timeout a claude that ignores SIGTERM', () => {
+    fakeClaude({
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+      'plugin marketplace update claude-config': "trap '' TERM; exec /bin/sleep 20",
+    })
+
+    const start = Date.now()
+    const { status, output } = runCli(['update'], CLI, { DATALOGIX_CLAUDE_TIMEOUT_MS: '3000' })
+
+    assert.equal(status, 1, output)
+    assert.match(output, /marketplace: timed out after 3s/)
+    assert.ok(Date.now() - start < 15_000, 'waited for the process past the timeout')
+  })
+
   test('turns off git credential prompts for claude', () => {
     fakeClaude({ '--version': `echo "$GIT_TERMINAL_PROMPT" > "${path.join(tmpDir, 'prompt')}"` })
 

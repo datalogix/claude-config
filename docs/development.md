@@ -44,22 +44,23 @@ wrap Markdown by hand.
 ## How options are stored
 
 When options are asked (first install, a new mod or `--configure`), each
-option's question starts from the value you
-configured or, for an option you never configured, the mod's latest
-default. Only answers that differ from the default, and options you
-already configured, are stored, so a default you never changed follows
-the mod when it changes. An option without a default is compared with
-what its question starts from: `false` for a boolean, the first choice
-for a select. Without a terminal, nothing is asked or stored: options
-already configured keep their values and the others use their defaults.
+option's question starts from the value you configured or, for an option
+you never configured, the mod's latest default. Only answers that differ
+from the default, and options you already configured, are stored, so a
+default you never changed follows the mod when it changes. An option
+without a default is compared with what its question starts from: `false`
+for a boolean, the first choice for a select. Without a terminal, nothing
+is asked or stored: options already configured keep their values and the
+others use their defaults.
 
 ## Adding a mod
 
 1. Create `mods/<name>/` with `.claude-plugin/plugin.json` (with
-   `"license": "MIT"` and `"author": { "name": "datalogix" }`) and, for
-   a mod with hooks, `hooks/hooks.json` listing its modules (e.g.
-   `{ "modules": ["./register.ts"] }`), a `tsconfig.json` like the other
-   mods' and the tests next to the modules. Leave `version` out of both
+   `"license": "MIT"` and `"author": { "name": "datalogix" }`),
+   `hooks/hooks.json` listing its modules (e.g.
+   `{ "modules": ["./register.ts"] }`; only `datalogix` has no hooks), a
+   `tsconfig.json` like the other mods' and the tests next to the
+   modules. Leave `version` out of both
    `plugin.json` and the marketplace entry: Claude Code then uses the
    commit SHA as the version, so every pushed commit reaches `update`. A
    fixed `version` keeps users on their cached copy until it changes.
@@ -74,10 +75,10 @@ already configured keep their values and the others use their defaults.
    ```
 
 3. Add `claude plugin test mods/<name>` to the `test` script in
-   `package.json` (it fails for a mod without hooks).
-   `tests/mods.test.js` fails until these steps are done: it checks the
-   `name`, `license`, `author` and missing `version`, the marketplace
-   entry and this script.
+   `package.json`. `tests/mods.test.js` fails until these steps are
+   done: it checks the `name`, `license`, `author` and missing
+   `version`, `hooks/hooks.json`, the `tsconfig.json`, the file a
+   `types` field points to, the marketplace entry and this script.
 4. Run the installer again. Options declared in `userConfig` are asked
    during install (`number`, `string`, `boolean`, `options` for a fixed
    list, and `sensitive` for a hidden answer that keeps the stored value

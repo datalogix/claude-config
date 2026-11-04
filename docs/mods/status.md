@@ -15,7 +15,7 @@ The options were renamed from `segundos`, `alertaPlano`, `notificar`
 (`sempre`/`agentes`/`nunca`) and `trecho`, and `excerpt` was called
 `showExcerpt`. Values stored only under the earlier names are not
 carried over, so those options are back at their defaults; set them
-again by running the installer or with `/config`. The installer
+again with `--configure` or `/config`. The installer
 (`bin/cli.js`) lists the values still stored under the
 earlier names, so they can be set again by hand; it warns on every
 run until they are removed from `pluginConfigs` in `settings.json`
@@ -49,9 +49,9 @@ git: feat/status-git · PR #5 · ●3 ↑1 ↓2
 ```
 
 Each line has its color: `status:` in the Claude color while working,
-green when done, red after a failure and gray while waiting; `plano:` in blue, yellow from
-`planAlert` on; and `git:` in purple. They are theme colors, so they
-follow the user's theme.
+green when done, red after a failure and gray while waiting; `plano:` in
+blue, yellow from `planAlert` on; and `git:` in purple. They are theme
+colors, so they follow the user's theme.
 
 Claude Code draws those lines only in the terminal and the desktop app.
 Elsewhere, such as VS Code, the same parts go on one status line, which
@@ -66,7 +66,9 @@ Outside a repository, or when `git` fails, the line is left out.
 
 The branch links to the remote once it is there, tracked and not deleted
 (`/tree/<branch>` on the remote's site, the address GitHub uses, so another
-host may not open it); a local path or an ssh alias as the remote gets no
+host may not open it). An http(s) remote keeps its scheme and port, even on
+a host with no dot; an ssh remote links over https, without its port. A
+local path or an ssh alias (a host with no dot) as the remote gets no
 link. The pull request links to its own page. A terminal without hyperlink
 support shows the address after the text.
 

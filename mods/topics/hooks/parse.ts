@@ -1,5 +1,5 @@
 export type Topic = { title: string; body: string }
-export type ActionItem = {
+type ActionItem = {
   text: string
   /** Written checked (`[x]`, `(x)`): only a suggestion, the mark checks nothing; `(recomendo)` still does. */
   isSuggested: boolean
@@ -11,7 +11,7 @@ export type ActionItem = {
   explanationTitle?: string
 }
 /** Loose text (a question, a note) or an index into `items`, in written order. */
-export type ActionPart = { text: string } | { itemIndex: number }
+type ActionPart = { text: string } | { itemIndex: number }
 export type Actions = { items: ActionItem[]; parts: ActionPart[] }
 export type ParsedAnswer = { intro: string; topics: Topic[]; actions?: Actions }
 

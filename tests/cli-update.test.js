@@ -1,3 +1,4 @@
+// @ts-check
 // Also covers what install does the same way; run without a terminal.
 import assert from 'node:assert/strict'
 import fs from 'node:fs'

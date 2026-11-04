@@ -1,3 +1,4 @@
+// @ts-check
 // Each test file that runs the CLI or the fake claude calls useTempHome() once, at the top.
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
@@ -9,6 +10,7 @@ import { afterEach, beforeEach } from 'vitest'
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 export const CLI = path.join(ROOT, 'bin/cli.js')
+/** @type {string[]} */
 export const MODS = JSON.parse(fs.readFileSync(path.join(ROOT, '.claude-plugin/marketplace.json'), 'utf8')).plugins.map(
   (/** @type {{ name: string }} */ plugin) => plugin.name,
 )

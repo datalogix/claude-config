@@ -1,3 +1,4 @@
+// @ts-check
 // bin/cli.js runs in this process, as if in a terminal, with mocked prompts.
 import assert from 'node:assert/strict'
 import fs from 'node:fs'

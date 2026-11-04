@@ -1750,6 +1750,12 @@ describe('extractExcerpt', () => {
     ['<!-- a --> <!-- b -->\nFeito', 'Feito'],
     ['<!-- a --> Feito <!-- b -->\nOutro', '<!-- a --> Feito <!-- b -->'],
     [`${'a'.repeat(78)}😀 e mais texto`, `${'a'.repeat(78)}😀…`],
+    ['- ```js\n  code\n  ```\nFeito', 'Feito'],
+    ['1. ```bash\n   code\n   ```\nFeito', 'Feito'],
+    ['2) ~~~\n   code\n   ~~~\nFeito', 'Feito'],
+    ['```\n- ```\ncode\n```\nFeito', 'Feito'],
+    ['> ```js\n> code\n> ```\nFeito', 'Feito'],
+    ['> - ```\n>   code\n>   ```\nFeito', 'Feito'],
   ] as const) {
     test(`${JSON.stringify(answer)} is ${JSON.stringify(text)}`, () => expect(extractExcerpt(answer)).toBe(text))
   }

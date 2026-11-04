@@ -113,7 +113,13 @@ export const extractExcerpt = (answer: string | undefined): string | undefined =
   const isCode = createCodeBlockTracker()
   const line = answer
     ?.split('\n')
-    .filter((line) => !isCode(line) && !THEMATIC_BREAK.test(line) && !TABLE_ROW.test(line) && !HTML_COMMENT.test(line))
+    .filter(
+      (line) =>
+        !isCode(line.replace(/^\s*(?:>\s*)+/, '')) &&
+        !THEMATIC_BREAK.test(line) &&
+        !TABLE_ROW.test(line) &&
+        !HTML_COMMENT.test(line),
+    )
     .map((line) =>
       line
         .replace(/^\s*(>\s*)*((#+|[-*+]|\d+[.)])\s+)?/, '')

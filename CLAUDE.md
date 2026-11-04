@@ -215,11 +215,13 @@ node bin/cli.js --link                    # install from this clone: edits apply
   - `steps/` has one checklist per step; `http` and `jobs` are extra checklists that the `code` step applies.
   - `modes/` holds the focus modes and the `report` mode.
   - `templates/LICENSE` must stay identical to the root `LICENSE`, which `tests/license.test.js` enforces.
-- Several rules follow `datalogix/workflows`; check it before changing them:
+- Several rules follow `datalogix/workflows`, on its `v2` branch (`main` and the `v1` tags have neither `cli/` nor
+  `project.yml`); check it before changing them:
   - `/datalogix:review`: the reusable workflows for CI, scripts, Pint/ESLint/Prettier, Pest/Vitest and Testbench;
-  - `/datalogix:issue`: the `claude`/`claude-plan` labels (inputs of `.github/workflows/claude.yml`), the `task`
-    label (`docs/task-manager.md`) and the `rollback` label (`.github/workflows/project.yml` and `deploy.yml`), created
-    with the colors and descriptions of `cli/kinds/project/state.js`, and the issue forms (`examples/issue-templates/`);
+  - `/datalogix:issue`: the `claude`/`claude-plan` labels (inputs of `.github/workflows/claude.yml`) and the `rollback`
+    label (`.github/workflows/project.yml` and `deploy.yml`), created with the colors and descriptions of
+    `cli/kinds/project/state.js`, the `task` label (`docs/task-manager.md`; its color and description are the skill's
+    own), and the issue forms (`examples/issue-templates/`);
   - `/datalogix:issue`, `/datalogix:pr` and `/datalogix:commit`: Portuguese as the suggested language, with the
     Conventional Commits type in English (`plugins/laravel/skills/conventions/SKILL.md`);
   - `/datalogix:ci`: the checks it fixes and leaves alone follow `plugins/laravel/commands/fix-ci.md` and

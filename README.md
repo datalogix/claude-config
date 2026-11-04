@@ -48,7 +48,8 @@ safe to run again:
 
 `install` and `update` count only the mods in the user scope as
 installed: a mod installed only in a project's scope is neither updated
-nor uninstalled, and `install` installs it in the user scope too.
+nor uninstalled, and `install` installs it in the user scope too. They
+warn about one in the current project's scope.
 
 ## Update
 

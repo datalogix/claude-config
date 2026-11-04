@@ -305,9 +305,19 @@ function listInstalledModIds() {
   if (!mods) {
     return undefined
   }
-  // Only the user scope: another project's install is off here and cannot be uninstalled from here.
-  const userMods = mods.filter((mod) => mod.scope === undefined || mod.scope === 'user')
-  return new Set(userMods.map((mod) => /** @type {string} */ (mod.id)))
+  const cwd = fs.realpathSync(process.cwd())
+  const ids = new Set()
+  for (const mod of mods) {
+    const id = /** @type {string} */ (mod.id)
+    // Only the user scope of this marketplace's mods: another project's install is off here and cannot be
+    // uninstalled from here. A copy in a skills folder counts in any scope, for warnSkillsFolderCopy.
+    if (!id.endsWith(`@${marketplace.name}`) || mod.scope === undefined || mod.scope === 'user') {
+      ids.add(id)
+    } else if (mod.projectPath === cwd) {
+      p.log.warn(`${id} is installed in this project's ${mod.scope} scope, which this command leaves alone.`)
+    }
+  }
+  return ids
 }
 
 const RENAMED_MODS = { passos: 'steps', topicos: 'topics' }

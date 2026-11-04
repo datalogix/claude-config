@@ -274,6 +274,42 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.match(output, new RegExp(`installed: ${PLAIN_MOD}`))
   })
 
+  test('points out a mod installed in the scope of this project', () => {
+    fakeClaude({
+      'plugin list --json': `echo '[{"id":"${PLAIN_MOD}@claude-config","scope":"local","projectPath":"${fs.realpathSync(process.cwd())}"}]'`,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+    })
+
+    const { status, output } = runCli(['install'])
+
+    assert.equal(status, 0, output)
+    assert.match(output, new RegExp(`${PLAIN_MOD}@claude-config is installed in this project's local scope`))
+  })
+
+  test('says nothing of a mod installed in the scope of another project', () => {
+    fakeClaude({
+      'plugin list --json': `echo '[{"id":"${PLAIN_MOD}@claude-config","scope":"project","projectPath":"/elsewhere"}]'`,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+    })
+
+    const { status, output } = runCli(['install'])
+
+    assert.equal(status, 0, output)
+    assert.doesNotMatch(output, /scope, which this command leaves alone/)
+  })
+
+  test('warns about a copy in the skills folder of a project', () => {
+    fakeClaude({
+      'plugin list --json': `echo '[{"id":"${PLAIN_MOD}@claude-config","scope":"user"},{"id":"${PLAIN_MOD}@skills-dir","scope":"project"}]'`,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+    })
+
+    const { status, output } = runCli(['install'])
+
+    assert.equal(status, 0, output)
+    assert.match(output, new RegExp(`${PLAIN_MOD} is also loaded from a skills folder`))
+  })
+
   test('takes a mod in the user scope as installed', () => {
     fakeClaude({
       'plugin list --json': `echo '[{"id":"${PLAIN_MOD}@claude-config","scope":"user"}]'`,

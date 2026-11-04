@@ -56,8 +56,9 @@ node bin/cli.js install --link            # install from this clone: edits apply
   configure logs `unchanged: <name>`, unless its options could not be read (`hasReadFailed`), which is already reported.
   A marketplace with no readable source (no text in its source fields) still updates. A mod also loaded from a
   skills folder (`<name>@skills-dir` in `plugin list`) is pointed out on `install`. `plugin list` also lists installs
-  in other scopes, such as other projects': only the user scope counts as installed (`listInstalledModIds`), so
-  neither command updates or uninstalls those, and `install` installs the mod in the user scope.
+  in other scopes, such as other projects': only the user scope of this marketplace's mods counts as installed
+  (`listInstalledModIds`), so neither command updates or uninstalls those, and `install` installs the mod in the user
+  scope. An install in the current project's scope (`projectPath`) is pointed out.
 - It no longer writes skills. Earlier versions copied them into `~/.claude/skills/<name>` with a `.claude-config`
   marker (or symlinked them with `--link`); `removeOldSkills` deletes those folders, and only those, once the
   `datalogix` mod (`SKILLS_MOD`) is installed or unselected. `update` installs `datalogix` when such folders exist.

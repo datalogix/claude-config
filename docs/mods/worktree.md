@@ -29,4 +29,5 @@ install dependencies or copy local files: list files such as `.env` in a
 This is an instruction Claude follows, not a block like a hook, so it may
 miss now and then. To turn it off, unselect the mod in the installer.
 
-`update` does not install new mods: run `install` once to get this one.
+To get this mod on a machine that already has others, run the installer
+without `update`: it offers the mod, selected by default.

@@ -1,3 +1,4 @@
+// @ts-check
 // Runs only on Windows: the real cmd.exe parses what cmdLine builds, through a claude.cmd shaped like npm's shim.
 // Arguments and stdin must arrive unchanged, and the installer must reach claude.cmd, or say claude is missing.
 import assert from 'node:assert/strict'

@@ -1,3 +1,4 @@
+// @ts-check
 // Run without a terminal; what install and update do the same way is in
 // cli-update.test.js.
 import assert from 'node:assert/strict'

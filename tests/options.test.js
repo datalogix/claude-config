@@ -1,3 +1,4 @@
+// @ts-check
 // The pure helpers of bin/options.js. The rule behind most of them: an unstored default must stay unstored, so a
 // later change of default in a mod's plugin.json reaches it.
 import assert from 'node:assert/strict'

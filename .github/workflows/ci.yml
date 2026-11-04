@@ -88,7 +88,7 @@ jobs:
       - run: node bin/cli.js --help
       - run: node bin/cli.js update
 
-  # Single status check for branch protection, so it does not depend on the matrix job names
+  # Aggregates the results, so a future required check does not depend on the matrix job names
   all-checks:
     if: always()
     needs: [lint, test, windows, minimum-node]

@@ -223,11 +223,14 @@ export const parseGit = (porcelain: string): GitState | undefined => {
 
 /**
  * The web address of a remote, or undefined for a local path or an ssh alias (a host with no dot), whose host is not
- * a site. Any user or token in the URL is left out, since this ends up on the screen.
+ * a site. An http(s) remote is already a site, so it keeps its scheme and port; the port of ssh is not the site's. Any
+ * user or token in the URL is left out, since this ends up on the screen.
  */
 export const remoteWebUrl = (remote: string): string | undefined => {
+  const site = /^(https?):\/\/(?:[^@/]+@)?([^/]+)\/(.+?)(?:\.git)?\/?$/.exec(remote)
+  if (site) return `${site[1]}://${site[2]}/${site[3]}`
   const match =
-    /^(?:https?|ssh|git):\/\/(?:[^@/]+@)?([^/:]+)(?::\d+)?\/(.+?)(?:\.git)?\/?$/.exec(remote) ??
+    /^(?:ssh|git):\/\/(?:[^@/]+@)?([^/:]+)(?::\d+)?\/(.+?)(?:\.git)?\/?$/.exec(remote) ??
     /^(?:[^@/]+@)?([^:/]+):(?!\/\/)(.+?)(?:\.git)?\/?$/.exec(remote)
   return match?.[1]?.includes('.') ? `https://${match[1]}/${match[2]}` : undefined
 }

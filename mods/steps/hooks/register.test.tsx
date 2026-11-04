@@ -242,6 +242,16 @@ describe('tool groups', () => {
     })
   }
 
+  test('unfold with an error inside after /steps too', async ($, on) => {
+    on('ui.render', { component: 'ToolGroup' }, async ($, e) => {
+      const { Text } = $.ui.resolve(e)
+      return <Text>{e.props.isExpanded ? 'unfolded' : 'folded'}</Text>
+    })
+    await runStepsCommand($)
+    const ui = await mount($, 'ToolGroup', group([call(), call({ isErrored: true })]))
+    expect(await ui.find({ type: 'Text', text: 'unfolded' })).toBeDefined()
+  })
+
   test('are hidden when the engine says the group holds only calls', async ($, on) => {
     drawOriginal(on, 'ToolGroup')
     const ui = await mount($, 'ToolGroup', group([call()], { isCallsOnly: true }))

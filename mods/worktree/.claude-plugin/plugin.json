@@ -1,0 +1,6 @@
+{
+  "name": "worktree",
+  "description": "Faz o Claude perguntar se deve criar um git worktree antes de alterar arquivos, inclusive quando uma tarefa nova chega no meio de outra",
+  "author": { "name": "datalogix" },
+  "license": "MIT"
+}

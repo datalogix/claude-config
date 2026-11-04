@@ -17,6 +17,8 @@ the installer again or with `/config`.
   system notification) when an answer or the background agents finish
 - [topics](docs/mods/topics.md) — answers split into closed topics, with
   a `## Pendências` list to answer in place
+- [worktree](docs/mods/worktree.md) — asks whether to create a git
+  worktree before changing files
 
 ## Install
 

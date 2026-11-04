@@ -54,8 +54,12 @@ qualquer ordem." Não faça perguntas antes de receber o texto.
   em diante, `-R <owner/repo>` nos comandos é esse destino sempre
   que ele não for o diretório atual. Confirme que o `gh` está
   autenticado e enxerga o destino (`gh repo view [<owner/repo>]
-  --json nameWithOwner,visibility,isFork,parent,defaultBranchRef`).
+  --json
+  nameWithOwner,visibility,isFork,parent,hasIssuesEnabled,defaultBranchRef`).
   Se falhar, diga o motivo e pare; não tente configurar nada.
+  Com `hasIssuesEnabled` falso, diga que o destino está com as
+  issues desativadas e pare; num fork (`isFork`), cite também
+  `/datalogix:issue -R <owner/repo do original> ...`.
 - Leia o `CLAUDE.md` e o `README.md` da raiz do destino, se existirem.
   Se o destino não for o diretório atual, leia-os com
   `gh api repos/<owner/repo>/contents/<arquivo>
@@ -117,9 +121,11 @@ qualquer ordem." Não faça perguntas antes de receber o texto.
     `description` do `.yml`, ou pelo nome do arquivo) e diga na
     prévia qual foi usado.
   - `.md`: siga os títulos e a ordem do corpo, sem o frontmatter.
-  - `.yml` (formulário): cada campo `textarea`/`input` vira um
-    `### <label>`, como o GitHub mostra; `checkboxes` viram listas
-    `- [ ]`. Preencha só com o que a descrição sustenta.
+  - `.yml` (formulário): cada campo `textarea`, `input` ou
+    `dropdown` vira um `### <label>`, como o GitHub mostra;
+    `checkboxes` viram listas `- [ ]`; `markdown` é só texto do
+    formulário e fica de fora. Preencha só com o que a descrição
+    sustenta.
   - Um template cujo `labels` tem `claude` ou `claude-plan` (como
     "Tarefa para o Claude" e "Planejar com o Claude") é escolhido
     pela resposta a "O Claude deve agir na issue?" (passo 6): use o
@@ -181,9 +187,10 @@ O que corrigir e onde.
   passo 3 vão traduzidos para ele.
 - Nunca escreva `@claude` no título, no corpo ou num comentário,
   nem entre crases: num comentário, o texto dispara o workflow
-  `claude.yml`; no título e no corpo, não dispara, mas pode ser
-  copiado para um comentário. Se a descrição tiver `@claude`,
-  escreva "o Claude" no lugar e avise na prévia (passo 6).
+  `claude.yml`; no título e no corpo, dispara na abertura da issue
+  em quem usa o `@v1` dos workflows e, nos demais, pode ser copiado
+  para um comentário. Se a descrição tiver `@claude`, escreva
+  "o Claude" no lugar e avise na prévia (passo 6).
 - Não invente requisitos nem passos de reprodução. O que faltar e
   for essencial vira pergunta, feita antes da prévia em uma única
   mensagem; o que for secundário vai para "Dúvidas em aberto".
@@ -236,16 +243,19 @@ O que corrigir e onde.
 - `rollback` também fica fora: aplicado numa issue, ele reverte um
   ambiente (`project.yml` do `datalogix/workflows`). Com
   `env:staging`, o staging, se o projeto usa staging; com
-  `env:production` ou sem `env:`, a produção; com outro `env:`
-  (ex.: `env:qa`), nenhum. Nunca o sugira nem o marque; ele só
-  aparece desmarcado na prévia (passo 6), e nunca ao reescrever
-  uma issue (seção 9).
+  `env:production` sem `env:staging`, a produção; sem nenhum dos
+  dois (sem `env:` ou com outro, ex.: `env:qa`), não faz nada. Nunca
+  o sugira nem o marque; ele só aparece desmarcado na prévia
+  (passo 6), e nunca ao reescrever uma issue (seção 9).
 - Só crie um label quando o usuário escolher, na prévia, um que não
   existe no destino (passo 7).
 
 ## 6. Prévia
 Mostre, nesta ordem:
 - repositório de destino, tipo e template usado (ou "padrão");
+- o idioma, se foi detectado pelos commits (passo 2);
+- se o destino for um fork (`isFork`), um aviso de que a issue fica
+  no fork, com o comando `-R` para abri-la no original;
 - se o destino for público (`visibility` `PUBLIC`), um aviso de que
   a issue ficará visível para qualquer pessoa, citando os trechos
   que parecem sensíveis (dados de cliente, URLs internas, tokens,
@@ -274,9 +284,11 @@ marcando as caixas e devolvendo a lista, nesta ordem:
    em texto)". Se `task` existir, ele aparece sempre, com o detalhe
    "envia a issue ao gerenciador de tarefas" indentado logo abaixo
    dele. Se `rollback` existir, ele aparece sempre (menos na seção
-   9), por último e desmarcado, com o detalhe "reverte a produção
-   (ou o staging, com `env:staging`) assim que a issue for criada"
-   indentado logo abaixo.
+   9), por último e desmarcado, logo depois dos `env:` do destino,
+   que aparecem sempre junto com ele, com o detalhe "reverte o
+   ambiente assim que a issue for criada, só com `env:production`
+   ou `env:staging` marcado; sem eles, não faz nada" indentado logo
+   abaixo.
 3. "O que fazer?", uma alternativa exclusiva por linha: confirmar
    e enviar, comentar na issue parecida, como `- ( ) comentar na
    #<número> (<título>)` (uma linha por parecida), e cancelar.
@@ -330,10 +342,12 @@ a reabre.
   e ao aplicá-lo na issue.
 - Labels marcados com "(novo)": crie-os antes da issue, com
   `gh label create "<label>" [-R <owner/repo>]`. Para `claude`,
-  `claude-plan`, `rollback` e `task`, use a cor e a descrição do
-  setup do `datalogix/workflows` (`cli/kinds/project/state.js`),
-  com `--color <cor> --description "<descrição>"`. A descrição vai
-  em inglês se o idioma do passo 2 for inglês; senão, em português:
+  `claude-plan` e `rollback`, use a cor e a descrição do setup do
+  `datalogix/workflows` (`cli/kinds/project/state.js`); para `task`,
+  que o setup não define, os valores abaixo, que são desta skill.
+  Passe-os com `--color <cor> --description "<descrição>"`. A
+  descrição vai em inglês se o idioma do passo 2 for inglês; senão,
+  em português:
   - `claude`: `1d76db`, "Claude implementa e abre um pull request" /
     "Claude implements it and opens a pull request";
   - `claude-plan`: `0e8a16`, "Claude publica um plano de

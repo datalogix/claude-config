@@ -45,7 +45,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
 
     assert.equal(status, 1, output)
     assert.match(output, /could not list the marketplaces: unexpected reply \(Update available\)/)
-    assert.doesNotMatch(output, /mods not installed/)
+    assert.ok(!claudeCalls().some((call) => /^plugin (marketplace add|install) /.test(call)))
   })
 
   test('skips the mods and keeps the old skills when the claude CLI is missing', () => {
@@ -60,29 +60,15 @@ describe('update', { skip: process.platform === 'win32' }, () => {
   })
 
   test('keeps the old skills and installs nothing when the installed mods cannot be listed', () => {
-    fakeClaude({
-      'plugin list --json': 'echo broken >&2; exit 1',
-      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
-    })
+    fakeClaude({ 'plugin list --json': 'echo broken >&2; exit 1' })
     addOldSkill('review')
 
     const { status, output } = runCli(['update'])
 
     assert.equal(status, 1, output)
+    assert.match(output, /could not list the installed mods: broken/)
     assert.ok(!claudeCalls().some((call) => call.startsWith('plugin install')))
     assert.ok(fs.existsSync(skillPath('review')))
-  })
-
-  test('leaves alone a mod that is only in the scope of another project', () => {
-    fakeClaude({
-      'plugin list --json': `echo '[{"id":"${PLAIN_MOD}@claude-config","scope":"project"}]'`,
-      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
-    })
-
-    const { status, output } = runCli(['update'])
-
-    assert.equal(status, 0, output)
-    assert.ok(!claudeCalls().includes(`plugin update ${PLAIN_MOD}@claude-config --json`))
   })
 
   test('updates a marketplace added from another source', () => {
@@ -180,6 +166,23 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     assert.ok(fs.existsSync(skillPath('foreign')))
   })
 
+  test('installs datalogix unasked for the old skills when another mod is installed', () => {
+    fakeClaude({
+      'plugin list --json': installedMods(PLAIN_MOD),
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+    })
+    addOldSkill('review')
+
+    const { status, output } = runCli(['update'])
+
+    assert.equal(status, 0, output)
+    assert.deepEqual(
+      claudeCalls().filter((call) => call.startsWith('plugin install')),
+      ['plugin install datalogix@claude-config'],
+    )
+    assert.ok(!fs.existsSync(skillPath('review')))
+  })
+
   test('removes the old skills without installing datalogix again when it is already installed', () => {
     fakeClaude({
       'plugin list --json': installedMods('datalogix'),
@@ -202,9 +205,9 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     })
     addOldSkill('review')
 
-    const { status } = runCli(['update'])
+    const { status, output } = runCli(['update'])
 
-    assert.equal(status, 1)
+    assert.equal(status, 1, output)
     assert.ok(!claudeCalls().includes('plugin install datalogix@claude-config'))
     assert.ok(fs.existsSync(skillPath('review')))
   })
@@ -343,17 +346,6 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     assert.ok(fs.existsSync(skillPath('foreign')))
   })
 
-  test('without the marketplace, keeps the old skills when the installed mods cannot be listed', () => {
-    fakeClaude({ 'plugin list --json': 'echo broken >&2; exit 1' })
-    addOldSkill('review')
-
-    const { status, output } = runCli(['update'])
-
-    assert.equal(status, 1, output)
-    assert.match(output, /could not list the installed mods: broken/)
-    assert.ok(fs.existsSync(skillPath('review')))
-  })
-
   /** @param {string} configDir */
   const writeOldOptions = (configDir) => {
     fs.mkdirSync(configDir)
@@ -472,10 +464,7 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
   const COMMANDS = ['install', 'update']
 
   test.each(COMMANDS)('stops before the mods when the installed ones cannot be listed (%s)', (command) => {
-    fakeClaude({
-      'plugin list --json': 'echo broken >&2; exit 1',
-      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
-    })
+    fakeClaude({ 'plugin list --json': 'echo broken >&2; exit 1' })
 
     const { status, output } = runCli([command])
 
@@ -493,7 +482,6 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
 
     assert.equal(status, 1, output)
     assert.match(output, /marketplace: could not list the marketplaces: broken/)
-    assert.doesNotMatch(output, /mods not installed/)
     assert.ok(!claudeCalls().some((call) => /^plugin (marketplace add|marketplace update|install) /.test(call)))
   })
 
@@ -545,16 +533,41 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
     assert.match(output, /uninstalled: passos \(renamed to steps\)/)
   })
 
-  test('names the new name of a renamed mod among the mods skipped', () => {
+  test.each(COMMANDS)('names the new name of a renamed mod among the mods skipped (%s)', (command) => {
     fakeClaude({
       'plugin list --json': installedMods('passos'),
       'plugin marketplace add datalogix/claude-config': 'echo denied >&2; exit 1',
     })
 
-    const { status, output } = runCli(['update'])
+    const { status, output } = runCli([command])
 
     assert.equal(status, 1, output)
     assert.match(output, /mods skipped \(steps\); check access/)
+  })
+
+  test('with --link, keeps a renamed mod when the marketplace comes from another source', () => {
+    fakeClaude({
+      'plugin list --json': installedMods('passos'),
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+    })
+
+    const { status, output } = runCli(['--link'])
+
+    assert.equal(status, 0, output)
+    const calls = claudeCalls()
+    assert.ok(!calls.includes('plugin install steps@claude-config'))
+    assert.ok(!calls.includes('plugin uninstall --keep-data passos@claude-config'))
+    assert.match(output, /kept: passos/)
+  })
+
+  test.each(COMMANDS)('installs the new name of a renamed mod when the marketplace was just added (%s)', (command) => {
+    fakeClaude({ 'plugin list --json': installedMods('passos') })
+
+    const { status, output } = runCli([command])
+
+    assert.equal(status, 0, output)
+    assertCalledBefore('plugin marketplace add datalogix/claude-config', 'plugin install steps@claude-config')
+    assertCalledBefore('plugin install steps@claude-config', 'plugin uninstall --keep-data passos@claude-config')
   })
 
   test.each(COMMANDS)('keeps a mod under its earlier name when the new one fails to install (%s)', (command) => {

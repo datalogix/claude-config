@@ -113,7 +113,7 @@ export function runCli(args, cli = CLI, env = {}) {
     // testTimeout does not stop synchronous code, so a CLI that hangs would hold the whole run.
     timeout: 60_000,
   })
-  return { status: result.status, output: result.stdout + result.stderr }
+  return { status: result.status, output: `${result.stdout}${result.stderr}${result.error?.message ?? ''}` }
 }
 
 /**

@@ -169,7 +169,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     })
 
     test('fails on the mod list, installing nothing', () => {
-      fakeClaude({ 'plugin list --json': reply, 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
+      fakeClaude({ 'plugin list --json': reply })
 
       const { status, output } = runCli(['install'])
 
@@ -472,6 +472,19 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.equal(status, 0, output)
     assert.match(output, /marketplace: claude-config \(already added\)/)
     assert.doesNotMatch(output, /startsWith|comes from/)
+    assert.ok(claudeCalls().includes('plugin marketplace update claude-config'))
+  })
+
+  test.each([
+    ['no source', '{"name":"claude-config"}'],
+    ['source fields that are not text', '{"name":"claude-config","repo":123,"path":{},"url":[]}'],
+  ])('with --link, updates a marketplace listed with %s', (_, entry) => {
+    fakeClaude({ 'plugin marketplace list --json': `echo '[${entry}]'` })
+
+    const { status, output } = runCli(['--link'])
+
+    assert.equal(status, 0, output)
+    assert.doesNotMatch(output, /comes from/)
     assert.ok(claudeCalls().includes('plugin marketplace update claude-config'))
   })
 

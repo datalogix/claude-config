@@ -243,7 +243,7 @@ async function sendNotice($: EngineInterface, s: State, text: string, options: N
  * @param hasSentEndNotice the agent that just ended already sent a notice of its own failure
  */
 async function checkAgentsEnded($: EngineInterface, s: State, agentCountBefore: number, hasSentEndNotice: boolean) {
-  if (s.isWaitingForAgents && agentCountBefore > 0 && s.agents.length === 0 && s.mainTurnStartedAt === undefined) {
+  if (s.isWaitingForAgents && agentCountBefore > 0 && s.agents.length === 0) {
     s.isWaitingForAgents = false
     const workflowsSuffix = s.workflows.size > 0 ? ` — ${formatRemainingWorkflows(s.workflows.size)}` : ''
     const failedCount = s.failedBackgroundAgentIds.size
@@ -501,8 +501,8 @@ export const register: Register = (on, options) => {
         if (isBackground) s.failedBackgroundAgentIds.add(e.agentId)
       }
       // An agent error always sends a notice; an interruption or refusal, only in the background.
-      const shouldSendEndNotice = Boolean(failureText && (e.reason === 'error' || isBackground))
-      if (failureText && shouldSendEndNotice) {
+      const shouldSendEndNotice = failureText !== undefined && (e.reason === 'error' || isBackground)
+      if (shouldSendEndNotice) {
         await sendNotice($, s, failureText.replace('{}', who), {
           timeoutMs: 10000,
           isAboutBackgroundAgents: isBackground,
@@ -527,7 +527,6 @@ export const register: Register = (on, options) => {
 
     s.mainTurnStartedAt = undefined
     const duration = formatDuration(e.durationMs)
-    const isAborted = e.reason === 'aborted'
     await refreshAgents($, s)
     const remainingAgents = s.agents.length
     // Before the notices, which wait on the user's hooks: an agent may end meanwhile. Even after Esc, agents that stay
@@ -547,7 +546,7 @@ export const register: Register = (on, options) => {
     } else if (e.reason === 'refusal') {
       s.outcome = { text: `⚠️ recusou após ${duration}`, isSuccess: false }
       await sendNotice($, s, `⚠️ Claude recusou a resposta após ${duration}${remainingSuffix}`, { timeoutMs: 10000 })
-    } else if (isAborted) {
+    } else if (e.reason === 'aborted') {
       s.outcome = { text: `⏹️ interrompido após ${duration}`, isSuccess: false }
     } else {
       s.outcome = { text: `✅ pronto em ${duration}`, isSuccess: true }

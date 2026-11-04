@@ -239,7 +239,7 @@ export const remoteWebUrl = (remote: string): string | undefined => {
 export const branchWebUrl = (webUrl: string, upstream: string): string =>
   `${webUrl}/tree/${upstream.split('/').slice(1).map(encodeURIComponent).join('/')}`
 
-type GitSegment = string | { text: string; href: string }
+type GitSegment = NonNullable<StatusLine['segments']>[number]
 
 /** @param branchUrl undefined when the branch is not on a remote, so there is nothing to open */
 export const gitSegments = (git: GitState, pr?: PullRequest, branchUrl?: string): GitSegment[] => {
@@ -399,15 +399,12 @@ async function refreshGit($: EngineInterface, s: State, isAnswerEnd = false) {
     // Same as above.
   }
   if (readCount !== s.gitReadCount) return
-  let isNewRemote = false
   if (git?.upstream && git.upstream !== s.remote?.upstream) {
     const webUrl = await readRemote($, git.upstream)
     if (readCount !== s.gitReadCount) return
     s.remote = { upstream: git.upstream, ...(webUrl ? { webUrl } : {}) }
-    isNewRemote = true
   }
-  const hasChanged =
-    isNewRemote || git?.head !== s.git?.head || git?.counts !== s.git?.counts || git?.upstream !== s.git?.upstream
+  const hasChanged = git?.head !== s.git?.head || git?.counts !== s.git?.counts || git?.upstream !== s.git?.upstream
   const branch = git?.branch
   const isNewBranch = branch !== s.prBranch
   s.git = git

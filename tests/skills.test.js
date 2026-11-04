@@ -1,9 +1,11 @@
+// @ts-check
 // Plain-text contracts of the skills: the `## Pendências` items the topics mod parses, in every Markdown file; the
 // steps and items one skill follows in another; phrases the rules rely on; and the supporting files review names.
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import { describe, test } from 'vitest'
 
+// @ts-ignore Vitest takes the .ts extension; tsc only with allowImportingTsExtensions, and there is no tsconfig here.
 import { ACTIONS_TITLE, parseActions, withoutStanceMark } from '../mods/topics/hooks/parse.ts'
 
 const skillsDir = new URL('../mods/datalogix/skills/', import.meta.url)
@@ -38,7 +40,7 @@ const markdownFiles = fs
 const skillNames = fs.readdirSync(skillsDir).filter((name) => fs.existsSync(new URL(`${name}/SKILL.md`, skillsDir)))
 
 describe.each(skillNames)('/datalogix:%s', (name) => {
-  // A stray backtick swaps text and spans, which would take its items out of the check below with no test failing.
+  // A skill that lost all its items would leave the checks below nothing to run on, with no test failing.
   test('still has items, under the topic topics looks for', () => {
     const skill = read(`${name}/SKILL.md`)
     assert.ok(itemsOf(skill).length > 0)
@@ -51,6 +53,14 @@ describe.each(markdownFiles)('%s', (file) => {
     const text = read(file).replace(CODE_SPAN, '')
     assert.doesNotMatch(text, ITEM_MARK)
     assert.doesNotMatch(text, LINE_ITEM)
+  })
+
+  test('no backtick inside an item cuts it short', () => {
+    const text = read(file)
+    for (const match of text.matchAll(CODE_SPAN)) {
+      if (!/^[-*+]\s+[[(]/.test(match[2].trim())) continue
+      assert.doesNotMatch(text.slice(match.index + match[0].length), /^[^\s.,;:)/]/, match[2])
+    }
   })
 
   test.each(itemsOf(read(file)))('topics parses %s', (span) => {
@@ -93,6 +103,7 @@ test('the language item still starts from the commit titles', () => {
 
 test('the review skill keeps no language fallback of its own', () => {
   assert.doesNotMatch(flat('review/SKILL.md'), /sem essa linha[^.]*portugu[êe]s/i)
+  assert.ok(flat('review/SKILL.md').includes('defina-o como na seção 2 antes de sugerir o primeiro commit'))
 })
 
 test('the skills that follow the commit skill dated branch item still find it', () => {
@@ -152,6 +163,14 @@ describe('the supporting files of the review skill', () => {
     for (const file of reviewFiles) {
       for (const [name] of read(file).matchAll(/\b(?:steps|types|modes)\/[\w-]+\.md\b/g)) {
         assert.ok(exists(name), `${file}: ${name}`)
+      }
+    }
+  })
+
+  test('the bare names in steps/ are files of that folder', () => {
+    for (const file of reviewFiles.filter((name) => name.startsWith('review/steps/'))) {
+      for (const [, name] of read(file).matchAll(/(?<![/\w])`([a-z][\w-]*\.md)`/g)) {
+        assert.ok(exists(`steps/${name}`), `${file}: ${name}`)
       }
     }
   })

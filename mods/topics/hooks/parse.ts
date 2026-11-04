@@ -196,7 +196,8 @@ export const parseAnswer = (text: string): ParsedAnswer => {
 export const previewOf = (body: string): string => {
   const trackCodeLine = createCodeBlockTracker()
   const line = body.split('\n').find((l) => !trackCodeLine(l) && l.trim()) ?? ''
-  const clean = plainText(line.replace(/^\s*(>\s*)*((#+|[-*+]|\d+[.)])\s+)?/, '')).trim()
+  // Cut first: plainText grows quadratically on a huge line, and only the start is shown.
+  const clean = plainText(line.slice(0, 4 * PREVIEW_MAX).replace(/^\s*(>\s*)*((#+|[-*+]|\d+[.)])\s+)?/, '')).trim()
   // By code point, so an emoji is not cut in half.
   const chars = [...clean]
   return chars.length > PREVIEW_MAX ? `${chars.slice(0, PREVIEW_MAX - 1).join('')}…` : clean

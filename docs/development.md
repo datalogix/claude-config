@@ -16,7 +16,7 @@
 ```bash
 git clone git@github.com:datalogix/claude-config.git ~/claude-config
 cd ~/claude-config && npm install
-node bin/cli.js install --link
+node bin/cli.js --link
 ```
 
 Working on a clone needs a newer Node than running the installer:
@@ -24,10 +24,10 @@ Working on a clone needs a newer Node than running the installer:
 
 With `--link`, if the marketplace was not added yet, it is added from
 the clone, and Claude Code reads the mods from it in place: edits show
-up after `/reload-plugins`, with no reinstall. A marketplace already
-added from another source (GitHub, or a clone when installing without
-`--link`) stays as it is: the install warns about it and updates
-neither it nor its mods (`update` still does). Remove it with
+up after `/reload-plugins`, with no reinstall. With `--link`, a marketplace
+already added from another source stays as it is: the installer warns
+about it and updates neither it nor its mods (without `--link`, it
+updates from whatever source the marketplace has). Remove it with
 `claude plugin marketplace remove claude-config` to switch, which also
 uninstalls its mods and deletes their options and data.
 
@@ -43,7 +43,8 @@ wrap Markdown by hand.
 
 ## How options are stored
 
-During install, each option's question starts from the value you
+When options are asked (first install, a new mod or `--configure`), each
+option's question starts from the value you
 configured or, for an option you never configured, the mod's latest
 default. Only answers that differ from the default, and options you
 already configured, are stored, so a default you never changed follows

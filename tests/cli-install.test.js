@@ -165,7 +165,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
 
       assert.equal(status, 1, output)
       assert.match(output, /could not list the marketplaces: unexpected reply/)
-      assert.deepEqual(claudeCalls(), ['--version', 'plugin marketplace list --json'])
+      assert.deepEqual(claudeCalls(), ['--version', 'plugin list --json', 'plugin marketplace list --json'])
     })
 
     test('fails on the mod list, installing nothing', () => {
@@ -414,19 +414,19 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     ['a clone', () => `"path":"${tmpDir}"`],
     ['another repo', () => '"repo":"other/claude-config"'],
     ['another git URL', () => '"source":"git","url":"https://github.com/other/claude-config.git"'],
-  ])('updates nothing when installing from GitHub a marketplace added from %s', (_, source) => {
+    ['another text source', () => '"source":"github:x/y"'],
+  ])('without --link, updates a marketplace added from %s', (_, source) => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD),
       'plugin marketplace list --json': `echo '[{"name":"claude-config",${source()}}]'`,
     })
 
-    const { status, output } = runCli(['install'])
+    const { status, output } = runCli([])
 
     assert.equal(status, 0, output)
-    assert.match(output, /comes from .+, not datalogix\/claude-config;.+; not updated/)
-    const calls = claudeCalls()
-    assert.ok(!calls.includes('plugin marketplace update claude-config'))
-    assert.ok(!calls.some((call) => call.startsWith('plugin update ')))
+    assert.doesNotMatch(output, /comes from/)
+    assert.ok(claudeCalls().includes('plugin marketplace update claude-config'))
+    assert.ok(claudeCalls().includes(`plugin update ${PLAIN_MOD}@claude-config --json`))
   })
 
   test.each([
@@ -441,61 +441,6 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.equal(status, 0, output)
     assert.match(output, /comes from .+, not .+; not updated/)
     assert.ok(!claudeCalls().includes('plugin marketplace update claude-config'))
-  })
-
-  test('warns about a marketplace whose text source is another repository', () => {
-    fakeClaude({ 'plugin marketplace list --json': `echo '[{"name":"claude-config","source":"github:x/y"}]'` })
-
-    const { status, output } = runCli(['install'])
-
-    assert.equal(status, 0, output)
-    assert.match(output, /comes from github:x\/y, not datalogix\/claude-config/)
-    assert.ok(!claudeCalls().includes('plugin marketplace update claude-config'))
-  })
-
-  test.each([
-    'datalogix/claude-config',
-    'github:datalogix/claude-config',
-    'https://github.com/datalogix/claude-config',
-    'https://github.com/datalogix/claude-config.git',
-    'git@github.com:datalogix/claude-config.git',
-    'Datalogix/Claude-Config',
-    'https://www.github.com/datalogix/claude-config#main',
-    'git+https://github.com/datalogix/claude-config.git',
-    'ssh://git@github.com/datalogix/claude-config.git',
-    'github:datalogix/claude-config@main',
-  ])('updates a marketplace whose source is given as the text %s', (source) => {
-    fakeClaude({ 'plugin marketplace list --json': `echo '[{"name":"claude-config","source":"${source}"}]'` })
-
-    const { status, output } = runCli(['install'])
-
-    assert.equal(status, 0, output)
-    assert.doesNotMatch(output, /comes from/)
-    assert.ok(claudeCalls().includes('plugin marketplace update claude-config'))
-  })
-
-  test.each(['./datalogix/claude-config', '../claude-config', 'datalogix/..'])(
-    'warns about a marketplace whose source is the relative path %s',
-    (source) => {
-      fakeClaude({ 'plugin marketplace list --json': `echo '[{"name":"claude-config","source":"${source}"}]'` })
-
-      const { status, output } = runCli(['install'])
-
-      assert.equal(status, 0, output)
-      assert.match(output, /comes from .+, not datalogix\/claude-config/)
-    },
-  )
-
-  test('updates a marketplace added from a GitHub git URL', () => {
-    fakeClaude({
-      'plugin marketplace list --json': `echo '[{"name":"claude-config","source":"git","url":"https://github.com/datalogix/claude-config.git"}]'`,
-    })
-
-    const { status, output } = runCli(['install'])
-
-    assert.equal(status, 0, output)
-    assert.doesNotMatch(output, /comes from/)
-    assert.ok(claudeCalls().includes('plugin marketplace update claude-config'))
   })
 
   test('does not warn when --link finds the clone given as a text source', () => {
@@ -640,12 +585,55 @@ describe('arguments', () => {
     const { status, output } = runCli([])
 
     assert.equal(status, 0, output)
-    assert.match(output, /claude-config install/)
     const calls = claudeCalls()
     assert.ok(calls.includes('plugin marketplace add datalogix/claude-config'))
     for (const name of MODS) {
       assert.ok(calls.includes(`plugin install ${name}@claude-config`), `${name} not installed`)
     }
+  })
+
+  test(
+    'without a terminal, leaves a new mod out once any mod is installed',
+    { skip: process.platform === 'win32' },
+    () => {
+      fakeClaude({
+        'plugin list --json': installedMods(PLAIN_MOD),
+        'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+      })
+
+      const { status, output } = runCli([])
+
+      assert.equal(status, 0, output)
+      assert.ok(claudeCalls().includes(`plugin update ${PLAIN_MOD}@claude-config --json`))
+      assert.ok(!claudeCalls().some((call) => call.startsWith('plugin install')))
+    },
+  )
+
+  test.each([[['--configure']], [['install', '--configure']]])(
+    'without a terminal, %j installs every mod',
+    { skip: process.platform === 'win32' },
+    (args) => {
+      fakeClaude({
+        'plugin list --json': installedMods(PLAIN_MOD),
+        'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+      })
+
+      const { status, output } = runCli(args)
+
+      assert.equal(status, 0, output)
+      for (const name of MODS.filter((name) => name !== PLAIN_MOD)) {
+        assert.ok(claudeCalls().includes(`plugin install ${name}@claude-config`), `${name} not installed`)
+      }
+    },
+  )
+
+  test('takes --link without a command', { skip: process.platform === 'win32' }, () => {
+    fakeClaude()
+
+    const { status, output } = runCli(['--link'])
+
+    assert.equal(status, 0, output)
+    assert.ok(claudeCalls().includes(`plugin marketplace add ${ROOT}`))
   })
 
   test('shows the usage for --help after a command, without running it', () => {

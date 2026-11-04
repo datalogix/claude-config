@@ -74,7 +74,7 @@ useTempHome()
  * @returns {Promise<{ status: number, output: string }>} the exit code, and the
  *   messages shown (intro, log, cancel, outro) up to the first exit
  */
-async function runInteractive(answers, args = ['install'], { isStdinTty = true, isStdoutTty = true } = {}) {
+async function runInteractive(answers, args = ['--configure'], { isStdinTty = true, isStdoutTty = true } = {}) {
   prompts.answers = [...answers]
   prompts.messages = []
   prompts.questions = []
@@ -305,7 +305,7 @@ describe('prompts', { skip: process.platform === 'win32' }, () => {
       [READ_STATUS_OPTIONS]: STATUS_DEFAULTS_REPLY,
     })
 
-    const { status, output } = await runInteractive([['status'], ...STATUS_DEFAULT_ANSWERS])
+    const { status, output } = await runInteractive([['status'], ...STATUS_DEFAULT_ANSWERS], ['--link', '--configure'])
 
     assert.equal(status, 0, output)
     assert.match(output, /unchanged: status/)
@@ -564,7 +564,7 @@ describe('prompts', { skip: process.platform === 'win32' }, () => {
       [READ_STATUS_OPTIONS]: 'echo broken >&2; exit 1',
     })
 
-    const { status, output } = await runInteractive([['status']])
+    const { status, output } = await runInteractive([['status']], ['--link', '--configure'])
 
     assert.equal(status, 1, output)
     assert.match(output, /could not read its options \(skipped configuring\)/)
@@ -614,18 +614,75 @@ describe('prompts', { skip: process.platform === 'win32' }, () => {
     assertCalledBefore('plugin update status@claude-config --json', READ_STATUS_OPTIONS)
   })
 
-  test('update asks nothing in a terminal', async () => {
-    fakeClaude({
-      'plugin list --json': installedMods('status'),
-      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
-      [READ_STATUS_OPTIONS]: STATUS_DEFAULTS_REPLY,
+  describe('with mods installed and no --configure', () => {
+    const others = () => MODS.filter((name) => name !== 'status')
+
+    test.each([[[]], [['update']], [['install']]])('%j asks no option of an installed mod', async (args) => {
+      fakeClaude({
+        'plugin list --json': installedMods(...MODS),
+        'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+        [READ_STATUS_OPTIONS]: STATUS_DEFAULTS_REPLY,
+      })
+
+      const { status, output } = await runInteractive([], args)
+
+      assert.equal(status, 0, output)
+      assert.deepEqual(prompts.questions, [])
+      assert.ok(claudeCalls().includes('plugin update status@claude-config --json'))
+      assert.ok(!claudeCalls().some((call) => call.startsWith('plugin configure')))
     })
 
-    const { status, output } = await runInteractive([], ['update'])
+    test('offers only the mods not installed, selected, and asks the options of those taken', async () => {
+      fakeClaude({
+        'plugin list --json': installedMods(...others()),
+        'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+      })
 
-    assert.equal(status, 0, output)
-    assert.deepEqual(prompts.questions, [])
-    assert.ok(!claudeCalls().some((call) => call.startsWith('plugin configure')))
+      const { status, output } = await runInteractive([['status'], ...STATUS_CHANGED_ANSWERS], [])
+
+      assert.equal(status, 0, output)
+      assert.deepEqual(prompts.questions[0]?.initialValues, ['status'])
+      assert.deepEqual(
+        prompts.questions[0]?.options.map((/** @type {{ value: string }} */ option) => option.value),
+        ['status'],
+      )
+      assert.ok(claudeCalls().includes('plugin install status@claude-config'))
+      assert.deepEqual(claudeStdin(), ['{"minSeconds":"10"}'])
+    })
+
+    test('a new mod left out changes nothing else', async () => {
+      fakeClaude({
+        'plugin list --json': installedMods(...others()),
+        'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+      })
+
+      const { status, output } = await runInteractive([[]], [])
+
+      assert.equal(status, 0, output)
+      assert.ok(!claudeCalls().some((call) => /^plugin (install|uninstall) /.test(call)))
+      assert.ok(claudeCalls().includes(`plugin update ${others()[0]}@claude-config --json`))
+    })
+
+    test('installs a renamed mod without offering it', async () => {
+      fakeClaude({
+        'plugin list --json': installedMods(...MODS.filter((name) => name !== 'steps'), 'passos'),
+        'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+      })
+
+      const { status, output } = await runInteractive([], [])
+
+      assert.equal(status, 0, output)
+      assertCalledBefore('plugin install steps@claude-config', 'plugin uninstall --keep-data passos@claude-config')
+    })
+
+    test('a cancelled offer changes nothing', async () => {
+      fakeClaude({ 'plugin list --json': installedMods(...others()) })
+
+      const { status } = await runInteractive([prompts.CANCEL], [])
+
+      assert.equal(status, 1)
+      assert.ok(!claudeCalls().some((call) => /^plugin (marketplace|install|uninstall|update) /.test(call)))
+    })
   })
 
   test.each([

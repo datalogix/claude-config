@@ -23,18 +23,23 @@ const CLAUDE_TIMEOUT_MS = Number(process.env.DATALOGIX_CLAUDE_TIMEOUT_MS) || 120
 const MARKER_FILE = '.claude-config'
 
 const USAGE = `Usage:
-  claude-config [install]       ask which mods to install; updates the
-                                installed ones
-  claude-config install --link  add the marketplace from this clone instead
-                                of GitHub (for editing the repository)
-  claude-config update          update what is installed, without questions
-  claude-config --help          show this help
+  claude-config               first run: asks the mods and their options;
+                              then updates what is installed and asks only
+                              about mods not installed yet
+  claude-config --configure   ask every mod and option again (also how to
+                              remove a mod); without a terminal, installs
+                              every mod
+  claude-config --link        add the marketplace from this clone instead
+                              of GitHub (for editing the repository)
+  claude-config --help        show this help
 
-Through npx, put the command after the package:
-  npx --allow-git=root github:${REPO}#main [update]`
+"install" and "update" are still accepted as the command, with the same result.
+
+Through npx, put the flags after the package:
+  npx --allow-git=root github:${REPO}#main [--configure]`
 
 /** @type {Record<string, string[]>} */
-const COMMANDS = { install: ['--link'], update: [] }
+const COMMANDS = { install: ['--link', '--configure'], update: [] }
 
 const isInteractive = Boolean(process.stdin.isTTY && process.stdout.isTTY)
 const isWindows = process.platform === 'win32'
@@ -133,16 +138,17 @@ function listMods() {
 
 /**
  * @param {{ name: string, description: string }[]} mods
+ * @param {string} message
  * @returns {Promise<string[]>}
  */
-async function selectMods(mods) {
+async function selectMods(mods, message) {
   const names = mods.map((mod) => mod.name)
-  if (!isInteractive) {
+  if (!isInteractive || names.length === 0) {
     return names
   }
   return exitIfCancelled(
     await p.multiselect({
-      message: 'Which mods to install?',
+      message,
       options: mods.map((mod) => ({ value: mod.name, label: mod.name, hint: mod.description })),
       initialValues: names,
       required: false,
@@ -392,7 +398,7 @@ function warnOldOptions(mod) {
     .map(([key, value]) => `${key}=${JSON.stringify(value)}`)
   if (oldPairs.length > 0) {
     p.log.warn(
-      `${mod.name}: ignoring options it no longer has (${oldPairs.join(', ')}); set their replacements, if any, with the install command, and remove them from ${tildify(SETTINGS_FILE)} to stop this warning`,
+      `${mod.name}: ignoring options it no longer has (${oldPairs.join(', ')}); set their replacements, if any, with --configure, and remove them from ${tildify(SETTINGS_FILE)} to stop this warning`,
     )
   }
 }
@@ -431,30 +437,13 @@ function isSamePath(a, b) {
 }
 
 /**
- * Lowercased owner/repo of owner/repo, github:, https://, git+https://,
- * ssh:// or git@github.com: sources, with an optional #ref or @ref. A relative
- * path such as ./owner/repo is not one: GitHub owners hold no dots.
- *
- * @param {unknown} source
- */
-function githubRepo(source) {
-  if (typeof source !== 'string') {
-    return undefined
-  }
-  const match =
-    /^(?:github:|(?:git\+)?(?:https?|ssh):\/\/(?:git@)?(?:www\.)?github\.com\/|git@github\.com:)?([a-z\d-]+\/(?!\.{1,2}(?:[/#@]|$))[\w.-]+?)(?:\.git)?\/?(?:[#@].*)?$/i.exec(
-      source,
-    )
-  return match?.[1].toLowerCase()
-}
-
-/**
- * Added from another source, it is only pointed out and not updated:
- * updating would move the mods away from the source asked for (with
- * --link, to GitHub's main).
+ * Without --link, the marketplace is updated from whatever source it has. With
+ * --link, one added from elsewhere is only pointed out and not updated: that
+ * would move the mods away from this clone. `isUpdated` says whether it is
+ * known to list this checkout's mods.
  *
  * @param {boolean} shouldLink
- * @returns {{ canInstall: boolean, canUpdate: boolean } | undefined}
+ * @returns {{ canInstall: boolean, canUpdate: boolean, isUpdated: boolean } | undefined}
  */
 function ensureMarketplace(shouldLink) {
   const listed = findMarketplace()
@@ -464,26 +453,21 @@ function ensureMarketplace(shouldLink) {
   const current = listed.entry
   const requestedSource = shouldLink ? ROOT : REPO
   if (current) {
-    const repo = textOrUndefined(current.repo)
     const listedPath = textOrUndefined(current.path)
-    const url = textOrUndefined(current.url)
     const textSource = textOrUndefined(current.source)
-    const currentSource = repo ?? listedPath ?? url ?? textSource
+    const currentSource = textOrUndefined(current.repo) ?? listedPath ?? textOrUndefined(current.url) ?? textSource
     const localPath = listedPath ?? textSource
-    const isOtherSource = shouldLink
-      ? localPath === undefined || !isSamePath(localPath, ROOT)
-      : githubRepo(repo ?? url ?? textSource) !== REPO
+    const isOtherSource = shouldLink && (localPath === undefined || !isSamePath(localPath, ROOT))
     if (currentSource && isOtherSource) {
       p.log.warn(
-        `marketplace: ${marketplace.name} comes from ${tildify(currentSource)}, not ${tildify(requestedSource)}; to switch, run "claude plugin marketplace remove ${marketplace.name}" (this uninstalls its mods and deletes their options and data) and install again; not updated`,
+        `marketplace: ${marketplace.name} comes from ${tildify(currentSource)}, not ${tildify(requestedSource)}; to switch, run "claude plugin marketplace remove ${marketplace.name}" (this uninstalls its mods and deletes their options and data) and run this again; not updated`,
       )
-      return { canInstall: true, canUpdate: false }
+      return { canInstall: true, canUpdate: false, isUpdated: false }
     }
     p.log.info(
       `marketplace: ${marketplace.name} (already added${currentSource ? ` from ${tildify(currentSource)}` : ''})`,
     )
-    updateMarketplace()
-    return { canInstall: true, canUpdate: true }
+    return { canInstall: true, canUpdate: true, isUpdated: updateMarketplace() }
   }
 
   const isAdded = checkResult(
@@ -493,7 +477,7 @@ function ensureMarketplace(shouldLink) {
   if (isAdded) {
     p.log.success(`marketplace: ${marketplace.name} (${tildify(requestedSource)})`)
   }
-  return { canInstall: isAdded, canUpdate: isAdded }
+  return { canInstall: isAdded, canUpdate: isAdded, isUpdated: isAdded }
 }
 
 /** @returns {boolean} */
@@ -600,9 +584,9 @@ function warnSkillsFolderCopy(name, installedIds) {
 /**
  * @param {Mod} mod
  * @param {Set<string>} installedIds loses or gets the mod's id when it changes
- * @param {{ isSelected: boolean, canInstall: boolean, canUpdate: boolean }} state
+ * @param {{ isSelected: boolean, canInstall: boolean, canUpdate: boolean, shouldAskInstalled: boolean }} state
  */
-async function syncMod(mod, installedIds, { isSelected, canInstall, canUpdate }) {
+async function syncMod(mod, installedIds, { isSelected, canInstall, canUpdate, shouldAskInstalled }) {
   const isInstalled = installedIds.has(mod.id)
   if (!isSelected) {
     if (isInstalled && checkResult(mod.name, runClaude(['plugin', 'uninstall', '--keep-data', mod.id]))) {
@@ -624,7 +608,10 @@ async function syncMod(mod, installedIds, { isSelected, canInstall, canUpdate })
   if (isInstalled) {
     warnOldOptions(mod)
   }
-  const { toStore, hasChanges, hasReadFailed } = await askOptions(mod, isInstalled)
+  const { toStore, hasChanges, hasReadFailed } =
+    isInstalled && !shouldAskInstalled
+      ? { toStore: {}, hasChanges: false, hasReadFailed: false }
+      : await askOptions(mod, isInstalled)
   if (isInstalled && !hasChanges) {
     // Without an update nothing else names it; a skipped one already has its error.
     if (!canUpdate && !hasReadFailed) {
@@ -647,49 +634,95 @@ async function syncMod(mod, installedIds, { isSelected, canInstall, canUpdate })
   }
 }
 
-/** @param {boolean} shouldLink */
-async function syncMods(shouldLink) {
+/**
+ * Mods that replace something already on this machine, under another name or as
+ * old skills: installed without asking, once the marketplace is known to list them.
+ *
+ * @param {Set<string>} installedIds
+ * @param {string[]} oldSkills
+ * @returns {string[]}
+ */
+function listReplacementMods(installedIds, oldSkills) {
+  const names = Object.entries(RENAMED_MODS)
+    .filter(([oldName]) => installedIds.has(modId(oldName)))
+    .map(([, newName]) => newName)
+  if (oldSkills.length > 0) {
+    names.push(SKILLS_MOD)
+  }
+  return names.filter((name) => !installedIds.has(modId(name)))
+}
+
+/**
+ * The questions depend on the machine. With nothing of this marketplace
+ * installed, or with --configure, every mod and option is asked, and an
+ * unselected mod is uninstalled. Otherwise what is installed only updates, and
+ * only mods not installed yet are offered: nothing records a mod that was
+ * refused, or an option answered with its default, so those would come back on
+ * every run if they were asked as new.
+ *
+ * @param {boolean} shouldLink
+ * @param {boolean} shouldConfigure
+ */
+async function run(shouldLink, shouldConfigure) {
+  if (shouldLink && ROOT.split(path.sep).includes('node_modules')) {
+    throw new Error('--link needs a clone of the repository: run "node bin/cli.js --link" inside it.')
+  }
   if (!checkClaudeCli()) {
     return
   }
-
-  const mods = listMods()
-  const selectedNames = await selectMods(mods)
-  // Nothing selected: the marketplace is left alone and the installed mods are still uninstalled below.
-  const marketplaceState =
-    selectedNames.length === 0 ? { canInstall: true, canUpdate: false } : ensureMarketplace(shouldLink)
-  if (!marketplaceState) {
-    return
-  }
-  const { canInstall, canUpdate } = marketplaceState
-  if (!canInstall) {
-    const hint = shouldLink ? '' : `; check access with "git ls-remote https://github.com/${REPO}.git"`
-    p.log.warn(`mods skipped (${selectedNames.join(', ')})${hint}`)
-  }
-
   // Without the list every mod would look new: installed again, asked from the defaults.
   const installedIds = listInstalledModIds()
   if (!installedIds) {
     return
   }
+
+  const mods = listMods()
+  const oldSkills = listOldSkills()
+  const isAskingAll = shouldConfigure || ![...installedIds].some((id) => id.endsWith(`@${marketplace.name}`))
+  const replacementNames = isAskingAll ? [] : listReplacementMods(installedIds, oldSkills)
+  const newMods = mods.filter((mod) => !installedIds.has(mod.id) && !replacementNames.includes(mod.name))
+  let selectedNames
+  if (isAskingAll) {
+    selectedNames = await selectMods(mods, 'Which mods to install?')
+  } else {
+    // Without a terminal nobody can take a new mod in, or leave it out.
+    const chosenNames = isInteractive ? await selectMods(newMods, 'New mods to install?') : []
+    selectedNames = mods
+      .map((mod) => mod.name)
+      .filter((name) => installedIds.has(modId(name)) || chosenNames.includes(name))
+  }
+
+  // Nothing selected: the marketplace is left alone and the installed mods are still uninstalled below.
+  const marketplaceState =
+    isAskingAll && selectedNames.length === 0
+      ? { canInstall: true, canUpdate: false, isUpdated: false }
+      : ensureMarketplace(shouldLink)
+  if (!marketplaceState) {
+    return
+  }
+  const { canInstall, canUpdate, isUpdated } = marketplaceState
+  if (!canInstall) {
+    const hint = shouldLink ? '' : `; check access with "git ls-remote https://github.com/${REPO}.git"`
+    p.log.warn(`mods skipped (${selectedNames.join(', ')})${hint}`)
+  }
+
+  // Only after a marketplace update: an older one may not list the new name.
+  const namesToSync = isUpdated ? [...selectedNames, ...replacementNames] : selectedNames
   for (const mod of mods) {
-    await syncMod(mod, installedIds, { isSelected: selectedNames.includes(mod.name), canInstall, canUpdate })
+    await syncMod(mod, installedIds, {
+      isSelected: namesToSync.includes(mod.name),
+      canInstall,
+      canUpdate,
+      shouldAskInstalled: shouldConfigure,
+    })
     if (installedIds.has(mod.id)) {
       warnSkillsFolderCopy(mod.name, installedIds)
     }
   }
 
-  const unselectedNames = mods.map((mod) => mod.name).filter((name) => !selectedNames.includes(name))
+  const unselectedNames = isAskingAll ? mods.map((mod) => mod.name).filter((name) => !selectedNames.includes(name)) : []
   uninstallRenamedMods(installedIds, unselectedNames)
-  removeOldSkills(installedIds, unselectedNames)
-}
-
-/** @param {boolean} shouldLink */
-async function install(shouldLink) {
-  if (shouldLink && ROOT.split(path.sep).includes('node_modules')) {
-    throw new Error('--link needs a clone of the repository: run "node bin/cli.js install --link" inside it.')
-  }
-  await syncMods(shouldLink)
+  removeOldSkills(installedIds, unselectedNames, oldSkills)
 }
 
 /**
@@ -708,62 +741,14 @@ function installMod(name, installedIds) {
   return true
 }
 
-async function update() {
-  if (!checkClaudeCli()) {
-    return
-  }
-  const listed = findMarketplace()
-  if (!listed) {
-    return
-  }
-  if (!listed.entry) {
-    p.log.warn('mods not installed: run the install command to add them')
-    // Skills copied by an earlier version stay, but are pointed out.
-    const installedIds = listInstalledModIds()
-    if (installedIds) {
-      removeOldSkills(installedIds)
-    }
-    return
-  }
-
-  const isMarketplaceUpdated = updateMarketplace()
-  const installedIds = listInstalledModIds()
-  if (!installedIds) {
-    return
-  }
-  // Apart from installedIds: the update below only goes through the mods that
-  // were already installed, not the ones installed here.
-  const currentIds = new Set(installedIds)
-  // Only after a marketplace update: an older one may not list the new name.
-  for (const [oldName, newName] of Object.entries(RENAMED_MODS)) {
-    const id = modId(newName)
-    if (!isMarketplaceUpdated || !installedIds.has(modId(oldName)) || installedIds.has(id)) {
-      continue
-    }
-    installMod(newName, currentIds)
-  }
-  uninstallRenamedMods(currentIds)
-  // Old skills come back as their mod, the same way.
-  const oldSkills = listOldSkills()
-  if (isMarketplaceUpdated && !installedIds.has(modId(SKILLS_MOD)) && oldSkills.length > 0) {
-    installMod(SKILLS_MOD, currentIds)
-  }
-  removeOldSkills(currentIds, [], oldSkills)
-  for (const mod of listMods()) {
-    if (installedIds.has(mod.id)) {
-      updateMod(mod.name, mod.id)
-      warnOldOptions(mod)
-    }
-  }
-}
-
 const args = process.argv.slice(2)
 if (args.includes('--help') || args.includes('-h')) {
   console.log(USAGE)
   process.exit(0)
 }
 
-const [command = 'install', ...flags] = args
+// The command is optional, also before a flag.
+const [command, ...flags] = args[0] === undefined || args[0].startsWith('-') ? ['install', ...args] : args
 // hasOwn: names from Object.prototype, like toString, are not commands.
 const isCommand = Object.hasOwn(COMMANDS, command)
 const unknownFlag = isCommand ? flags.find((flag) => !COMMANDS[command].includes(flag)) : undefined
@@ -773,9 +758,9 @@ if (!isCommand || unknownFlag !== undefined) {
   process.exit(1)
 }
 
-p.intro(`claude-config ${command}`)
+p.intro('claude-config')
 try {
-  await (command === 'install' ? install(flags.includes('--link')) : update())
+  await run(flags.includes('--link'), flags.includes('--configure'))
 } catch (error) {
   p.cancel(errorMessage(error))
   process.exit(1)

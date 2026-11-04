@@ -16,7 +16,7 @@ The options were renamed from `segundos`, `alertaPlano`, `notificar`
 `showExcerpt`. Values stored only under the earlier names are not
 carried over, so those options are back at their defaults; set them
 again by running the installer or with `/config`. The installer
-(`install` and `update`) lists the values still stored under the
+(`bin/cli.js`) lists the values still stored under the
 earlier names, so they can be set again by hand; it warns on every
 run until they are removed from `pluginConfigs` in `settings.json`
 (in `$CLAUDE_CONFIG_DIR`, or `~/.claude`). The excerpt starts

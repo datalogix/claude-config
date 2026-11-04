@@ -8,6 +8,7 @@ const FRAME_MS = 200
  */
 const REFRESH_MS = 60_000
 const FRAMES_PER_AGENT_LIST = 5
+const GIT_TIMEOUT_MS = 5_000
 
 const ACTIVE_STATUSES = new Set<AgentInfo['status']>(['pending', 'running', 'waiting'])
 
@@ -160,6 +161,33 @@ export const formatPlan = (windows: SessionRateLimit[], now: number, planAlert: 
   return `${icon} plano: ${parts.join(' · ')}`
 }
 
+/** @param porcelain the output of `git status --porcelain=v2 --branch` */
+export const formatGit = (porcelain: string): string | undefined => {
+  let head: string | undefined
+  let oid = ''
+  let ahead = 0
+  let behind = 0
+  let changed = 0
+  for (const line of porcelain.split('\n')) {
+    const ab = /^# branch\.ab \+(\d+) -(\d+)$/.exec(line)
+    if (ab) {
+      ahead = Number(ab[1])
+      behind = Number(ab[2])
+    } else if (line.startsWith('# branch.head ')) head = line.slice('# branch.head '.length)
+    else if (line.startsWith('# branch.oid ')) oid = line.slice('# branch.oid '.length)
+    else if (line && !line.startsWith('#')) changed++
+  }
+  if (head === undefined) return undefined
+  return [
+    `🌿 ${shortName(head === '(detached)' ? oid.slice(0, 7) : head)}`,
+    changed > 0 && `●${changed}`,
+    ahead > 0 && `↑${ahead}`,
+    behind > 0 && `↓${behind}`,
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
+
 /** `agents`: system notifications only for notices about background agents; `never`: toast only. */
 type NotifyMode = 'always' | 'agents' | 'never'
 
@@ -180,6 +208,8 @@ type State = {
   seenAgentIds: Set<string> // since the main turn started, with those it found running: the total of the progress
   failedAgentIds: Set<string> // of seenAgentIds, foreground too, which failedBackgroundAgentIds leaves out
   windows: SessionRateLimit[]
+  git?: string
+  gitReadCount: number // so a slow read that ends after a newer one does not overwrite it
   outcome?: { text: string; isSuccess: boolean } // how the last answer, or the background agents after it, ended
   isWaitingForAgents: boolean // answered with agents still running
   alertedLevelKeys: Set<string>
@@ -204,6 +234,7 @@ const formatStatus = (s: State, now: number): string | undefined => {
     main,
     formatAgents(s.agents, Math.max(0, s.seenAgentIds.size - s.agents.length), s.failedAgentIds.size),
     formatWorkflows([...s.workflows.values()]),
+    s.git,
     formatPlan(s.windows, now, s.planAlert),
   ]
     .filter(Boolean)
@@ -213,6 +244,25 @@ const formatStatus = (s: State, now: number): string | undefined => {
 
 async function showStatus($: EngineInterface, s: State) {
   $.ui.status(formatStatus(s, await $.clock.now()))
+}
+
+/** Outside a repository, or with no git to run, the status line goes without it. */
+async function refreshGit($: EngineInterface, s: State) {
+  const readCount = ++s.gitReadCount
+  let git: string | undefined
+  try {
+    // No optional locks: a read in the background must not get in the way of the user's own git commands.
+    const { exitCode, stdout } = await $.process.run(
+      ['git', '--no-optional-locks', 'status', '--porcelain=v2', '--branch'],
+      { timeoutMs: GIT_TIMEOUT_MS },
+    )
+    if (exitCode === 0) git = formatGit(stdout)
+  } catch {
+    // Same as above.
+  }
+  if (readCount !== s.gitReadCount || git === s.git) return
+  s.git = git
+  await showStatus($, s)
 }
 
 type NoticeOptions = {
@@ -379,6 +429,7 @@ export const register: Register = (on, options) => {
     seenAgentIds: new Set(),
     failedAgentIds: new Set(),
     windows: [],
+    gitReadCount: 0,
     isWaitingForAgents: false,
     alertedLevelKeys: new Set(),
     windowsAtLimit: new Map(),
@@ -400,7 +451,9 @@ export const register: Register = (on, options) => {
       } else if (!s.spinner && s.windows.some((window) => window.resetsAt)) {
         await showStatus($, s)
       }
+      await refreshGit($, s)
     })
+    await refreshGit($, s)
     return r
   })
 
@@ -562,6 +615,8 @@ export const register: Register = (on, options) => {
 
     if (!hasBackgroundWork(s)) stopSpinner(s)
     await showStatus($, s)
-    return next(e)
+    const r = await next(e)
+    await refreshGit($, s)
+    return r
   })
 }

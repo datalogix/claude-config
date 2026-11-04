@@ -1,7 +1,7 @@
 # status
 
-Shows in the status line what Claude is doing, the running agents and
-how much of the plan was used, and sends a notice (toast and
+Shows in the status line what Claude is doing, the running agents, the
+git state and how much of the plan was used, and sends a notice (toast and
 system notification) when an answer or the background agents end.
 
 | Option | Default | |
@@ -36,6 +36,13 @@ last one ends, saying how many workflows still run; a workflow's own end
 comes back as a new answer from Claude. An agent held on its own
 background work still counts as running, so no end notice goes out until
 it really ends.
+
+The git state reads like `🌿 main ●3 ↑1 ↓2`: the branch (the short commit
+when detached), 3 changed files (an untracked folder counts as one), 1
+commit ahead of the upstream and 2 behind; a count at zero is left out.
+It is read at the session start, when an answer ends and every minute,
+so a change made during an answer can take up to a minute to show.
+Outside a repository, or when `git` fails, it leaves the status line.
 
 A plan window whose reset time has passed leaves the status line
 until the next API response brings the new window; a window

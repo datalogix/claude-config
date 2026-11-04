@@ -211,10 +211,10 @@ function removeOldSkill(folder) {
  * them out.
  *
  * @param {Set<string>} installedIds
- * @param {string[]} [unselectedNames] mods the user chose not to install
- * @param {string[]} [names] the old skills, when already listed
+ * @param {string[]} unselectedNames mods the user chose not to install
+ * @param {string[]} names the old skills
  */
-function removeOldSkills(installedIds, unselectedNames = [], names = listOldSkills()) {
+function removeOldSkills(installedIds, unselectedNames, names) {
   if (names.length === 0) {
     return
   }
@@ -335,9 +335,9 @@ const RENAMED_MODS = { passos: 'steps', topicos: 'topics' }
  * leaves the mod out.
  *
  * @param {Set<string>} installedIds
- * @param {string[]} [unselectedNames] mods the user chose not to install
+ * @param {string[]} unselectedNames mods the user chose not to install
  */
-function uninstallRenamedMods(installedIds, unselectedNames = []) {
+function uninstallRenamedMods(installedIds, unselectedNames) {
   for (const [oldName, newName] of Object.entries(RENAMED_MODS)) {
     const id = modId(oldName)
     if (!installedIds.has(id)) {

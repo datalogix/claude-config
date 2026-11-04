@@ -323,6 +323,13 @@ describe('the stance marks', () => {
     expect(withoutStanceMark('``**a`` com **c (recomendado)**')).toBe('``**a`` com c')
   })
 
+  test('takes the marks closing after the separator with the stance mark', () => {
+    expect(withoutStanceMark('**(recomendo):** A')).toBe('A')
+    expect(withoutStanceMark('**(não recomendo) —** A')).toBe('A')
+    expect(withoutStanceMark('*(avalie):* A')).toBe('A')
+    expect(withoutStanceMark('**(recomendo):** **A** e B')).toBe('**A** e B')
+  })
+
   test('keeps what follows a stance mark as written', () => {
     expect(withoutStanceMark('(recomendo) .env fora do pacote')).toBe('.env fora do pacote')
     expect(withoutStanceMark('(avalie) --force no push')).toBe('--force no push')

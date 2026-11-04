@@ -7,8 +7,9 @@ this mod has no hooks, so it has no `claude plugin test` in the
 check its skills.
 
 - `review/` — `/datalogix:review`: step-by-step review of Laravel
-  packages and applications, JS/TS libraries and Nuxt/Next
-  applications. It takes `status`, `report [<mode>]`, `reset [<mode>]`,
+  packages and applications, JS/TS libraries and JS/TS applications
+  (Nuxt, Next, Vue or React with Vite, Node). It takes `status`,
+  `report [<mode>]`, `reset [<mode>]`,
   a focus mode with an optional folder, a single step, or a folder. Run
   `/datalogix:review help` for details.
   It never suggests adding a community file (`FUNDING.yml`,
@@ -38,7 +39,7 @@ check its skills.
     `js-library`, `js-app`)
   - `steps/` — one checklist per review step, plus extra checklists
     (`http`, `jobs`) applied in the `code` step; the JS types use
-    `code-js` for their `code` step, Nuxt/Next applications also
+    `code-js` for their `code` step, JS/TS applications also
     `production-js` for `production`, and libraries `pack` where
     Laravel packages use `install`
   - `modes/` — focus modes (`docs`, `naming`, `tests`, `deps`) and the

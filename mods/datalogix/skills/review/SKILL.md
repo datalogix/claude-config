@@ -1,6 +1,6 @@
 ---
 name: review
-description: Revisão de pacotes e aplicações Laravel, libs JS/TS e aplicações Nuxt/Next, um passo por vez (git, CI, dependências, código, recursos, front-end, produção, docs, instalação), com progresso fora do projeto e testes 100%. Use para revisar ou auditar um projeto inteiro, uma etapa, uma pasta ou um aspecto (docs, naming, tests, deps).
+description: Revisão de pacotes e aplicações Laravel, libs JS/TS e aplicações JS/TS (Nuxt, Next, Vue, React, Node), um passo por vez (git, CI, dependências, código, recursos, front-end, produção, docs, instalação), com progresso fora do projeto e testes 100%. Use para revisar ou auditar um projeto inteiro, uma etapa, uma pasta ou um aspecto (docs, naming, tests, deps).
 argument-hint: "[help [<argumento>] | status | report [<modo>] | reset [<modo>] | <modo> [<pasta>] | <etapa> | <pasta>]"
 disable-model-invocation: true
 ---
@@ -30,7 +30,7 @@ Argumentos: $ARGUMENTS
   (ex.: `git`, `ci`, `composer`, `npm`, `resources`, `frontend`,
   `install`, `pack`, `production`). Etapas de outro tipo de projeto
   são recusadas com aviso. Nos tipos JS, `code` usa `steps/code-js.md`;
-  nas aplicações Nuxt/Next, `production` usa `steps/production-js.md`.
+  nas aplicações JS/TS, `production` usa `steps/production-js.md`.
   Esses dois arquivos não são nomes de etapa.
   `http` e `jobs` não são etapas: são checklists extras que a etapa
   `code` aplica nas pastas certas de uma aplicação. `docs` é sempre o
@@ -68,17 +68,22 @@ skills ou tags novas, descubra e registre:
     composer.json, ou `type: library`
   - aplicação Laravel (`types/laravel-app.md`): tem `artisan` e
     `bootstrap/app.php`
-  - aplicação Nuxt/Next (`types/js-app.md`): tem `nuxt.config.*` ou
-    `next.config.*` na raiz, sem `composer.json`
+  - aplicação JS/TS (`types/js-app.md`), sem `composer.json`, com uma
+    destas formas:
+    - Nuxt ou Next: tem `nuxt.config.*` ou `next.config.*` na raiz
+    - Vue ou React: tem `index.html` na raiz e `vite` com `vue` ou
+      `react` no `package.json`, sem `exports`
+    - Node: tem o script `start` e não é lib JS/TS pela regra abaixo
   - lib JS/TS (`types/js-library.md`): tem `package.json`, sem
     `composer.json` nem config de Nuxt/Next, com `exports`, `main`,
     `module` ou `bin`, e sem `private: true`, ou com ele e instalada
     por git (`npx github:...` no README, com ou sem
     `--allow-git=root`)
-  Na dúvida (monorepo com workspaces, app Vite sem framework, nenhum
-  dos quatro), pergunte. Depois leia o arquivo do tipo e faça o
+  Na dúvida (monorepo com workspaces, app Vite sem Vue nem React, outro
+  meta-framework como Astro ou SvelteKit, nenhum dos quatro), pergunte.
+  Depois leia o arquivo do tipo e faça o
   reconhecimento extra que ele pede (estágio, requisitos de testes).
-  Lib JS/TS e aplicação Nuxt/Next são os **tipos JS**; pacote e
+  Lib JS/TS e aplicação JS/TS são os **tipos JS**; pacote e
   aplicação Laravel, os **tipos Laravel**.
 - Tipos Laravel: versões de PHP e Laravel suportadas/em uso. Tipos JS:
   versão do Node (`engines`, `.nvmrc`/`.node-version`), do TypeScript
@@ -181,7 +186,7 @@ já está em "Decisões do projeto" (estágio, idioma, `/init`).
   - pacote: o `name` do composer.json com `/` trocado por `-`
   - lib JS/TS: o `name` do package.json sem `@` e com `/` trocado por
     `-` (ex.: `@datalogix/ui` → `datalogix-ui`)
-  - aplicação (Laravel ou Nuxt/Next), ou `name` ausente ou genérico
+  - aplicação (Laravel ou JS/TS), ou `name` ausente ou genérico
     (`laravel/laravel`, `nuxt-app`, `my-app`): o nome da pasta raiz +
     os 6 primeiros caracteres do hash do caminho absoluto
     (`pwd | sha1sum | cut -c1-6`), ex.: `loja-3fa91c`
@@ -516,7 +521,7 @@ Leia este arquivo e os da pasta da skill necessários e responda em
 português, de forma curta:
 - `help`: o que o comando faz; tabela de argumentos (argumento · o que
   faz · exemplo); as etapas de cada tipo (pacote e aplicação Laravel,
-  lib JS/TS, aplicação Nuxt/Next), uma linha cada; os modos; o ciclo
+  lib JS/TS, aplicação JS/TS), uma linha cada; os modos; o ciclo
   de um passo (relatório → aprovo e respondo → aplica → verificação
   100% → commits que eu marcar, com prévia → "próxima"); onde fica
   o progresso e como retomar, ver status e recomeçar; as regras da seção

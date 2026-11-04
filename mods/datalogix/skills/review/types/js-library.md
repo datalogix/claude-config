@@ -33,7 +33,7 @@ Nuxt/Next.
    `bin` ou o build indicam, e as demais pastas com código próprio,
    `steps/code-js.md`), uma pasta por vez; numa lib de
    componentes, aplique também as seções de componentes de
-   `steps/frontend.md` (Vue ou React)
+   `steps/frontend.md` ("Vue" ou "React" e "Lib de componentes")
 5. `docs` — README, /docs, CLAUDE.md, skills e guidelines
 6. `pack` — o pacote como o npm entrega, instalado num projeto limpo
 7. `closing` — fechamento
@@ -45,6 +45,9 @@ Tudo que quem instala a lib usa ou de que depende:
   constantes, tipos e interfaces TS), com as assinaturas, as opções e
   seus padrões
 - erros lançados (classe, `name`, `code`) e eventos emitidos
+- lib de componentes: nome de cada componente, props e seus padrões,
+  eventos ou callbacks, slots ou `children`, `ref` exposto, e as
+  classes e variáveis CSS documentadas
 - comandos do `bin` e suas opções
 - arquivos expostos além do JS: CSS, assets, JSON
 - faixa de `peerDependencies` e de `engines.node`, e os formatos

@@ -1,6 +1,6 @@
 # Etapa: code nos tipos JS (código JS/TS, uma pasta por vez)
 
-Para libs JS/TS e aplicações Nuxt/Next. Leia todos os arquivos do
+Para libs JS/TS e aplicações JS/TS. Leia todos os arquivos do
 passo e analise. Arquivos gerados ficam fora (`dist/`, `.nuxt/`,
 `.output/`, `.next/`, `*.d.ts` gerados).
 
@@ -39,7 +39,19 @@ passo e analise. Arquivos gerados ficam fora (`dist/`, `.nuxt/`,
 - nada que deveria ser `peerDependency` (framework) importado como
   dependência própria
 
-## Servidor (aplicação Nuxt/Next)
+## SPA (aplicação Vue ou React)
+Todo o código chega ao navegador, inclusive o de rotas protegidas:
+- segredos: nada secreto em `VITE_`, que vai para o build; chamada que
+  exige segredo passa por um back-end
+- proteção de rota no roteador só organiza a interface: quem autoriza
+  é a API; dado que o usuário não pode ver não pode vir na resposta
+- token de sessão em `localStorage` fica exposto a XSS; prefira cookie
+  `httpOnly` se a API permitir
+- acesso à API num só lugar, com tratamento de 401 e de erro de rede,
+  e sem resposta antiga sobrescrevendo a nova (cancele com
+  `AbortController` ou use a biblioteca de dados do projeto)
+
+## Servidor (aplicação Nuxt, Next ou Node)
 Toda rota do servidor é uma porta de entrada pública:
 - autenticação e autorização dentro de cada handler, não só no
   middleware nem só escondendo o botão na interface
@@ -56,8 +68,21 @@ Toda rota do servidor é uma porta de entrada pública:
 - Next: Server Actions são endpoints públicos (qualquer um pode
   chamá-las): valide e autorize dentro de cada uma; nunca confie em
   argumentos vindos do cliente, como ids de usuário
-- Nuxt: estado em variável de módulo em `server/` é compartilhado
-  entre requisições (e entre usuários)
+- Nuxt e Node: estado em variável de módulo no servidor é
+  compartilhado entre requisições (e entre usuários)
+
+## Node
+- variáveis de ambiente lidas e validadas na inicialização, falhando
+  logo com mensagem clara, e não só na primeira requisição
+- SQL com parâmetros, nunca concatenado; transação onde há mais de uma
+  escrita; N+1 em loops
+- timeout em toda chamada externa; pool de conexões reaproveitado, sem
+  conexão nova por requisição
+- jobs idempotentes, com nova tentativa e limite; payload compatível
+  com o que já está na fila
+- erros passam pelo tratador central; `unhandledRejection` e
+  `uncaughtException` registrados, sem seguir em estado inconsistente
+- migrations versionadas; as já rodadas em produção nunca são editadas
 
 ## Nomenclatura
 Regras de "Nomenclatura" de `code.md` (nesta mesma pasta), com as

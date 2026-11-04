@@ -2051,6 +2051,37 @@ describe('the git state in the status line', () => {
     expect(lastStatus()).toBe('git: new')
   })
 
+  test('a slow read of the remote does not overwrite a newer read', async ($, on) => {
+    const { lastStatus } = setup(on)
+    let release = () => {}
+    const slow = new Promise<void>((resolve) => (release = resolve))
+    let markStarted = () => {}
+    const started = new Promise<void>((resolve) => (markStarted = resolve))
+    const statuses = [
+      reply(gitStatus('old', { ab: '# branch.upstream origin/old\n# branch.ab +0 -0' })),
+      reply(gitStatus('new')),
+    ]
+    on('session.start', (_$, e) => ({ cwd: e.cwd }))
+    on('session.usage', () => ({ value: { rateLimits: [] } }) as never)
+    on('process.run', (async (_$: unknown, e: { argv: string[] }) => {
+      if (e.argv[0] === 'gh') return { value: noPr }
+      if (e.argv[1] === 'remote') {
+        markStarted()
+        await slow
+        return { value: reply('git@github.com:o/r.git\n') }
+      }
+      return { value: statuses.shift()! }
+    }) as never)
+
+    const first = $.session.start(sessionStartInput)
+    await started
+    await $.session.start(sessionStartInput)
+    release()
+    await first
+
+    expect(lastStatus()).toBe('git: new')
+  })
+
   test('asks git for the status without optional locks', async ($, on) => {
     setup(on)
     const calls = withProcess(on, { git: () => reply(gitStatus('main')) })
@@ -2259,6 +2290,18 @@ describe('the lines under the prompt', () => {
     const ui = await mountHint($, 'terminal')
     const labels = (await ui.findAll({ type: 'Text' })).filter((line) => line.props?.weight === 'semibold')
     expect(labels.map((label) => label.text)).toEqual(['status:', 'plano:', 'git:'])
+    await ui.unmount()
+  })
+
+  test('stops the label at the first colon when the text has another one', async ($, on) => {
+    setup(on, { surfaces: ['terminal'] })
+    withLines(on)
+    await $.session.start(sessionStartInput)
+    await $.turn.start({ text: 'oi', turnId: 't1' })
+
+    const ui = await mountHint($, 'terminal')
+    const labels = (await ui.findAll({ type: 'Text' })).filter((line) => line.props?.weight === 'semibold')
+    expect(labels[0]?.text).toBe('status:')
     await ui.unmount()
   })
 

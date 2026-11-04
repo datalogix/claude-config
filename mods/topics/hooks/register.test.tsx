@@ -489,6 +489,12 @@ describe('the Pendências list', () => {
 })
 
 describe('previewOf', () => {
+  test('takes well under the quadratic time on a huge first line', () => {
+    const start = Date.now()
+    expect(previewOf('*a '.repeat(40_000)).endsWith('…')).toBe(true)
+    expect(Date.now() - start).toBeLessThan(1_000)
+  })
+
   test('drops list and title markup', () => {
     expect(previewOf('- **Todos** passaram.')).toBe('Todos passaram.')
     expect(previewOf('### Sub\nresto')).toBe('Sub')

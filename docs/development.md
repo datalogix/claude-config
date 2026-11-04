@@ -19,6 +19,9 @@ cd ~/claude-config && npm install
 node bin/cli.js install --link
 ```
 
+Working on a clone needs a newer Node than running the installer:
+`^22.13.0`, `^24` or `>=26`, which ESLint and Vitest require.
+
 With `--link`, if the marketplace was not added yet, it is added from
 the clone, and Claude Code reads the mods from it in place: edits show
 up after `/reload-plugins`, with no reinstall. A marketplace already

@@ -46,6 +46,10 @@ safe to run again:
   `update` (unless the marketplace was added from another source; see
   [Development](docs/development.md))
 
+`install` and `update` count only the mods in the user scope as
+installed: a mod installed only in a project's scope is neither updated
+nor uninstalled, and `install` installs it in the user scope too.
+
 ## Update
 
 Use `update` to keep up to date, and `install` only to pick mods or

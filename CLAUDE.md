@@ -35,7 +35,7 @@ node bin/cli.js install --link            # install from this clone: edits apply
   `node bin/cli.js --help`: `engines.node` is the runtime's minimum, and the dev tools need `^22.13.0`, `^24` or `>=26`.
 - `all-checks` aggregates the jobs and is the single required status check; add a new job to its `needs`.
 - Dependabot (`.github/dependabot.yml`), each in one group: GitHub Actions weekly (`ci:` commits), npm monthly
-  (`chore:`).
+  (`chore:`), ignoring majors of `@types/node`, which stays at the minimum Node (`engines.node`).
 
 ## Architecture
 
@@ -56,7 +56,8 @@ node bin/cli.js install --link            # install from this clone: edits apply
   configure logs `unchanged: <name>`, unless its options could not be read (`hasReadFailed`), which is already reported.
   A marketplace with no readable source (no text in its source fields) still updates. A mod also loaded from a
   skills folder (`<name>@skills-dir` in `plugin list`) is pointed out on `install`. `plugin list` also lists installs
-  of other projects: only the user scope counts as installed (`listInstalledModIds`).
+  in other scopes, such as other projects': only the user scope counts as installed (`listInstalledModIds`), so
+  neither command updates or uninstalls those, and `install` installs the mod in the user scope.
 - It no longer writes skills. Earlier versions copied them into `~/.claude/skills/<name>` with a `.claude-config`
   marker (or symlinked them with `--link`); `removeOldSkills` deletes those folders, and only those, once the
   `datalogix` mod (`SKILLS_MOD`) is installed or unselected. `update` installs `datalogix` when such folders exist.

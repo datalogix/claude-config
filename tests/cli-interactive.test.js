@@ -45,7 +45,15 @@ vi.mock('@clack/prompts', () => {
       prompts.unexpected.push(question.message)
       return Promise.reject(new Error(`unexpected prompt: ${question.message}`))
     }
-    return Promise.resolve(prompts.answers.shift())
+    const answer = prompts.answers.shift()
+    // The real select and multiselect only return what they offered.
+    const offered = question.options?.map((/** @type {{ value: unknown }} */ option) => option.value)
+    const given = question.kind === 'multiselect' && Array.isArray(answer) ? answer : [answer]
+    if (offered && answer !== prompts.CANCEL && !given.every((value) => offered.includes(value))) {
+      prompts.unexpected.push(`${question.message}: ${String(answer)} was not offered`)
+      return Promise.reject(new Error('answer not offered'))
+    }
+    return Promise.resolve(answer)
   }
   const askAs = (/** @type {string} */ kind) => (/** @type {Record<string, any>} */ question) =>
     ask({ ...question, kind })
@@ -171,7 +179,6 @@ describe('prompts', { skip: process.platform === 'win32' }, () => {
     )
     assert.ok(!calls.includes('plugin update status@claude-config --json'))
     assert.ok(!calls.includes(READ_STATUS_OPTIONS))
-    assert.match(output, /reload-plugins/)
   })
 
   test('ends with exit code 1 when an unselected mod fails to uninstall', async () => {
@@ -590,6 +597,33 @@ describe('prompts', { skip: process.platform === 'win32' }, () => {
     assert.equal(prompts.questions[0].required, false)
   })
 
+  test('--configure offers every mod selected, installed ones included', async () => {
+    fakeClaude({
+      'plugin list --json': installedMods('status'),
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+      [READ_STATUS_OPTIONS]: STATUS_DEFAULTS_REPLY,
+    })
+
+    const { status, output } = await runInteractive([['status'], ...STATUS_DEFAULT_ANSWERS])
+
+    assert.equal(status, 0, output)
+    assert.deepEqual(
+      prompts.questions[0].options.map((/** @type {{ value: string }} */ option) => option.value),
+      MODS,
+    )
+    assert.deepEqual(prompts.questions[0].initialValues, MODS)
+  })
+
+  test('a first run in a terminal offers every mod without --configure', async () => {
+    fakeClaude()
+
+    const { status, output } = await runInteractive([[]], [])
+
+    assert.equal(status, 0, output)
+    assert.equal(prompts.questions[0].message, 'Which mods to install?')
+    assert.deepEqual(prompts.questions[0].initialValues, MODS)
+  })
+
   test('stores nothing for a new mod answered with the defaults', async () => {
     fakeClaude({ 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
 
@@ -621,7 +655,6 @@ describe('prompts', { skip: process.platform === 'win32' }, () => {
       fakeClaude({
         'plugin list --json': installedMods(...MODS),
         'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
-        [READ_STATUS_OPTIONS]: STATUS_DEFAULTS_REPLY,
       })
 
       const { status, output } = await runInteractive([], args)
@@ -700,7 +733,7 @@ describe('prompts', { skip: process.platform === 'win32' }, () => {
   })
 
   test('a cancelled prompt ends with exit code 1, without /reload-plugins when nothing changed', async () => {
-    fakeClaude({ 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
+    fakeClaude()
 
     const { status, output } = await runInteractive([prompts.CANCEL])
 

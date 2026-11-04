@@ -31,7 +31,8 @@ node bin/cli.js install --link            # install from this clone: edits apply
   (Node 22 and LTS), installing the latest Claude Code. It also runs weekly (`schedule`), so a Claude Code release
   that breaks something shows up without a push. The `windows` job runs only `tests/quote.test.js`,
   `tests/quote-cmd.test.js` and `tests/options.test.js`, which need no fake `claude` shell script, and
-  `node bin/cli.js --help`.
+  `node bin/cli.js --help`. The `minimum-node` job installs only the runtime dependencies on Node 22.0.0 and runs
+  `node bin/cli.js --help`: `engines.node` is the runtime's minimum, and the dev tools need `^22.13.0`, `^24` or `>=26`.
 - `all-checks` aggregates the jobs and is the single required status check; add a new job to its `needs`.
 - Dependabot (`.github/dependabot.yml`), each in one group: GitHub Actions weekly (`ci:` commits), npm monthly
   (`chore:`).

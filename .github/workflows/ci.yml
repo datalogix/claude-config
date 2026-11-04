@@ -73,10 +73,23 @@ jobs:
       - run: npx vitest run tests/quote.test.js tests/quote-cmd.test.js tests/options.test.js
       - run: node bin/cli.js --help
 
+  # engines.node is the runtime's minimum; the dev tools need more, so this runs only what an install runs
+  minimum-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.0.0
+          cache: npm
+      - run: npm ci --omit=dev
+      - run: node bin/cli.js --help
+
   # Single status check for branch protection, so it does not depend on the matrix job names
   all-checks:
     if: always()
-    needs: [lint, test, windows]
+    needs: [lint, test, windows, minimum-node]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

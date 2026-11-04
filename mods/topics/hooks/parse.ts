@@ -51,7 +51,7 @@ const PREVIEW_MAX = 90
 // A fence of backticks cannot have a backtick in its info string (CommonMark). mods/status/hooks/register.ts keeps a
 // copy of this regex and of createCodeBlockTracker's closing rule (same character, at least as long, nothing after),
 // since each mod installs on its own: change both. tests/mods.test.js compares only the regex, not the closing rule.
-const FENCE = /^\s*(`{3,}(?!.*`)|~{3,})/
+const FENCE = /^\s*(?:(?:[-*+]|\d+[.)])\s+)?(`{3,}(?!.*`)|~{3,})/
 
 /** Only tests the line: whether it opens or closes a block is createCodeBlockTracker's job. */
 const isFence = (line: string) => FENCE.test(line)
@@ -173,7 +173,7 @@ export const parseAnswer = (text: string): ParsedAnswer => {
 
   for (const line of text.split('\n')) {
     // A closing run of # only counts after a space, so "## Usar C#" keeps its #.
-    const titleMatch = !trackCodeLine(line) && /^##\s+(.+?)(?:\s+#+)?\s*$/.exec(line)
+    const titleMatch = !trackCodeLine(line) && /^##\s+(\S.*?)(?:\s+#+)?\s*$/.exec(line)
     if (titleMatch) {
       headings.push({ title: titleMatch[1] ?? '', lines: [] })
     } else if (headings.length > 0) {

@@ -328,6 +328,14 @@ describe('the stance marks', () => {
     expect(withoutStanceMark('**(não recomendo) —** A')).toBe('A')
     expect(withoutStanceMark('*(avalie):* A')).toBe('A')
     expect(withoutStanceMark('**(recomendo):** **A** e B')).toBe('**A** e B')
+    expect(withoutStanceMark('**(recomendo):**A')).toBe('A')
+  })
+
+  test('takes the marks closing after the punctuation of a stance at the end', () => {
+    expect(withoutStanceMark('Cache local **(recomendo).**')).toBe('Cache local')
+    expect(withoutStanceMark('Cache *(avalie)!*')).toBe('Cache')
+    expect(withoutStanceMark('**Cache local (recomendo).**')).toBe('Cache local')
+    expect(stanceOf('Cache local **(recomendo).**')).toBe('recommended')
   })
 
   test('keeps what follows a stance mark as written', () => {

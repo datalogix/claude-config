@@ -23,7 +23,7 @@ const STANCE_WORDS = 'recomendo|recomendad[oa]|n[ãa]o recomendo|avalie'
 /** The instruction asks for it at the start of the item; "(recomendado)" and the end are how older answers wrote it. */
 export const STANCE_MARK = new RegExp(
   // A separator only with a space after it: in "(recomendo) .env" or "(avalie) --force" it is the item's own text.
-  `^\\s*\\**\\((${STANCE_WORDS})\\)\\**\\s*(?:[:.!–—-]\\**(?=\\s|$))?\\s*|\\s*\\**\\((${STANCE_WORDS})\\)\\**[.!]?\\s*$`,
+  `^\\s*\\**\\((${STANCE_WORDS})\\)\\**\\s*(?:[:.!–—-](?:\\*+|(?=\\s|$)))?\\s*|\\s*\\**\\((${STANCE_WORDS})\\)\\**[.!]?\\**\\s*$`,
   'i',
 )
 

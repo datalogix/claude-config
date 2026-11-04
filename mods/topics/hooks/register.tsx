@@ -101,7 +101,10 @@ const answerMessages = new Map<string, string>()
 const messageTexts = new Map<string, string>()
 
 const rememberMessage = (requestId: string, text: string) => {
-  if (messageTexts.get(requestId) === text) return
+  const previous = messageTexts.get(requestId)
+  if (previous === text) return
+  // A streamed message redraws with each new text: only the last one stands for it.
+  if (previous !== undefined && answerMessages.get(previous) === requestId) answerMessages.delete(previous)
   messageTexts.delete(requestId)
   messageTexts.set(requestId, text)
   if (messageTexts.size > REMEMBERED_MAX) messageTexts.delete(messageTexts.keys().next().value!)

@@ -94,7 +94,12 @@ describe('cmdLine through cmd.exe', { skip: process.platform !== 'win32' }, () =
       .trim()
       .split('\n')
       .map((line) => JSON.parse(line))
-    assert.deepEqual(calls, [['--version'], ['plugin', 'marketplace', 'list', '--json'], ['plugin', 'list', '--json']])
+    // Only the first calls: the empty lists read as nothing installed, so what follows installs every mod.
+    assert.deepEqual(calls.slice(0, 3), [
+      ['--version'],
+      ['plugin', 'list', '--json'],
+      ['plugin', 'marketplace', 'list', '--json'],
+    ])
   })
 
   // Neither a claude nor a claude.cmd: both ways of running it fail, which only skips the mods.

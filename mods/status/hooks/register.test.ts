@@ -449,6 +449,24 @@ test('a background agent that fails, starts again and ends well has no problem i
   expect(lastStatus()).toBe('✅ tudo pronto')
 })
 
+test('a background agent that fails and starts again counts until a run of it ends well', async ($, on) => {
+  const { notifications, agents, lastStatus } = setup(on)
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  agents.push(agent('a1', 'Revisar'), agent('a2', 'Testar'))
+  await $.agent.spawn({ prompt: 'x', description: 'Revisar' } as never)
+  await $.turn.complete(turnComplete(5_000))
+
+  await $.turn.complete(turnComplete(1_000, { agentId: 'a1', turnId: 't2', reason: 'error' }))
+  await $.turn.start({ text: '', turnId: 't3', agentId: 'a1' })
+  // It leaves the list with no end of its own.
+  agents.length = 0
+  await $.turn.complete(turnComplete(1_000, { agentId: 'a2', turnId: 't4' }))
+
+  expect(notifications.at(-1)).toBe('⚠️ Os agentes em segundo plano terminaram, 1 com problema')
+  expect(lastStatus()).toBe('⚠️ agentes terminaram, 1 com problema')
+})
+
 test('a background agent that fails twice counts once in the final notice', async ($, on) => {
   const { notifications, agents, lastStatus } = setup(on)
 

@@ -243,7 +243,7 @@ async function sendNotice($: EngineInterface, s: State, text: string, options: N
  * @param hasSentEndNotice the agent that just ended already sent a notice of its own failure
  */
 async function checkAgentsEnded($: EngineInterface, s: State, agentCountBefore: number, hasSentEndNotice: boolean) {
-  if (s.isWaitingForAgents && agentCountBefore > 0 && s.agents.length === 0) {
+  if (s.isWaitingForAgents && agentCountBefore > 0 && s.agents.length === 0 && s.mainTurnStartedAt === undefined) {
     s.isWaitingForAgents = false
     const workflowsSuffix = s.workflows.size > 0 ? ` — ${formatRemainingWorkflows(s.workflows.size)}` : ''
     const failedCount = s.failedBackgroundAgentIds.size
@@ -462,7 +462,6 @@ export const register: Register = (on, options) => {
     if (e.agentId !== undefined) {
       s.endedAgentIds.delete(e.agentId)
       s.failedAgentIds.delete(e.agentId)
-      s.failedBackgroundAgentIds.delete(e.agentId)
       await refreshAgents($, s)
       startSpinner($, s)
       return next(e)
@@ -499,6 +498,9 @@ export const register: Register = (on, options) => {
         s.seenAgentIds.add(e.agentId)
         s.failedAgentIds.add(e.agentId)
         if (isBackground) s.failedBackgroundAgentIds.add(e.agentId)
+      } else {
+        // Only here: a run that started again and never reported an end is still a problem.
+        s.failedBackgroundAgentIds.delete(e.agentId)
       }
       // An agent error always sends a notice; an interruption or refusal, only in the background.
       const shouldSendEndNotice = failureText !== undefined && (e.reason === 'error' || isBackground)

@@ -705,7 +705,7 @@ async function run(shouldLink, shouldConfigure) {
   const { canInstall, canUpdate, isUpdated } = marketplaceState
   if (!canInstall) {
     const hint = shouldLink ? '' : `; check access with "git ls-remote https://github.com/${REPO}.git"`
-    p.log.warn(`mods skipped (${selectedNames.join(', ')})${hint}`)
+    p.log.warn(`mods skipped (${[...selectedNames, ...replacementNames].join(', ')})${hint}`)
   }
 
   // Only after a marketplace update: an older one may not list the new name.

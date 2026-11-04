@@ -545,6 +545,18 @@ describe('install and update', { skip: process.platform === 'win32' }, () => {
     assert.match(output, /uninstalled: passos \(renamed to steps\)/)
   })
 
+  test('names the new name of a renamed mod among the mods skipped', () => {
+    fakeClaude({
+      'plugin list --json': installedMods('passos'),
+      'plugin marketplace add datalogix/claude-config': 'echo denied >&2; exit 1',
+    })
+
+    const { status, output } = runCli(['update'])
+
+    assert.equal(status, 1, output)
+    assert.match(output, /mods skipped \(steps\); check access/)
+  })
+
   test.each(COMMANDS)('keeps a mod under its earlier name when the new one fails to install (%s)', (command) => {
     fakeClaude({
       'plugin list --json': installedMods('passos'),

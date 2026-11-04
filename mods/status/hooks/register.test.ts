@@ -431,6 +431,65 @@ test("the background agents' end notice sums failures even when the last one sen
   expect(toastTimeouts).toEqual([10000, 10000, 10000])
 })
 
+test('a background agent that fails, starts again and ends well has no problem in the final notice', async ($, on) => {
+  const { notifications, agents, lastStatus } = setup(on)
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  agents.push(agent('a1', 'Revisar'), agent('a2', 'Testar'))
+  await $.agent.spawn({ prompt: 'x', description: 'Revisar' } as never)
+  await $.turn.complete(turnComplete(5_000))
+
+  await $.turn.complete(turnComplete(1_000, { agentId: 'a1', turnId: 't2', reason: 'error' }))
+  await $.turn.start({ text: '', turnId: 't3', agentId: 'a1' })
+  await $.turn.complete(turnComplete(1_000, { agentId: 'a1', turnId: 't3' }))
+  agents.length = 0
+  await $.turn.complete(turnComplete(1_000, { agentId: 'a2', turnId: 't4' }))
+
+  expect(notifications).toEqual(['❌ O agente “Revisar” parou com erro', '✅ Os agentes em segundo plano terminaram'])
+  expect(lastStatus()).toBe('✅ tudo pronto')
+})
+
+test('a background agent that fails twice counts once in the final notice', async ($, on) => {
+  const { notifications, agents, lastStatus } = setup(on)
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  agents.push(agent('a1', 'Revisar'), agent('a2', 'Testar'))
+  await $.agent.spawn({ prompt: 'x', description: 'Revisar' } as never)
+  await $.turn.complete(turnComplete(5_000))
+
+  await $.turn.complete(turnComplete(1_000, { agentId: 'a1', turnId: 't2', reason: 'error' }))
+  await $.turn.start({ text: '', turnId: 't3', agentId: 'a1' })
+  await $.turn.complete(turnComplete(1_000, { agentId: 'a1', turnId: 't3', reason: 'error' }))
+  agents.length = 0
+  await $.turn.complete(turnComplete(1_000, { agentId: 'a2', turnId: 't4' }))
+
+  expect(notifications).toEqual([
+    '❌ O agente “Revisar” parou com erro',
+    '❌ O agente “Revisar” parou com erro',
+    '⚠️ Os agentes em segundo plano terminaram, 1 com problema',
+  ])
+  expect(lastStatus()).toBe('⚠️ agentes terminaram, 1 com problema')
+})
+
+test('an agent whose second failure is the last end sends no summary of that one failure', async ($, on) => {
+  const { notifications, agents, lastStatus } = setup(on)
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  agents.push(agent('a1', 'Revisar'), agent('a2', 'Testar'))
+  await $.agent.spawn({ prompt: 'x', description: 'Revisar' } as never)
+  await $.turn.complete(turnComplete(5_000))
+
+  await $.turn.complete(turnComplete(1_000, { agentId: 'a1', turnId: 't2', reason: 'error' }))
+  await $.turn.start({ text: '', turnId: 't3', agentId: 'a1' })
+  agents.splice(1, 1)
+  await $.turn.complete(turnComplete(1_000, { agentId: 'a2', turnId: 't4' }))
+  agents.length = 0
+  await $.turn.complete(turnComplete(1_000, { agentId: 'a1', turnId: 't3', reason: 'error' }))
+
+  expect(notifications).toEqual(['❌ O agente “Revisar” parou com erro', '❌ O agente “Revisar” parou com erro'])
+  expect(lastStatus()).toBe('⚠️ agentes terminaram, 1 com problema')
+})
+
 test('only says everything is done when the background agents end', async ($, on) => {
   const { toasts, toastTimeouts, agents, lastStatus, clock } = setup(on)
 
@@ -611,6 +670,26 @@ test('a failed answer stays in the status after the background agents end well',
   expect(lastStatus()).toBe('❌ deu erro após 3s')
 })
 
+for (const [reason, answerText] of [
+  ['error', '❌ deu erro após 3s'],
+  ['refusal', '⚠️ recusou após 3s'],
+  ['aborted', '⏹️ interrompido após 3s'],
+] as const) {
+  test(`an answer that ended with ${reason} stays in the status after a background agent fails`, async ($, on) => {
+    const { agents, lastStatus } = setup(on)
+
+    await $.turn.start({ text: 'oi', turnId: 't1' })
+    agents.push(agent('bg', 'Revisar'))
+    await $.agent.spawn({ prompt: 'x', description: 'Revisar' } as never)
+    await $.turn.complete(turnComplete(3_000, { reason }))
+
+    agents.length = 0
+    await $.turn.complete(turnComplete(1_000, { agentId: 'bg', turnId: 't2', reason: 'error' }))
+
+    expect(lastStatus()).toBe(`${answerText} · ⚠️ agentes terminaram, 1 com problema`)
+  })
+}
+
 const workflowNameCases: [string, string | undefined, string, Record<string, string>, string][] = [
   [
     'a Workflow reply or a Stop task with an empty name shows what stands in for it',
@@ -769,6 +848,24 @@ test('the last agent sends its final notice even with a workflow still running',
   await $.turn.complete(turnComplete(1_000, { agentId: 'bg', turnId: 't2' }))
   expect(lastStatus()).toBe('⠋ em segundo plano  │  🔀 workflow: revisao')
   expect(notifications.at(-1)).toBe('✅ Os agentes em segundo plano terminaram — 1 workflow segue')
+})
+
+test('a failed answer and a failed agent stay next to a workflow still running', async ($, on) => {
+  const { agents, lastStatus } = setup(on)
+  stubWorkflowLaunch(on, 'w1', 'revisao')
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  agents.push(agent('bg', 'Revisar'))
+  await $.agent.spawn({ prompt: 'x', description: 'Revisar' } as never)
+  await $.tool.call({ tool: 'Workflow', script: 'x' } as never)
+  await $.turn.complete(turnComplete(3_000, { reason: 'error' }))
+
+  agents.length = 0
+  await $.turn.complete(turnComplete(1_000, { agentId: 'bg', turnId: 't2', reason: 'error' }))
+
+  expect(lastStatus()).toBe(
+    '❌ deu erro após 3s · ⚠️ agentes terminaram, 1 com problema · ⠋ em segundo plano  │  🔀 workflow: revisao',
+  )
 })
 
 test('a failed agent stays in the final notice and the status with a workflow still running', async ($, on) => {

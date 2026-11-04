@@ -176,9 +176,9 @@ type State = {
   agents: AgentInfo[]
   endedAgentIds: Set<string> // a run of theirs ended, even if the list still shows them as active
   workflows: Map<string, string> // running in the background, task id → name; $.agent.list() does not show them
-  failedBackgroundAgentCount: number // since the main turn started
+  failedBackgroundAgentIds: Set<string> // since the main turn started
   seenAgentIds: Set<string> // since the main turn started, with those it found running: the total of the progress
-  failedAgentIds: Set<string> // of seenAgentIds, foreground too, which failedBackgroundAgentCount leaves out
+  failedAgentIds: Set<string> // of seenAgentIds, foreground too, which failedBackgroundAgentIds leaves out
   windows: SessionRateLimit[]
   outcome?: { text: string; isSuccess: boolean } // how the last answer, or the background agents after it, ended
   isWaitingForAgents: boolean // answered with agents still running
@@ -246,11 +246,15 @@ async function checkAgentsEnded($: EngineInterface, s: State, agentCountBefore: 
   if (s.isWaitingForAgents && agentCountBefore > 0 && s.agents.length === 0 && s.mainTurnStartedAt === undefined) {
     s.isWaitingForAgents = false
     const workflowsSuffix = s.workflows.size > 0 ? ` — ${formatRemainingWorkflows(s.workflows.size)}` : ''
-    if (s.failedBackgroundAgentCount > 0) {
-      const problems = `${s.failedBackgroundAgentCount} com problema`
-      s.outcome = { text: `⚠️ agentes terminaram, ${problems}`, isSuccess: false }
+    const failedCount = s.failedBackgroundAgentIds.size
+    if (failedCount > 0) {
+      const problems = `${failedCount} com problema`
+      const agentsText = `⚠️ agentes terminaram, ${problems}`
+      // A failed or interrupted answer stays: the agents failing too says nothing about it.
+      const text = s.outcome && !s.outcome.isSuccess ? `${s.outcome.text} · ${agentsText}` : agentsText
+      s.outcome = { text, isSuccess: false }
       // A summary of that one failure alone would repeat the notice just sent.
-      if (!(hasSentEndNotice && s.failedBackgroundAgentCount === 1))
+      if (!(hasSentEndNotice && failedCount === 1))
         await sendNotice($, s, `⚠️ Os agentes em segundo plano terminaram, ${problems}${workflowsSuffix}`, {
           timeoutMs: 10000,
           isAboutBackgroundAgents: true,
@@ -285,6 +289,7 @@ async function refreshAgents($: EngineInterface, s: State, hasSentEndNotice = fa
 const startAgentProgress = (s: State) => {
   s.seenAgentIds = new Set(s.agents.map((a) => a.id))
   s.failedAgentIds = new Set()
+  s.failedBackgroundAgentIds = new Set()
 }
 
 const stopSpinner = (s: State) => {
@@ -370,7 +375,7 @@ export const register: Register = (on, options) => {
     agents: [],
     endedAgentIds: new Set(),
     workflows: new Map(),
-    failedBackgroundAgentCount: 0,
+    failedBackgroundAgentIds: new Set(),
     seenAgentIds: new Set(),
     failedAgentIds: new Set(),
     windows: [],
@@ -406,7 +411,6 @@ export const register: Register = (on, options) => {
       s.outcome = undefined
       s.workflows = new Map()
       s.isWaitingForAgents = false
-      s.failedBackgroundAgentCount = 0
       startAgentProgress(s)
       if (s.mainTurnStartedAt === undefined && !hasBackgroundWork(s)) stopSpinner(s)
       await showStatus($, s)
@@ -458,6 +462,7 @@ export const register: Register = (on, options) => {
     if (e.agentId !== undefined) {
       s.endedAgentIds.delete(e.agentId)
       s.failedAgentIds.delete(e.agentId)
+      s.failedBackgroundAgentIds.delete(e.agentId)
       await refreshAgents($, s)
       startSpinner($, s)
       return next(e)
@@ -466,7 +471,6 @@ export const register: Register = (on, options) => {
     s.mainTurnStartedAt = await $.clock.now()
     s.outcome = undefined
     s.isWaitingForAgents = false
-    s.failedBackgroundAgentCount = 0
     startAgentProgress(s)
     startSpinner($, s)
     await showStatus($, s)
@@ -491,10 +495,10 @@ export const register: Register = (on, options) => {
       const who = agent ? `O agente “${agentName(agent)}”` : 'Um agente'
       const failureText = AGENT_FAILURE_TEXTS[e.reason]
       const isBackground = s.isWaitingForAgents
-      if (failureText && isBackground) s.failedBackgroundAgentCount++
       if (failureText) {
         s.seenAgentIds.add(e.agentId)
         s.failedAgentIds.add(e.agentId)
+        if (isBackground) s.failedBackgroundAgentIds.add(e.agentId)
       }
       // An agent error always sends a notice; an interruption or refusal, only in the background.
       const shouldSendEndNotice = Boolean(failureText && (e.reason === 'error' || isBackground))

@@ -1145,6 +1145,13 @@ describe('the format instruction', () => {
     expect(sections[1]?.text).toContain('termine a resposta, mesmo curta, com um último tópico `## Pendências`')
   })
 
+  test('asks for unique topic titles and one (recomendo) per radio group', async ($, on) => {
+    on('prompt.compose', () => ({ sections: [] }) as never)
+    const { sections } = await $.prompt.compose(input)
+    expect(sections[0]?.text).toContain('que nenhum outro tópico da resposta repita')
+    expect(sections[0]?.text).toContain('só uma do grupo leva `(recomendo)`')
+  })
+
   test('keeps destructive actions out of (recomendo)', async ($, on) => {
     on('prompt.compose', () => ({ sections: [] }) as never)
     const { sections } = await $.prompt.compose(input)

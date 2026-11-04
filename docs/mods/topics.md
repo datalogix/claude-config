@@ -60,7 +60,8 @@ Which database?
   "sugerido" (not when it also has a stance): writing `[x]` never
   checks anything, though `(recomendo)` still does; the format
   instruction tells Claude that such an item coming back unchecked only
-  means it was not checked
+  means it was not checked, while a `(recomendo)` item coming back
+  unchecked was unchecked by the user
 - "enviar pendências" sends the list back as a message: the items as
   checked on screen, without their details, each preceded by its question
   (the line of text right before it) and no other loose text; it shows up

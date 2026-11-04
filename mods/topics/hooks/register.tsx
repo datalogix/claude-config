@@ -41,7 +41,8 @@ const EXPLANATION_INDENT = 11
 const FORMAT_INSTRUCTION = [
   'Organização das respostas: quando a resposta tiver mais de um assunto ou passar de umas 10 linhas,',
   'comece com uma frase curta de resumo e depois agrupe o resto em tópicos, cada um com',
-  'um título `## ` curto e descritivo (2 a 6 palavras). Cada tópico trata de um só assunto.',
+  'um título `## ` curto e descritivo (2 a 6 palavras), que nenhum outro tópico da resposta repita.',
+  'Cada tópico trata de um só assunto.',
   'Não use `## ` para outra coisa. Respostas curtas ficam sem tópicos.',
   'Quando algo depender do usuário (decidir, aprovar, rodar um comando, testar, responder uma pergunta),',
   `termine a resposta, mesmo curta, com um último tópico \`## ${ACTIONS_TITLE}\` listando cada ação como`,
@@ -54,7 +55,7 @@ const FORMAT_INSTRUCTION = [
   'Há dois tipos de caixa. Checkbox `- [ ] ação` é uma ação independente, que pode ser marcada junto com qualquer outra.',
   'Radio `- ( ) opção` é uma alternativa exclusiva: os radios seguidos formam um grupo em que só um fica marcado.',
   'Quando houver alternativas, escreva antes uma linha de texto com a pergunta, terminada em "?", e depois um radio por',
-  'alternativa, a recomendada primeiro.',
+  'alternativa, a recomendada primeiro; só uma do grupo leva `(recomendo)`.',
   'Um grupo de radios só tem alternativas da mesma decisão: depois dele, uma ação independente é checkbox `[ ]`,',
   'e outra decisão começa com a sua própria pergunta.',
   'Nunca use radio para ações que podem ser feitas juntas, nem checkbox para opções que se excluem.',

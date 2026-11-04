@@ -1857,6 +1857,17 @@ describe('remoteWebUrl', () => {
     expect(remoteWebUrl('../r.git')).toBeUndefined()
     expect(remoteWebUrl('github-work:o/r.git')).toBeUndefined()
   })
+
+  test('keeps the scheme and port of an http(s) remote, even on a host with no dot', () => {
+    expect(remoteWebUrl('https://git.example.com:8443/o/r.git')).toBe('https://git.example.com:8443/o/r')
+    expect(remoteWebUrl('http://git.example.com/o/r')).toBe('http://git.example.com/o/r')
+    expect(remoteWebUrl('http://gitea:3000/o/r.git')).toBe('http://gitea:3000/o/r')
+    expect(remoteWebUrl('https://x:secret@git.example.com:8443/o/r.git')).toBe('https://git.example.com:8443/o/r')
+  })
+
+  test('leaves out the port of an ssh remote, which is not the site', () => {
+    expect(remoteWebUrl('ssh://git@git.example.com:2222/o/r.git')).toBe('https://git.example.com/o/r')
+  })
 })
 
 describe('branchWebUrl', () => {

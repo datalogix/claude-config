@@ -8,9 +8,10 @@ subagents or with nobody to answer. After a no, it does not ask again in
 that session, except in the case below.
 
 A new task in the middle of another, with uncommitted changes from that
-other task, asks again even after a no. In a session already in a
+other task, asks again even after a no. If the session is already in a
 worktree, Claude suggests opening another terminal with
-`claude --worktree <name>` instead of creating one.
+`claude --worktree <name>` instead of creating one. Without such changes,
+the rules above apply.
 
 Uncommitted changes do not follow a worktree. When there are any, the
 question offers leaving them in the current folder, the recommended
@@ -19,7 +20,7 @@ choice, or taking them along. Only that second choice runs
 stops there and the stash stays stored.
 
 After creating a worktree, Claude warns if `.claude/worktrees/` is not
-in the project's `.gitignore`.
+ignored by git.
 
 A worktree starts from the remote's default branch (the `worktree.baseRef`
 setting changes that) on a `worktree-<name>` branch, so Claude runs

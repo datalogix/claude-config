@@ -59,11 +59,12 @@ check its skills.
   spelling and keeps every piece of information, copying errors,
   logs, code and names as they are. The preview lets you pick labels
   (suggested ones are marked as suggestions; missing ones you pick
-  are created, `claude`, `claude-plan`, `rollback` and `task` with
-  the `datalogix/workflows` colors and descriptions) and optionally
+  are created, `claude`, `claude-plan` and `rollback` with the
+  `datalogix/workflows` colors and descriptions) and optionally
   add `claude` or `claude-plan` to trigger the `datalogix/workflows`
-  Claude workflow. `rollback`, which rolls production (or staging,
-  with `env:staging`) back as soon as the issue is created, is never
+  Claude workflow. `rollback`, which rolls back the environment of an
+  `env:production` or `env:staging` label as soon as the issue is
+  created and does nothing without one, is never
   suggested and comes last, unchecked. The issue is created with `gh`
   only after confirmation. `/datalogix:issue #123` rewrites an
   existing issue the same way, keeping its labels except the ones

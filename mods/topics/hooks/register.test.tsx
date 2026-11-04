@@ -1334,6 +1334,15 @@ describe('the /topics pane', () => {
     expect(await ui.findAll({ type: 'Markdown', text: /índice|Todos/ })).toHaveLength(0)
   })
 
+  test('has no open and close all for an answer without topics', async ($, on) => {
+    on('turn.complete', () => ({ text: '' }))
+    await $.turn.complete(turnCompleteInput({ answer: '## Pendências\n- [ ] Rodar' }))
+
+    const ui = await mountPane($)
+    expect(await ui.find({ key: 'topics-open-all' })).toBeUndefined()
+    expect(await ui.find({ key: 'topics-close-all' })).toBeUndefined()
+  })
+
   test('sends the items from the pane', async ($, on) => {
     on('turn.complete', () => ({ text: '' }))
     const sent = collectSent(on)

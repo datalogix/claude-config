@@ -423,10 +423,12 @@ export const register: Register = (on) => {
     return (
       <Box flexDirection="column">
         {intro && <Markdown text={intro} />}
-        <Box gap={1} marginTop={1}>
-          <Button key={`${PANE_ID}-open-all`} hotkey="a" label="abrir todos" onPress={() => setAllOpen(true)} />
-          <Button key={`${PANE_ID}-close-all`} hotkey="f" label="fechar todos" onPress={() => setAllOpen(false)} />
-        </Box>
+        {topics.length > 0 && (
+          <Box gap={1} marginTop={1}>
+            <Button key={`${PANE_ID}-open-all`} hotkey="a" label="abrir todos" onPress={() => setAllOpen(true)} />
+            <Button key={`${PANE_ID}-close-all`} hotkey="f" label="fechar todos" onPress={() => setAllOpen(false)} />
+          </Box>
+        )}
         {renderTopics(
           els,
           topics,

@@ -173,7 +173,8 @@ Depois da resposta:
 
 ## 4. Prévia
 Mostre, nesta ordem:
-- branch, com o aviso de branch padrão do passo 1, se for o caso;
+- branch, com os avisos de branch padrão e de HEAD destacado do
+  passo 1, se for o caso, e o idioma, se foi detectado pelos commits;
 - os arquivos do commit (em stage, `git diff --cached --stat`) e,
   se houver, o aviso das mudanças que ficam fora do commit;
 - trechos que parecem sensíveis no diff (tokens, senhas, chaves,
@@ -185,9 +186,10 @@ Mostre, nesta ordem:
 - a mensagem exatamente como será enviada.
 
 Ao dividir (sugerido no passo 3 ou com grupos marcados no passo 1),
-mostre numa prévia só todos os commits, na ordem em que serão
-feitos, cada um com seus arquivos (e o trecho de cada arquivo
-dividido), a mensagem exatamente como será enviada e, se for o caso:
+mostre os avisos acima uma vez, no início, e depois, numa prévia só,
+todos os commits, na ordem em que serão feitos, cada um com seus
+arquivos (e o trecho de cada arquivo dividido), a mensagem exatamente
+como será enviada e, se for o caso:
 - "depende de: <commit>", quando usa algo que só um grupo não
   marcado ou um commit posterior traz (ex.: chama uma função que
   só ele cria); o commit pode não funcionar sozinho;

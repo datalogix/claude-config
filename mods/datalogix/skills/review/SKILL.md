@@ -227,6 +227,22 @@ arquivo do tipo), para calcular o `<id>` da seção 3, e leem o
 progresso. Sem progresso, `status` diz que a revisão não começou e
 para.
 
+- **Base desatualizada**: só na primeira chamada da sessão, antes da
+  linha de base. Sem remoto `origin`, siga sem dizer nada. A branch
+  padrão é a de `git symbolic-ref --short refs/remotes/origin/HEAD`,
+  sem o `origin/`; sem esse ref, `main` ou `master`. Rode `git fetch
+  origin <branch padrão>`; se falhar, avise que a base pode estar
+  antiga e siga. Conte o que falta com `git rev-list --count
+  HEAD..origin/<branch padrão>`; com 0, siga sem dizer nada.
+  - Na branch padrão, com `git status --porcelain` vazio e fora de
+    `report`: pergunte numa mensagem própria, terminada em
+    `## Pendências` mesmo sem o mod `topics`, com
+    `- [ ] (recomendo) Atualizar com git pull --ff-only`, dizendo
+    quantos commits faltam, e espere a resposta. Se o `pull` falhar,
+    mostre o erro e siga. Depois de atualizar, confira o perfil de
+    novo (seção 2).
+  - Nos outros casos: avise quantos commits faltam e siga. Nunca
+    faça merge nem rebase por conta própria.
 - **Branch com data**: antes da linha de base, siga o item "Branch com
   data" do passo 1 de `${CLAUDE_SKILL_DIR}/../commit/SKILL.md`, com o
   assunto tirado do que será revisado, salvo em `report`, que não

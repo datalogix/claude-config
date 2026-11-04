@@ -12,6 +12,9 @@ check its skills.
   `report [<mode>]`, `reset [<mode>]`,
   a focus mode with an optional folder, a single step, or a folder. Run
   `/datalogix:review help` for details.
+  At the start of a session it fetches the default branch. If the
+  current branch is behind it, it offers `git pull --ff-only` on the
+  default branch with a clean tree, and otherwise only warns.
   It never suggests adding a community file (`FUNDING.yml`,
   `SECURITY.md`, issue templates...) that the organization's public
   `<owner>/.github` repository already provides as the default.

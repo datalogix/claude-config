@@ -136,7 +136,8 @@ Depois da resposta:
 - Título em Conventional Commits: tipo em inglês (`feat`, `fix`,
   `refactor`, `docs`, `test`, `chore`, `perf`, `build`, `ci`,
   `style`) e a descrição no idioma do passo 1, curta, no imperativo
-  ou presente, sem ponto final, sem data e com até 72 caracteres (ex.:
+  ou presente, sem ponto final e sem data. O título inteiro, com o
+  tipo, tem até 72 caracteres (ex.:
   `feat: adiciona exportação de pedidos em CSV`). Use escopo
   (`fix(api): ...`) só se o projeto já usa.
 - O tipo vem da mudança principal. Mudança que quebra
@@ -193,9 +194,12 @@ como será enviada e, se for o caso:
 - "depende de: <commit>", quando usa algo que só um grupo não
   marcado ou um commit posterior traz (ex.: chama uma função que
   só ele cria); o commit pode não funcionar sozinho;
-- "estado não testado", quando tem um arquivo dividido por trecho:
-  esse conteúdo nunca existiu na cópia de trabalho, então os testes
-  não rodaram nele;
+- "estado não testado", quando a árvore deste commit tem um arquivo
+  pela metade: o commit leva só trechos dele, ou vem depois disso e
+  antes do commit que o completa. Explique uma vez, no início: esse
+  conteúdo nunca existiu na cópia de trabalho, então os testes não
+  rodaram nele. Não marque o commit que deixa a árvore igual à cópia
+  de trabalho;
 - o aviso de hunk que foi inteiro para este commit (divisão, abaixo).
 
 Termine com uma seção `## Pendências`, que o usuário responde

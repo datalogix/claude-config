@@ -247,6 +247,8 @@ function runClaude(args, input) {
     encoding: 'utf8',
     input,
     timeout: CLAUDE_TIMEOUT_MS,
+    // A process can ignore SIGTERM, and spawnSync would keep waiting for it.
+    killSignal: 'SIGKILL',
     // A git asking for credentials would wait on a prompt nobody sees: it fails instead.
     env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
   }

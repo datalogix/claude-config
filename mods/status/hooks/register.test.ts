@@ -5,6 +5,7 @@ import {
   extractExcerpt,
   formatAgents,
   formatDuration,
+  formatGit,
   formatPlan,
   formatTimeLeft,
   formatWorkflows,
@@ -1769,4 +1770,159 @@ test('the project is the last folder of the path', () => {
 
 test('a path with no folder is its own project', () => {
   expect(projectName('/')).toBe('/')
+})
+
+const gitStatus = (head: string, { ab = '', files = [] as string[] } = {}): string =>
+  ['# branch.oid 216ceb753e8158ed5b539c5ff8b866d34bf08b6b', `# branch.head ${head}`, ab, ...files, '']
+    .filter((line, i, lines) => line || i === lines.length - 1)
+    .join('\n')
+
+describe('formatGit', () => {
+  test('shows only the branch on a clean tree', () => {
+    expect(formatGit(gitStatus('main', { ab: '# branch.ab +0 -0' }))).toBe('🌿 main')
+  })
+
+  test('counts every kind of changed file', () => {
+    const files = [
+      '1 .M N... 100644 100644 100644 a b bin/cli.js',
+      '2 R. N... 100644 100644 100644 a b R100 new.js\told.js',
+      'u UU N... 100644 100644 100644 100644 a b c conflict.js',
+      '? notes.md',
+    ]
+    expect(formatGit(gitStatus('main', { files }))).toBe('🌿 main ●4')
+  })
+
+  test('shows the commits ahead of and behind the upstream', () => {
+    expect(formatGit(gitStatus('main', { ab: '# branch.ab +1 -2' }))).toBe('🌿 main ↑1 ↓2')
+    expect(formatGit(gitStatus('main', { ab: '# branch.ab +1 -0' }))).toBe('🌿 main ↑1')
+    expect(formatGit(gitStatus('main', { ab: '# branch.ab +0 -2' }))).toBe('🌿 main ↓2')
+  })
+
+  test('shows the short commit when detached', () => {
+    expect(formatGit(gitStatus('(detached)'))).toBe('🌿 216ceb7')
+  })
+
+  test('shortens a long branch name', () => {
+    expect(formatGit(gitStatus('feature/a-very-long-branch-name-that-goes-on'))).toBe(
+      '🌿 feature/a-very-long-branch-na…',
+    )
+  })
+
+  test('reads nothing from an output with no branch', () => {
+    expect(formatGit('')).toBeUndefined()
+  })
+})
+
+describe('the git state in the status line', () => {
+  const withGit = (on: On, reply: () => unknown) => {
+    on('session.start', (_$, e) => ({ cwd: e.cwd }))
+    on('session.usage', () => ({ value: { rateLimits: [] } }) as never)
+    on('process.run', (() => ({ value: reply() })) as never)
+  }
+  const gitReply = (stdout: string, exitCode = 0) => ({ exitCode, stdout, stderr: '' })
+
+  test('shows it from the session start, before the plan', async ($, on) => {
+    const { lastStatus } = setup(on)
+    on('session.start', (_$, e) => ({ cwd: e.cwd }))
+    on(
+      'session.usage',
+      () => ({ value: { rateLimits: [{ kind: 'five_hour', percentUsed: 10 } as SessionRateLimit] } }) as never,
+    )
+    on('process.run', (() => ({ value: gitReply(gitStatus('main')) })) as never)
+
+    await $.session.start(sessionStartInput)
+
+    expect(lastStatus()).toBe('🌿 main  │  📊 plano: 5h 10%')
+  })
+
+  test('reads it again when an answer ends', async ($, on) => {
+    const { lastStatus } = setup(on)
+    let stdout = gitStatus('main')
+    withGit(on, () => gitReply(stdout))
+    await $.session.start(sessionStartInput)
+
+    await $.turn.start({ text: 'oi', turnId: 't1' })
+    stdout = gitStatus('main', { files: ['? notes.md'] })
+    await $.turn.complete(turnComplete(1_000))
+
+    expect(lastStatus()).toBe('✅ pronto em 1s  │  🌿 main ●1')
+  })
+
+  test('reads it again every minute', async ($, on) => {
+    const { lastStatus, clock } = setup(on)
+    let stdout = gitStatus('main')
+    withGit(on, () => gitReply(stdout))
+    await $.session.start(sessionStartInput)
+
+    stdout = gitStatus('other')
+    await clock.advance(60_000)
+
+    expect(lastStatus()).toBe('🌿 other')
+  })
+
+  test('leaves the status line outside a repository', async ($, on) => {
+    const { lastStatus, clock } = setup(on)
+    let reply = gitReply(gitStatus('main'))
+    withGit(on, () => reply)
+    await $.session.start(sessionStartInput)
+    expect(lastStatus()).toBe('🌿 main')
+
+    reply = gitReply('', 128)
+    await clock.advance(60_000)
+
+    expect(lastStatus()).toBeUndefined()
+  })
+
+  test('goes without it when git cannot start', async ($, on) => {
+    const { lastStatus } = setup(on)
+    withGit(on, () => {
+      throw new Error('git not found')
+    })
+
+    await $.session.start(sessionStartInput)
+
+    expect(lastStatus()).toBeUndefined()
+  })
+
+  test('a slow read does not overwrite a newer one', async ($, on) => {
+    const { lastStatus } = setup(on)
+    on('session.start', (_$, e) => ({ cwd: e.cwd }))
+    on('session.usage', () => ({ value: { rateLimits: [] } }) as never)
+    let releaseSlow = () => {}
+    const slow = new Promise<void>((resolve) => (releaseSlow = resolve))
+    let markSlowStarted = () => {}
+    const slowStarted = new Promise<void>((resolve) => (markSlowStarted = resolve))
+    const replies = [
+      async () => {
+        markSlowStarted()
+        await slow
+        return gitReply(gitStatus('old'))
+      },
+      async () => gitReply(gitStatus('new')),
+    ]
+    on('process.run', (async () => ({ value: await replies.shift()!() })) as never)
+
+    const first = $.session.start(sessionStartInput)
+    await slowStarted
+    await $.session.start(sessionStartInput)
+    releaseSlow()
+    await first
+
+    expect(lastStatus()).toBe('🌿 new')
+  })
+
+  test('asks git for the status without optional locks', async ($, on) => {
+    setup(on)
+    on('session.start', (_$, e) => ({ cwd: e.cwd }))
+    on('session.usage', () => ({ value: { rateLimits: [] } }) as never)
+    const calls: unknown[] = []
+    on('process.run', ((_$: unknown, e: { argv: string[] }) => {
+      calls.push(e.argv)
+      return { value: gitReply(gitStatus('main')) }
+    }) as never)
+
+    await $.session.start(sessionStartInput)
+
+    expect(calls).toEqual([['git', '--no-optional-locks', 'status', '--porcelain=v2', '--branch']])
+  })
 })

@@ -11,8 +11,8 @@ Each mod is selected during install; its options can be changed with
 - [datalogix](docs/mods/datalogix.md) — the skills `/datalogix:review`,
   `/datalogix:issue`, `/datalogix:commit`, `/datalogix:pr` and
   `/datalogix:ci`
-- [steps](docs/mods/steps.md) — shows the current step under Claude's
-  spinner instead of the tool rows
+- [steps](docs/mods/steps.md) — hides the tool rows and shows the
+  current step with Claude's spinner
 - [status](docs/mods/status.md) — status line and notices (toast and
   system notification) when an answer or the background agents finish
 - [topics](docs/mods/topics.md) — answers split into closed topics, with

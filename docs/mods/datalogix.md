@@ -9,12 +9,13 @@ check its skills.
 - `review/` — `/datalogix:review`: step-by-step review of Laravel
   packages and applications, JS/TS libraries and JS/TS applications
   (Nuxt, Next, Vue or React with Vite, Node). It takes `status`,
-  `report [<mode>]`, `reset [<mode>]`,
-  a focus mode with an optional folder, a single step, or a folder. Run
-  `/datalogix:review help` for details.
+  `report [<mode>]`, `reset [<mode>]`, a focus mode with an optional
+  folder, a single step, or a folder. Run `/datalogix:review help` for
+  details.
   At the start of a session it fetches the default branch. If the
   current branch is behind it, it offers `git pull --ff-only` on the
-  default branch with a clean tree, and otherwise only warns.
+  default branch with a clean tree (not in `report`), and otherwise
+  only warns.
   It never suggests adding a community file (`FUNDING.yml`,
   `SECURITY.md`, issue templates...) that the organization's public
   `<owner>/.github` repository already provides as the default.
@@ -75,11 +76,10 @@ check its skills.
   Conventional Commits title and _Resumo_, _Motivação_ (with
   `Closes #<number>`), _Plano de Testes_ and _Observações_ (titles
   follow the project's language), or the project's pull request
-  template. It finds the issue from the
-  argument or the branch name (a number taken from the branch is
-  always confirmed: suggested when the commits match the issue's
-  title, unchecked with a warning otherwise), checks the
-  diff against its acceptance criteria and asks what was tested
+  template. It finds the issue from the argument or the branch name (a
+  number taken from the branch is always confirmed: suggested when the
+  commits match the issue's title, unchecked with a warning otherwise),
+  checks the diff against its acceptance criteria and asks what was tested
   (offering to run the project's test and lint scripts, never ones
   that change files). Without an issue, it asks for the motivation
   (an answer is optional) and can create the issue first with
@@ -141,9 +141,9 @@ the commits it suggests and keeps the result in the progress file.
 Conventional Commits types stay in English. The previews and questions
 of issue, pr, commit and ci end with a `## Pendências` list
 (`/datalogix:review` uses it for its reports only when `topics` is
-active, and always for the dated branch question and the commit flow),
-answered in place when the [topics](topics.md) mod is installed. Only
-the items checked when you send the list apply: an item a skill marks
+active, and always for the outdated base and dated branch questions
+and the commit flow), answered in place when the [topics](topics.md)
+mod is installed. Only the items checked when you send the list apply: an item a skill marks
 `(recomendo)` starts checked, so sending as is approves it, while an item
 a preview wrote checked is a suggestion, which `topics` shows unchecked,
 so leaving one alone never removes anything. `tests/skills.test.js`
@@ -151,8 +151,8 @@ checks that every item the skills describe parses as one.
 
 Earlier versions copied these skills into `~/.claude/skills/` as
 `/review` and `/issue`, with a `.claude-config` marker (or linked them
-with `--link`). the installer installs `datalogix` and only then
-remove those folders; folders the installer did not create are left
+with `--link`). The installer installs `datalogix` and only then
+removes those folders; folders the installer did not create are left
 alone. If `datalogix` could not be installed, they stay
 (`kept: ...`) and running the command again replaces them. With
 `--configure`, unselecting `datalogix` also removes them. If a folder

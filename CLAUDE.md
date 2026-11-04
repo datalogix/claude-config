@@ -31,8 +31,9 @@ node bin/cli.js --link                    # install from this clone: edits apply
   (Node 22 and LTS), installing the latest Claude Code. It also runs weekly (`schedule`), so a Claude Code release
   that breaks something shows up without a push. The `windows` job runs only `tests/quote.test.js`,
   `tests/quote-cmd.test.js` and `tests/options.test.js`, which need no fake `claude` shell script, and
-  `node bin/cli.js --help`. The `minimum-node` job installs only the runtime dependencies on Node 22.0.0 and runs
-  `node bin/cli.js --help` and `update` with no `claude`: `engines.node` is the runtime's minimum, and the dev tools need `^22.13.0`, `^24` or `>=26`.
+  `node bin/cli.js --help`. `tests/mods.test.js` checks that the test files it names exist. The `minimum-node` job
+  installs only the runtime dependencies on Node 22.0.0 and runs `node bin/cli.js --help` and `update` with no `claude`:
+  `engines.node` is the runtime's minimum, and the dev tools need `^22.13.0`, `^24` or `>=26`.
 - `all-checks` aggregates the jobs; nothing requires it, since `main` has no branch protection. Add a new job to its
   `needs`.
 - Dependabot (`.github/dependabot.yml`), each in one group: GitHub Actions weekly (`ci:` commits), npm monthly
@@ -56,21 +57,21 @@ node bin/cli.js --link                    # install from this clone: edits apply
   nothing installed. Failing to read a mod's options (`plugin configure --json`) is a failure that skips configuring
   that mod; a reply without an `inputs` object only warns and skips it too. Cancelling a prompt ends with the run's
   closing hint (`reloadHint`): `/clear`, and `/reload-plugins` when a mod already changed (`hasModChanges`).
-- Every run updates the marketplace (only when it was already added) and the mods already installed
-  (`updateMarketplace`, `updateMod`). It logs `updated: <name>`, and a failed marketplace update still updates the mods.
+- Every run updates the marketplace (only when it was already added, and not when every mod was left unselected) and
+  the mods already installed (`updateMarketplace`, `updateMod`). It logs `updated: <name>`, and a failed marketplace update still updates the mods.
   A failed update still asks for the mod's options with `--configure`. Without `--link`, the marketplace updates from
   whatever source it has. With `--link`, one added from elsewhere is only pointed out: neither it nor the mods are
   updated, and an installed mod with nothing to configure logs `unchanged: <name>`, unless its options could not be read
   (`hasReadFailed`), which is already reported. A marketplace with no readable source (no text in its source fields)
-  still updates. A mod also loaded from a
-  skills folder (`<name>@skills-dir` in `plugin list`) is pointed out. `plugin list` also lists installs
-  in other scopes, such as other projects': only the user scope of this marketplace's mods counts as installed
-  (`listInstalledModIds`), so the installer neither updates nor uninstalls those, and installs the mod in the user
-  scope. An install in the current project's scope (`projectPath`) is pointed out.
+  still updates. A mod also loaded from a skills folder (`<name>@skills-dir` in `plugin list`) is pointed out.
+  `plugin list` also lists installs in other scopes, such as other projects': only the user scope of this
+  marketplace's mods counts as installed (`listInstalledModIds`), so the installer neither updates nor uninstalls
+  those, and installs the mod in the user scope. An install in the current project's scope (`projectPath`) is pointed
+  out.
 - It no longer writes skills. Earlier versions copied them into `~/.claude/skills/<name>` with a `.claude-config`
   marker (or symlinked them with `--link`); `removeOldSkills` deletes those folders, and only those, once the
-  `datalogix` mod (`SKILLS_MOD`) is installed or unselected. A run with mods installed installs `datalogix` when such folders exist.
-  Failing to read or remove one is reported with `reportFailure` and does not stop the run.
+  `datalogix` mod (`SKILLS_MOD`) is installed or unselected. A run with mods installed installs `datalogix` when such
+  folders exist. Failing to read or remove one is reported with `reportFailure` and does not stop the run.
 - Mods go through the `claude` CLI, never by writing Claude Code's files directly (`warnOldOptions` only reads
   `settings.json`, from `$CLAUDE_CONFIG_DIR` when set, else `~/.claude`). The installer calls
   `claude plugin marketplace add/list/update`, `plugin install/uninstall --keep-data/update/list --json` and
@@ -80,8 +81,8 @@ node bin/cli.js --link                    # install from this clone: edits apply
 - Renamed mods (`RENAMED_MODS`): the new name is installed first and the old one is uninstalled with `--keep-data`
   only after that succeeds. Renamed options are not carried over: `plugin configure --json` returns only the keys
   the userConfig declares, so values stored under an old key never reach the installer. `warnOldOptions` reads
-  them from `pluginConfigs` in that `settings.json` and warns with their values.
-  Without `--configure`, the new name (and `datalogix` for old skills, `listReplacementMods`) is installed, unasked, only after the marketplace update
+  them from `pluginConfigs` in that `settings.json` and warns with their values. Without `--configure`, the new name
+  (and `datalogix` for old skills, `listReplacementMods`) is installed, unasked, only after the marketplace update
   succeeded, since an older marketplace may not list it yet.
 - The migration code (`RENAMED_MODS`, `removeOldSkills` and the old skills handling in `run`, `warnOldOptions`)
   is temporary: remove it, with its tests and docs, once every team machine has run the installer once. Whether that
@@ -101,8 +102,9 @@ node bin/cli.js --link                    # install from this clone: edits apply
   fallback (running `update`) against the real `cmd.exe`, through a fake `claude.cmd` shaped like npm's shim, on the
   `windows` CI job only.
 - Every `claude` call (`runClaude`) has a timeout (`CLAUDE_TIMEOUT_MS`, 120s; tests lower it with
-  `DATALOGIX_CLAUDE_TIMEOUT_MS`) and runs with `GIT_TERMINAL_PROMPT=0`, so a hung network call or a git asking for
-  credentials fails the step instead of freezing the installer. A `claude --version` that times out is such a failure
+  `DATALOGIX_CLAUDE_TIMEOUT_MS`) that kills it with SIGKILL, since `spawnSync` would keep waiting for a process that
+  ignores SIGTERM, and runs with `GIT_TERMINAL_PROMPT=0`, so a hung network call or a git asking for credentials fails
+  the step instead of freezing the installer. A `claude --version` that times out is such a failure
   (`checkClaudeCli`); any other failure of it means the CLI is not installed, which only warns and skips the mods.
 - `tests/cli-install.test.js` and `tests/cli-update.test.js` run the real CLI without a TTY, with a temporary `HOME`
   and a fake `claude` shell script on `PATH` that logs its arguments; `tests/cli-interactive.test.js` runs the
@@ -134,10 +136,13 @@ node bin/cli.js --link                    # install from this clone: edits apply
 - `worktree` only adds an instruction to the system prompt (`prompt.compose`), so Claude asks before the first file
   change of a task and calls `EnterWorktree`, after a `git fetch origin`, since a worktree starts from the remote's
   default branch. Its tests check that the text is there, not that Claude follows it.
-- A new mod needs (`tests/mods.test.js` checks these, plus `name` equal to its folder and no `version`):
+- A new mod needs (`tests/mods.test.js` checks these, plus `name` equal to its folder, no `version` and, with a `types`
+  field, that its file exists):
   - `"license": "MIT"` and `"author": { "name": "datalogix" }` in its `plugin.json`;
   - an entry in `.claude-plugin/marketplace.json`;
-  - a `claude plugin test mods/<name>` added to the `test` script, if it has hooks (the command fails without them).
+  - `hooks/hooks.json` (only `datalogix` has none) and a `tsconfig.json` that extends
+    `./.claude-plugin/types/tsconfig.json`;
+  - a `claude plugin test mods/<name>` added to the `test` script (the command fails for a mod without hooks).
 - `mods/status/hooks/register.ts` copies `FENCE` and the closing rule of `createCodeBlockTracker` from
   `mods/topics/hooks/parse.ts`, since each mod installs on its own: change both. `tests/mods.test.js` compares only
   the `FENCE` line.
@@ -181,12 +186,14 @@ node bin/cli.js --link                    # install from this clone: edits apply
   (`gh run rerun --failed`); it never commits, pushes or comments.
 - These skills end their previews and questions with a `## Pendências` list in the format `topics` parses
   (`mods/topics/hooks/parse.ts`), and `/datalogix:review` uses the same format for its reports when `topics` is active
-  (its `SKILL.md` section 7) and always for the dated branch question and the commit flow; keep them in sync.
+  (its `SKILL.md` section 7) and always for the outdated base and dated branch questions and the commit flow; keep them
+  in sync.
   `tests/skills.test.js` runs every item written in a code span in the skills' Markdown files through `parseActions`,
-  refuses one outside a span and requires each `SKILL.md` to have items and the `## Pendências` title. It also pins
-  what one skill relies on in another (the issue skill's step 2 and "Idioma" item; the commit skill's steps 1 and 2,
-  "Branch com data", `grupos:` and "Com grupos marcados") and checks that every step in review's type files has its
-  checklist and that every file review names exists.
+  refuses one outside a span or cut short by a backtick inside it and requires each `SKILL.md` to have items and the
+  `## Pendências` title. It also pins what one skill relies on in another (the issue skill's step 2 and "Idioma" item;
+  the commit skill's steps 1 and 2, "Branch com data", `grupos:` and "Com grupos marcados") and checks that every step
+  in review's type files has its checklist, that every file review names exists and that the bare names in `steps/`
+  are files of that folder.
 - `/datalogix:issue`, `/datalogix:pr` and `/datalogix:commit` take the language of issues, pull requests and commits
   from a `- Issues and pull requests: <language>` line in the target project's `CLAUDE.md` (pr and commit by
   following the "Idioma" item of the issue skill's step 2). Without it they detect the language from the default

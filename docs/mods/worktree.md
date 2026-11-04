@@ -30,7 +30,7 @@ install dependencies or copy local files: list files such as `.env` in a
 `.worktreeinclude` at the project root.
 
 This is an instruction Claude follows, not a block like a hook, so it may
-miss now and then. To turn it off, unselect the mod in the installer.
+miss now and then. To turn it off, unselect the mod with `--configure`.
 
-To get this mod on a machine that already has others, run the installer
-without `update`: it offers the mod, selected by default.
+To get this mod on a machine that already has others, run the installer:
+it offers the mod, selected by default.

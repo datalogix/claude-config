@@ -22,7 +22,9 @@ After creating a worktree, Claude warns if `.claude/worktrees/` is not
 in the project's `.gitignore`.
 
 A worktree starts from the remote's default branch (the `worktree.baseRef`
-setting changes that) on a `worktree-<name>` branch. The mod does not
+setting changes that) on a `worktree-<name>` branch, so Claude runs
+`git fetch origin` first; if that fails, it warns that the worktree may
+start from an old commit and goes on. The mod does not
 install dependencies or copy local files: list files such as `.env` in a
 `.worktreeinclude` at the project root.
 

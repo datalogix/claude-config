@@ -132,7 +132,8 @@ node bin/cli.js --link                    # install from this clone: edits apply
 - Never add `version` to `plugin.json` or to the marketplace entry. Without it, the commit SHA is the version, so every
   push reaches `update`.
 - `worktree` only adds an instruction to the system prompt (`prompt.compose`), so Claude asks before the first file
-  change of a task and calls `EnterWorktree`. Its tests check that the text is there, not that Claude follows it.
+  change of a task and calls `EnterWorktree`, after a `git fetch origin`, since a worktree starts from the remote's
+  default branch. Its tests check that the text is there, not that Claude follows it.
 - A new mod needs (`tests/mods.test.js` checks these, plus `name` equal to its folder and no `version`):
   - `"license": "MIT"` and `"author": { "name": "datalogix" }` in its `plugin.json`;
   - an entry in `.claude-plugin/marketplace.json`;

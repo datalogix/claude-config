@@ -32,4 +32,10 @@ describe('the worktree instruction', () => {
     const { sections } = await $.prompt.compose(input)
     expect(sections[0]?.text).toContain('Só se levar for a escolha, rode `git stash push -u`')
   })
+
+  test('fetches the remote before creating the worktree', async ($, on) => {
+    on('prompt.compose', () => ({ sections: [] }) as never)
+    const { sections } = await $.prompt.compose(input)
+    expect(sections[0]?.text).toContain('Antes do EnterWorktree, com remoto `origin`, rode `git fetch origin`')
+  })
 })

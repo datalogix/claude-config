@@ -4,6 +4,8 @@ const WORKTREE_INSTRUCTION = [
   'Worktrees: vale só para a conversa principal, não para subagentes, e só com alguém para responder.',
   'Em um repositório git, antes da primeira alteração de arquivos de uma tarefa, pergunte se deve criar um git worktree',
   'para ela; se a resposta for sim, use a ferramenta EnterWorktree com um nome curto da tarefa (ex.: fix-checkout).',
+  'Antes do EnterWorktree, com remoto `origin`, rode `git fetch origin`, pois o worktree parte da branch padrão do',
+  'remoto; se falhar, avise que ele pode partir de um commit antigo e siga.',
   'Não pergunte em tarefas só de leitura, nem se a sessão já estiver em um worktree',
   '(`git rev-parse --git-dir` diferente de `git rev-parse --git-common-dir`).',
   'Se a resposta for não, não pergunte de novo nesta sessão, salvo no caso de uma tarefa nova no meio de outra.',

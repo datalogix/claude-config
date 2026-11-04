@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register } from 'claude-code'
+import type { EngineInterface, Register, ResolveInput } from 'claude-code'
 
 /** Not persisted: every session starts with the tool rows hidden. */
 const areToolRowsVisibleAtom = atom({ plugin: 'steps', key: 'areToolRowsVisible' } as const, false)
@@ -14,6 +14,11 @@ const MODE_LABELS = {
 
 const shouldShow = async ($: EngineInterface, isAlwaysShown: boolean): Promise<boolean> =>
   isAlwaysShown || read($, areToolRowsVisibleAtom)
+
+const hidden = ($: EngineInterface, e: ResolveInput) => {
+  const { Box } = $.ui.resolve(e)
+  return <Box />
+}
 
 export const register: Register = (on) => {
   on('session.start', async ($, e, next) => {
@@ -36,23 +41,20 @@ export const register: Register = (on) => {
     const { isExpanded, isErrored, isInterrupted } = e.props
     if (await shouldShow($, Boolean(isExpanded) || isErrored || isInterrupted)) return next(e)
 
-    const { Box } = $.ui.resolve(e)
-    return <Box />
+    return hidden($, e)
   })
 
   on('ui.render', { component: 'ToolResult' }, async ($, e, next) => {
     if (await shouldShow($, Boolean(e.props.isExpanded) || e.props.isErrored)) return next(e)
 
-    const { Box } = $.ui.resolve(e)
-    return <Box />
+    return hidden($, e)
   })
 
   // Only the ctrl+b hint: a kind added by a newer Claude Code has no way back but /steps, so it stays.
   on('ui.render', { component: 'ToolProgress', props: { kind: 'background_hint' } }, async ($, e, next) => {
-    if (await shouldShow($, false)) return next(e)
+    if (await read($, areToolRowsVisibleAtom)) return next(e)
 
-    const { Box } = $.ui.resolve(e)
-    return <Box />
+    return hidden($, e)
   })
 
   // A group with other rows than calls (isCallsOnly false: recalled memory,
@@ -63,8 +65,7 @@ export const register: Register = (on) => {
     if (hasFailure && !e.props.isExpanded) return next({ ...e, props: { ...e.props, isExpanded: true } })
     if (await shouldShow($, e.props.isExpanded || e.props.isCallsOnly === false)) return next(e)
 
-    const { Box } = $.ui.resolve(e)
-    return <Box />
+    return hidden($, e)
   })
 
   on('ui.render', { component: 'Spinner' }, async ($, e, next) => {

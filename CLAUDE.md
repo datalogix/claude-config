@@ -19,7 +19,7 @@ npx vitest run tests/cli-update.test.js -t "renamed"  # installer tests whose na
 claude plugin test mods/topics            # one mod's tests (*.test.ts/tsx under the folder)
 npm run lint                              # eslint . && prettier --check .
 npm run format                            # prettier --write . && eslint . --fix
-node bin/cli.js install --link            # install from this clone: edits apply after /reload-plugins
+node bin/cli.js --link                    # install from this clone: edits apply after /reload-plugins
 ```
 
 `claude plugin validate` warns that mods have no `version`; that is intended (see below).
@@ -42,27 +42,33 @@ node bin/cli.js install --link            # install from this clone: edits apply
 
 ### Installer (`bin/`)
 
-- Two commands, `install [--link]` and `update`. Unknown commands or flags are errors. Any failed step ends with
+- One command (`run`), with `--link` and `--configure`; `install` and `update` are accepted as its name, with the same
+  result (`update` takes no flag). Nothing of this marketplace installed, or `--configure`: asks every mod and option
+  and uninstalls an unselected mod; without a terminal, installs every mod. Otherwise it updates what is installed
+  without asking and offers only the mods not installed yet, selected (`newMods`), and asks only their options; without
+  a terminal it offers nothing. A new option of an installed mod is not asked: an option answered with its default is
+  not stored, so nothing tells it from a new one, and asking would repeat on every run. Nothing records a refused mod
+  either, so it is offered again. Unknown commands or flags are errors. Any failed step ends with
   "Finished with errors" and exit code 1.
 - Failing to list the installed mods or the marketplaces (`runClaudeList`), or a reply that is not a JSON list of items
   with their `id` or `name`, is a failure that stops the mods part of the run, since an empty list would read as
   nothing installed. Failing to read a mod's options (`plugin configure --json`) is a failure that skips configuring
   that mod; a reply without an `inputs` object only warns and skips it too. Cancelling a prompt ends with the run's
   closing hint (`reloadHint`): `/clear`, and `/reload-plugins` when a mod already changed (`hasModChanges`).
-- `install` also updates the marketplace (only when it was already added) and the mods already installed
-  (`updateMarketplace`, `updateMod`), as `update` does, so either command leaves them current. It logs
-  `updated: <name>`, and a failed marketplace update still updates the mods. A failed update still asks for
-  the mod's options. A marketplace added from another source than the one asked for (GitHub with `--link`, or the
-  other way around) is only pointed out: neither it nor the mods are updated, and an installed mod with nothing to
-  configure logs `unchanged: <name>`, unless its options could not be read (`hasReadFailed`), which is already reported.
-  A marketplace with no readable source (no text in its source fields) still updates. A mod also loaded from a
-  skills folder (`<name>@skills-dir` in `plugin list`) is pointed out on `install`. `plugin list` also lists installs
+- Every run updates the marketplace (only when it was already added) and the mods already installed
+  (`updateMarketplace`, `updateMod`). It logs `updated: <name>`, and a failed marketplace update still updates the mods.
+  A failed update still asks for the mod's options with `--configure`. Without `--link`, the marketplace updates from
+  whatever source it has. With `--link`, one added from elsewhere is only pointed out: neither it nor the mods are
+  updated, and an installed mod with nothing to configure logs `unchanged: <name>`, unless its options could not be read
+  (`hasReadFailed`), which is already reported. A marketplace with no readable source (no text in its source fields)
+  still updates. A mod also loaded from a
+  skills folder (`<name>@skills-dir` in `plugin list`) is pointed out. `plugin list` also lists installs
   in other scopes, such as other projects': only the user scope of this marketplace's mods counts as installed
-  (`listInstalledModIds`), so neither command updates or uninstalls those, and `install` installs the mod in the user
+  (`listInstalledModIds`), so the installer neither updates nor uninstalls those, and installs the mod in the user
   scope. An install in the current project's scope (`projectPath`) is pointed out.
 - It no longer writes skills. Earlier versions copied them into `~/.claude/skills/<name>` with a `.claude-config`
   marker (or symlinked them with `--link`); `removeOldSkills` deletes those folders, and only those, once the
-  `datalogix` mod (`SKILLS_MOD`) is installed or unselected. `update` installs `datalogix` when such folders exist.
+  `datalogix` mod (`SKILLS_MOD`) is installed or unselected. A run with mods installed installs `datalogix` when such folders exist.
   Failing to read or remove one is reported with `reportFailure` and does not stop the run.
 - Mods go through the `claude` CLI, never by writing Claude Code's files directly (`warnOldOptions` only reads
   `settings.json`, from `$CLAUDE_CONFIG_DIR` when set, else `~/.claude`). The installer calls
@@ -73,13 +79,13 @@ node bin/cli.js install --link            # install from this clone: edits apply
 - Renamed mods (`RENAMED_MODS`): the new name is installed first and the old one is uninstalled with `--keep-data`
   only after that succeeds. Renamed options are not carried over: `plugin configure --json` returns only the keys
   the userConfig declares, so values stored under an old key never reach the installer. `warnOldOptions` reads
-  them from `pluginConfigs` in that `settings.json` and warns, on `install` and `update`, with their values.
-  On `update`, the new name (and `datalogix` for old skills) is installed only after the marketplace update
+  them from `pluginConfigs` in that `settings.json` and warns with their values.
+  Without `--configure`, the new name (and `datalogix` for old skills, `listReplacementMods`) is installed, unasked, only after the marketplace update
   succeeded, since an older marketplace may not list it yet.
-- The migration code (`RENAMED_MODS`, `removeOldSkills` and the old skills handling in `update`, `warnOldOptions`)
-  is temporary: remove it, with its tests and docs, once every team machine has run `update` once. Whether that
+- The migration code (`RENAMED_MODS`, `removeOldSkills` and the old skills handling in `run`, `warnOldOptions`)
+  is temporary: remove it, with its tests and docs, once every team machine has run the installer once. Whether that
   happened is the user's call; ask before removing it.
-- `install` stores only the options already configured (`configured` in `plugin configure --json`; a reply without
+- It stores only the options already configured (`configured` in `plugin configure --json`; a reply without
   `configured` counts as configured each option whose value differs from this checkout's default, `configuredKeys`)
   and answers that differ from the default (`valuesToStore`, `bin/options.js`), so a default nobody chose stays
   unstored and a later change of default reaches it. Without a usable default, that compares with what the question

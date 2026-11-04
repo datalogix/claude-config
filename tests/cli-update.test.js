@@ -85,7 +85,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     assert.ok(!claudeCalls().includes(`plugin update ${PLAIN_MOD}@claude-config --json`))
   })
 
-  test('updates a marketplace added from another source, unlike install', () => {
+  test('updates a marketplace added from another source', () => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD),
       'plugin marketplace list --json': `echo '[{"name":"claude-config","path":"${tmpDir}"}]'`,
@@ -196,6 +196,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
 
   test('keeps the old skills when the marketplace update fails', () => {
     fakeClaude({
+      'plugin list --json': installedMods(PLAIN_MOD),
       'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       'plugin marketplace update claude-config': 'echo offline >&2; exit 1',
     })
@@ -317,18 +318,16 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     }
   })
 
-  test('stops when the marketplace was never added', () => {
+  test('installs every mod when nothing is installed, as with no command', () => {
     fakeClaude()
     addOldSkill('review')
 
     const { status, output } = runCli(['update'])
 
     assert.equal(status, 0, output)
-    assert.match(output, /mods not installed: run the install command/)
-    assert.match(output, /kept: review in ~\/\.claude\/skills/)
-    assert.doesNotMatch(output, /reload-plugins/)
-    assert.ok(!claudeCalls().some((call) => call.startsWith('plugin marketplace update')))
-    assert.ok(fs.existsSync(skillPath('review')))
+    assert.ok(claudeCalls().includes('plugin marketplace add datalogix/claude-config'))
+    assert.ok(claudeCalls().includes('plugin install datalogix@claude-config'))
+    assert.ok(!fs.existsSync(skillPath('review')))
   })
 
   test('without the marketplace, removes the old skills when datalogix is installed', () => {
@@ -339,7 +338,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     const { status, output } = runCli(['update'])
 
     assert.equal(status, 0, output)
-    assert.match(output, /mods not installed/)
+    assert.ok(claudeCalls().includes('plugin marketplace add datalogix/claude-config'))
     assert.ok(!fs.existsSync(skillPath('review')))
     assert.ok(fs.existsSync(skillPath('foreign')))
   })

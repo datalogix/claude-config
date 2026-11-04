@@ -147,11 +147,11 @@ checks that every item the skills describe parses as one.
 
 Earlier versions copied these skills into `~/.claude/skills/` as
 `/review` and `/issue`, with a `.claude-config` marker (or linked them
-with `--link`). `install` and `update` install `datalogix` and only then
+with `--link`). the installer installs `datalogix` and only then
 remove those folders; folders the installer did not create are left
 alone. If `datalogix` could not be installed, they stay
 (`kept: ...`) and running the command again replaces them. With
-`install`, unselecting `datalogix` also removes them. If a folder
+`--configure`, unselecting `datalogix` also removes them. If a folder
 cannot be read or removed, the error is reported, the rest of the run
 goes on and it ends with "Finished with errors".
 

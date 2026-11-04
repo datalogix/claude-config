@@ -20,6 +20,7 @@ export const register: Register = (on) => {
     await $.command.register({
       name: 'steps',
       description: 'Mostra ou esconde as linhas de ferramentas na conversa',
+      immediate: true,
     })
 
     return next(e)
@@ -57,8 +58,10 @@ export const register: Register = (on) => {
   // A group with other rows than calls (isCallsOnly false: recalled memory,
   // hook timing) also stays, so they are not hidden with it.
   on('ui.render', { component: 'ToolGroup' }, async ($, e, next) => {
+    // The folded row is only a count, with no mark of the failure: unfolded, it shows the error and the calls around it.
     const hasFailure = e.props.calls.some((c) => c.isErrored || c.isInterrupted)
-    if (await shouldShow($, e.props.isExpanded || hasFailure || e.props.isCallsOnly === false)) return next(e)
+    if (hasFailure && !e.props.isExpanded) return next({ ...e, props: { ...e.props, isExpanded: true } })
+    if (await shouldShow($, e.props.isExpanded || e.props.isCallsOnly === false)) return next(e)
 
     const { Box } = $.ui.resolve(e)
     return <Box />

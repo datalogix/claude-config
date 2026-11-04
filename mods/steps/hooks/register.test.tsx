@@ -80,16 +80,18 @@ const runStepsCommand = ($: TestEngine) => $.command.run({ command: 'steps', arg
 const sessionStartInput = { cwd: '/', surface: 'terminal', isInteractive: true } as const
 
 test('registers /steps when the session starts', async ($, on) => {
-  const commands: { name: string; description?: string }[] = []
+  const commands: { name: string; description?: string; immediate?: boolean }[] = []
   on('command.register', (_$, e) => {
-    commands.push({ name: e.name, description: e.description })
+    commands.push({ name: e.name, description: e.description, immediate: e.immediate })
     return { value: { command: e.name } }
   })
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
 
   await $.session.start(sessionStartInput)
 
-  expect(commands).toEqual([{ name: 'steps', description: 'Mostra ou esconde as linhas de ferramentas na conversa' }])
+  expect(commands).toEqual([
+    { name: 'steps', description: 'Mostra ou esconde as linhas de ferramentas na conversa', immediate: true },
+  ])
 })
 
 test('lets the session start go on', async ($, on) => {
@@ -225,6 +227,20 @@ describe('tool groups', () => {
     const ui = await mount($, 'ToolGroup', group([call(), call({ isRunning: true })], { isActive: true }))
     expect(await isHidden(ui)).toBe(true)
   })
+
+  for (const [name, failed] of [
+    ['an error', { isErrored: true }],
+    ['an interruption', { isInterrupted: true }],
+  ] as const) {
+    test(`unfold with ${name} inside, so it shows`, async ($, on) => {
+      on('ui.render', { component: 'ToolGroup' }, async ($, e) => {
+        const { Text } = $.ui.resolve(e)
+        return <Text>{e.props.isExpanded ? 'unfolded' : 'folded'}</Text>
+      })
+      const ui = await mount($, 'ToolGroup', group([call(), call(failed)]))
+      expect(await ui.find({ type: 'Text', text: 'unfolded' })).toBeDefined()
+    })
+  }
 
   test('are hidden when the engine says the group holds only calls', async ($, on) => {
     drawOriginal(on, 'ToolGroup')

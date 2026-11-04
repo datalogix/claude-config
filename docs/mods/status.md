@@ -70,6 +70,9 @@ host may not open it); a local path or an ssh alias as the remote gets no
 link. The pull request links to its own page. A terminal without hyperlink
 support shows the address after the text.
 
+While Claude Code's own line next to the mode shows the same pull request,
+the `git:` line leaves it out.
+
 The pull request comes from `gh pr view`, which goes over the network:
 it is read when the branch changes, and when an answer ends at most every
 5 minutes, so one opened meanwhile can take that long to show. Without

@@ -241,6 +241,14 @@ export const gitSegments = (git: GitState, pr?: PullRequest, branchUrl?: string)
   return segments.flatMap((segment, i) => (i > 0 ? [' · ', segment] : [segment]))
 }
 
+/** The engine's own line shows the pull request of the branch once it knows of it: once on the screen is enough. */
+export const withoutPrInHint = (segments: GitSegment[], hint: string): GitSegment[] => {
+  const textOf = (segment: GitSegment) => (typeof segment === 'string' ? segment : segment.text)
+  const index = segments.findIndex((segment) => /^PR #\d+$/.test(textOf(segment)))
+  if (index < 1 || !new RegExp(`${textOf(segments[index]!)}(?!\\d)`).test(hint)) return segments
+  return segments.filter((_, i) => i !== index && i !== index - 1)
+}
+
 export const formatGit = (git: GitState, pr?: PullRequest): string =>
   `git: ${gitSegments(git, pr)
     .map((segment) => (typeof segment === 'string' ? segment : segment.text))
@@ -598,7 +606,7 @@ export const register: Register = (on, options) => {
           ...(segments
             ? [
                 ' ',
-                ...segments.map((segment) =>
+                ...withoutPrInHint(segments, e.props.hint).map((segment) =>
                   typeof segment === 'string' ? segment : h(Link, { href: segment.href }, segment.text),
                 ),
               ]

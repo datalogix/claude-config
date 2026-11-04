@@ -12,6 +12,7 @@ import {
   formatTimeLeft,
   formatWorkflows,
   gitSegments,
+  withoutPrInHint,
   parseGit,
   parsePr,
   planAlertLevels,
@@ -1873,6 +1874,24 @@ describe('gitSegments', () => {
 
   test('draws them as plain text otherwise', () => {
     expect(gitSegments(git, { number: 5 })).toEqual(['main', ' · ', 'PR #5', ' · ', '●1'])
+  })
+})
+
+describe('withoutPrInHint', () => {
+  const segments = ['main', ' · ', { text: 'PR #6', href: 'https://pr' }, ' · ', '●1']
+
+  test("leaves out the pull request the engine's line shows, with its separator", () => {
+    expect(withoutPrInHint(segments, '(shift+tab to cycle) · PR #6')).toEqual(['main', ' · ', '●1'])
+  })
+
+  test('keeps it when the line shows none, or another one', () => {
+    expect(withoutPrInHint(segments, '(shift+tab to cycle)')).toEqual(segments)
+    expect(withoutPrInHint(segments, '(shift+tab to cycle) · PR #61')).toEqual(segments)
+    expect(withoutPrInHint(segments, '(shift+tab to cycle) · PR #5')).toEqual(segments)
+  })
+
+  test('has nothing to leave out with no pull request', () => {
+    expect(withoutPrInHint(['main'], 'PR #6')).toEqual(['main'])
   })
 })
 

@@ -1455,6 +1455,29 @@ describe('the /topics pane', () => {
     expect((await pane.find({ key: 'topics-action-0' }))?.text).toBe('1. [ ] Rodar npm test')
   })
 
+  test('a streamed message does not push out an answer already sent', MANY_MESSAGES, async ($, on) => {
+    on('turn.start', (_$, e) => ({ turnId: e.turnId }))
+    on('turn.complete', () => ({ text: '' }))
+    const sent = collectSent(on)
+    await mountMessage($, WITH_ACTIONS, 'previous')
+    await $.turn.complete(turnCompleteInput({ answer: WITH_ACTIONS }))
+    const pane = await mountPane($)
+    await pane.press({ key: 'topics-actions-send' })
+    expect(sent).toHaveLength(1)
+
+    await $.turn.start(turnStartInput())
+    let partial = '## Pendências\n'
+    const streaming = await mountMessage($, partial, 'streaming')
+    for (let i = 0; i < 200; i++) {
+      partial += `- [ ] item ${i}\n`
+      await streaming.redraw({ text: partial, isFirstOfReply: true })
+    }
+    await $.turn.complete(turnCompleteInput({ answer: '' }))
+
+    expect(await pane.find({ key: 'topics-actions-send' })).toBeUndefined()
+    expect(await pane.find({ type: 'Text', text: '✓ pendências enviadas' })).toBeDefined()
+  })
+
   test('still shares with the message of an answer after 199 newer ones', MANY_MESSAGES, async ($, on) => {
     on('turn.complete', () => ({ text: '' }))
     const answer = WITH_ACTIONS

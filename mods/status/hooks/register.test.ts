@@ -1,7 +1,9 @@
+/* global h */
 import type { AgentInfo, On, SessionMeasureInput, SessionRateLimit, TurnCompleteInput } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
 
 import {
+  branchWebUrl,
   extractExcerpt,
   formatAgents,
   formatDuration,
@@ -9,8 +11,12 @@ import {
   formatPlan,
   formatTimeLeft,
   formatWorkflows,
+  gitSegments,
+  parseGit,
+  parsePr,
   planAlertLevels,
   projectName,
+  remoteWebUrl,
 } from './register'
 
 const turnComplete = (durationMs: number, overrides: Partial<TurnCompleteInput> = {}): TurnCompleteInput =>
@@ -33,10 +39,11 @@ const agent = (id: string, description: string, status: AgentInfo['status'] = 'r
 type SetupOptions = {
   cwd?: string
   notify?: () => never
+  surfaces?: string[]
 }
 
 /** The agent list reads `agents`, which tests change in place. */
-const setup = (on: On, { cwd = '/Users/dev/code/laude', notify }: SetupOptions = {}) => {
+const setup = (on: On, { cwd = '/Users/dev/code/laude', notify, surfaces = [] }: SetupOptions = {}) => {
   const toasts: string[] = []
   const toastTimeouts: (number | undefined)[] = []
   const notifications: string[] = []
@@ -49,6 +56,7 @@ const setup = (on: On, { cwd = '/Users/dev/code/laude', notify }: SetupOptions =
     return { value: undefined }
   })
   on('session.cwd', () => ({ value: cwd }) as never)
+  on('session.surfaces', () => ({ value: surfaces }) as never)
   on(
     'ui.notify',
     notify ??
@@ -107,13 +115,13 @@ test('shows the spinner with the elapsed time while working', { timeoutMs: 30_00
   const { lastStatus, clock } = setup(on)
 
   await $.turn.start({ text: 'oi', turnId: 't1' })
-  expect(lastStatus()).toBe('⠋ Claude está trabalhando… 0:00')
+  expect(lastStatus()).toBe('⠋ trabalhando… 0:00')
 
   await clock.advance(200)
-  expect(lastStatus()).toBe('⠙ Claude está trabalhando… 0:00')
+  expect(lastStatus()).toBe('⠙ trabalhando… 0:00')
 
   await clock.advance(62_000)
-  expect(lastStatus()).toMatch(/^. Claude está trabalhando… 1:02$/)
+  expect(lastStatus()).toMatch(/^. trabalhando… 1:02$/)
 })
 
 test(
@@ -235,7 +243,7 @@ test('shows running agents by name', async ($, on) => {
   await $.turn.start({ text: 'oi', turnId: 't1' })
   agents.push(agent('a1', 'Procurar arquivos'))
   await $.agent.spawn({ prompt: 'x', description: 'Procurar arquivos' } as never)
-  expect(lastStatus()).toBe('⠋ Claude está trabalhando… 0:00  │  🤖 agente: Procurar arquivos')
+  expect(lastStatus()).toBe('⠋ trabalhando… 0:00  │  🤖 agente: Procurar arquivos')
 
   agents.push(agent('a2', 'Rodar testes'), agent('a3', 'Ler docs', 'pending'), agent('a4', 'Velho', 'completed'))
   await clock.advance(1_000)
@@ -249,7 +257,7 @@ test('an agent waiting for approval still counts as active', async ($, on) => {
   agents.push(agent('a1', 'Planejar', 'waiting'))
   await $.agent.spawn({ prompt: 'x', description: 'Planejar' } as never)
 
-  expect(lastStatus()).toBe('⠋ Claude está trabalhando… 0:00  │  🤖 agente: Planejar')
+  expect(lastStatus()).toBe('⠋ trabalhando… 0:00  │  🤖 agente: Planejar')
 })
 
 test('the elapsed time rounds down to whole seconds', async ($, on) => {
@@ -258,7 +266,7 @@ test('the elapsed time rounds down to whole seconds', async ($, on) => {
   await $.turn.start({ text: 'oi', turnId: 't1' })
   await clock.advance(1_800)
 
-  expect(lastStatus()).toMatch(/^. Claude está trabalhando… 0:01$/)
+  expect(lastStatus()).toMatch(/^. trabalhando… 0:01$/)
 })
 
 test('an agent turn keeps the spinner it found', async ($, on) => {
@@ -315,7 +323,7 @@ test('an agent turn does not stop the spinner', async ($, on) => {
   await $.turn.complete(turnComplete(60_000, { agentId: 'sub1', turnId: 't2' }))
   await clock.advance(1_000)
 
-  expect(lastStatus()).toMatch(/^. Claude está trabalhando… 0:11$/)
+  expect(lastStatus()).toMatch(/^. trabalhando… 0:11$/)
   expect(toasts).toEqual([])
 })
 
@@ -609,7 +617,7 @@ test('an agent that starts again after ending shows up again', async ($, on) => 
   await $.turn.start({ text: '', turnId: 't2', agentId: 'a1' })
   // The list still shows it after the end.
   await $.turn.complete(turnComplete(5_000, { agentId: 'a1', turnId: 't2' }))
-  expect(lastStatus()).toBe('⠋ Claude está trabalhando… 0:00')
+  expect(lastStatus()).toBe('⠋ trabalhando… 0:00')
 
   await $.turn.start({ text: '', turnId: 't3', agentId: 'a1' })
   await clock.advance(200)
@@ -639,7 +647,7 @@ test('an agent that leaves the list after ending shows up if the list brings it 
   agents.push(agent('a1', 'Explorar'))
   await $.turn.start({ text: '', turnId: 't2', agentId: 'a1' })
   await $.turn.complete(turnComplete(5_000, { agentId: 'a1', turnId: 't2' }))
-  expect(lastStatus()).toBe('⠋ Claude está trabalhando… 0:00')
+  expect(lastStatus()).toBe('⠋ trabalhando… 0:00')
 
   // Another agent's start reads the list again.
   agents.length = 0
@@ -1069,7 +1077,7 @@ test('shows the plan usage and a toast once near the limit', async ($, on) => {
       { kind: 'seven_day', percentUsed: 12 },
     ]),
   )
-  expect(lastStatus()).toBe('📊 plano: 5h 34% (renova em 1h00) · semana 12%')
+  expect(lastStatus()).toBe('plano: 5h 34% (renova em 1h00) · semana 12%')
   expect(toasts).toEqual([])
 
   await $.session.measure(measure([{ kind: 'five_hour', percentUsed: 91.5, resetsAt: at(80 * 60_000) }]))
@@ -1083,9 +1091,9 @@ test('a usage just under a level shows below it, without its alert', async ($, o
   const { toasts, notifications, lastStatus } = setup(on)
 
   await $.session.measure(measure([{ kind: 'five_hour', percentUsed: 74.5 }]))
-  expect(lastStatus()).toBe('📊 plano: 5h 74%')
+  expect(lastStatus()).toBe('plano: 5h 74%')
   await $.session.measure(measure([{ kind: 'five_hour', percentUsed: 89.6 }]))
-  expect(lastStatus()).toBe('📊 plano: 5h 89%')
+  expect(lastStatus()).toBe('plano: 5h 89%')
   expect(toasts).toEqual(['⚠️ Você já usou 89% do plano (5h)'])
   await $.session.measure(measure([{ kind: 'five_hour', percentUsed: 99.5 }]))
   expect(lastStatus()).toBe('⚠️ plano: 5h 99%')
@@ -1108,10 +1116,10 @@ test('the time until reset counts down on its own', async ($, on) => {
   withUsage(on, [{ kind: 'five_hour', percentUsed: 20, resetsAt: new Date(clock.now() + 3_600_000).toISOString() }])
 
   await $.session.start(sessionStartInput)
-  expect(lastStatus()).toBe('📊 plano: 5h 20% (renova em 1h00)')
+  expect(lastStatus()).toBe('plano: 5h 20% (renova em 1h00)')
 
   await clock.advance(60_000)
-  expect(lastStatus()).toBe('📊 plano: 5h 20% (renova em 59min)')
+  expect(lastStatus()).toBe('plano: 5h 20% (renova em 59min)')
 })
 
 test('a session started again keeps a single refresh interval', async ($, on) => {
@@ -1156,10 +1164,10 @@ test('the next prompt clears the previous outcome and keeps the plan', async ($,
   await $.session.measure(measure([{ kind: 'five_hour', percentUsed: 10 }]))
   await $.turn.start({ text: 'oi', turnId: 't1' })
   await $.turn.complete(turnComplete(5_000))
-  expect(lastStatus()).toBe('✅ pronto em 5s  │  📊 plano: 5h 10%')
+  expect(lastStatus()).toBe('✅ pronto em 5s  │  plano: 5h 10%')
 
   await $.prompt.submit({ text: 'de novo' } as never)
-  expect(lastStatus()).toBe('📊 plano: 5h 10%')
+  expect(lastStatus()).toBe('plano: 5h 10%')
 })
 
 const sessionEndInput = (reason: string) => ({ reason, sessionId: 's1', resume: {} }) as never
@@ -1172,10 +1180,10 @@ for (const reason of ['clear', 'resume']) {
     await $.session.measure(measure([{ kind: 'five_hour', percentUsed: 10 }]))
     await $.turn.start({ text: 'oi', turnId: 't1' })
     await $.turn.complete(turnComplete(5_000))
-    expect(lastStatus()).toBe('✅ pronto em 5s  │  📊 plano: 5h 10%')
+    expect(lastStatus()).toBe('✅ pronto em 5s  │  plano: 5h 10%')
 
     await $.session.end(sessionEndInput(reason))
-    expect(lastStatus()).toBe('📊 plano: 5h 10%')
+    expect(lastStatus()).toBe('plano: 5h 10%')
   })
 
   test(`a session ended by ${reason} drops the workflows of the previous one`, async ($, on) => {
@@ -1278,7 +1286,7 @@ test('a prompt sent during a turn leaves the status alone', async ($, on) => {
   await $.prompt.submit({ text: 'e mais isto' } as never)
 
   expect(statuses.length).toBe(countBefore)
-  expect(lastStatus()).toBe('⠋ Claude está trabalhando… 0:00')
+  expect(lastStatus()).toBe('⠋ trabalhando… 0:00')
 })
 
 test('clears the status when there is nothing to show', async ($, on) => {
@@ -1368,7 +1376,7 @@ test(
     const { toasts, lastStatus } = setup(on)
 
     await $.session.measure(measure([{ kind: 'spend_limit', percentUsed: 79 }]))
-    expect(lastStatus()).toBe('📊 plano: gasto 79%')
+    expect(lastStatus()).toBe('plano: gasto 79%')
     await $.session.measure(measure([{ kind: 'spend_limit', percentUsed: 81 }]))
     expect(lastStatus()).toBe('⚠️ plano: gasto 81%')
 
@@ -1380,7 +1388,7 @@ test('a plan alert below 1 is treated as 1', { options: { planAlert: 0 } }, asyn
   const { lastStatus } = setup(on)
 
   await $.session.measure(measure([{ kind: 'five_hour', percentUsed: 0.4 }]))
-  expect(lastStatus()).toBe('📊 plano: 5h 0%')
+  expect(lastStatus()).toBe('plano: 5h 0%')
   await $.session.measure(measure([{ kind: 'five_hour', percentUsed: 1 }]))
   expect(lastStatus()).toBe('⚠️ plano: 5h 1%')
 })
@@ -1389,7 +1397,7 @@ test('a plan alert above 100 is treated as 100', { options: { planAlert: 150 } }
   const { lastStatus } = setup(on)
 
   await $.session.measure(measure([{ kind: 'five_hour', percentUsed: 99 }]))
-  expect(lastStatus()).toBe('📊 plano: 5h 99%')
+  expect(lastStatus()).toBe('plano: 5h 99%')
   await $.session.measure(measure([{ kind: 'five_hour', percentUsed: 100 }]))
   expect(lastStatus()).toBe('⚠️ plano: 5h 100%')
 })
@@ -1398,7 +1406,7 @@ test('an empty plan alert takes the default', { options: { planAlert: '' } }, as
   const { lastStatus } = setup(on)
 
   await $.session.measure(measure([{ kind: 'five_hour', percentUsed: 89 }]))
-  expect(lastStatus()).toBe('📊 plano: 5h 89%')
+  expect(lastStatus()).toBe('plano: 5h 89%')
   await $.session.measure(measure([{ kind: 'five_hour', percentUsed: 90 }]))
   expect(lastStatus()).toBe('⚠️ plano: 5h 90%')
 })
@@ -1468,7 +1476,7 @@ test('sends a notice when the plan resets after the limit', async ($, on) => {
   await clock.advance(60_000)
   expect(notifications.at(-1)).toBe('✅ Plano liberado de novo (5h)')
   expect(toastTimeouts).toEqual([10000, 10000])
-  expect(lastStatus()).toBe('📊 plano: 5h 3% (renova em 4h58)')
+  expect(lastStatus()).toBe('plano: 5h 3% (renova em 4h58)')
 
   await clock.advance(60_000)
   expect(notifications).toHaveLength(2)
@@ -1761,7 +1769,7 @@ test('a plan with no windows shows nothing', () => {
 })
 
 test('a plan window of an unknown kind shows the kind', () => {
-  expect(formatPlan([{ kind: 'opus', percentUsed: 10 } as SessionRateLimit], 0, 90)).toBe('📊 plano: opus 10%')
+  expect(formatPlan([{ kind: 'opus', percentUsed: 10 } as SessionRateLimit], 0, 90)).toBe('plano: opus 10%')
 })
 
 test('the project is the last folder of the path', () => {
@@ -1777,9 +1785,12 @@ const gitStatus = (head: string, { ab = '', files = [] as string[] } = {}): stri
     .filter((line, i, lines) => line || i === lines.length - 1)
     .join('\n')
 
+const formatPorcelain = (porcelain: string, number?: number) =>
+  formatGit(parseGit(porcelain)!, number === undefined ? undefined : { number })
+
 describe('formatGit', () => {
   test('shows only the branch on a clean tree', () => {
-    expect(formatGit(gitStatus('main', { ab: '# branch.ab +0 -0' }))).toBe('🌿 main')
+    expect(formatPorcelain(gitStatus('main', { ab: '# branch.ab +0 -0' }))).toBe('git: main')
   })
 
   test('counts every kind of changed file', () => {
@@ -1789,85 +1800,178 @@ describe('formatGit', () => {
       'u UU N... 100644 100644 100644 100644 a b c conflict.js',
       '? notes.md',
     ]
-    expect(formatGit(gitStatus('main', { files }))).toBe('🌿 main ●4')
+    expect(formatPorcelain(gitStatus('main', { files }))).toBe('git: main · ●4')
   })
 
   test('shows the commits ahead of and behind the upstream', () => {
-    expect(formatGit(gitStatus('main', { ab: '# branch.ab +1 -2' }))).toBe('🌿 main ↑1 ↓2')
-    expect(formatGit(gitStatus('main', { ab: '# branch.ab +1 -0' }))).toBe('🌿 main ↑1')
-    expect(formatGit(gitStatus('main', { ab: '# branch.ab +0 -2' }))).toBe('🌿 main ↓2')
+    expect(formatPorcelain(gitStatus('main', { ab: '# branch.ab +1 -2' }))).toBe('git: main · ↑1 ↓2')
+    expect(formatPorcelain(gitStatus('main', { ab: '# branch.ab +1 -0' }))).toBe('git: main · ↑1')
+    expect(formatPorcelain(gitStatus('main', { ab: '# branch.ab +0 -2' }))).toBe('git: main · ↓2')
+  })
+
+  test('shows the pull request between the branch and the counts', () => {
+    expect(formatPorcelain(gitStatus('main', { ab: '# branch.ab +1 -0' }), 5)).toBe('git: main · PR #5 · ↑1')
   })
 
   test('shows the short commit when detached', () => {
-    expect(formatGit(gitStatus('(detached)'))).toBe('🌿 216ceb7')
+    expect(formatPorcelain(gitStatus('(detached)'))).toBe('git: 216ceb7')
+    expect(parseGit(gitStatus('(detached)'))!.branch).toBeUndefined()
   })
 
   test('shortens a long branch name', () => {
-    expect(formatGit(gitStatus('feature/a-very-long-branch-name-that-goes-on'))).toBe(
-      '🌿 feature/a-very-long-branch-na…',
+    expect(formatPorcelain(gitStatus('feature/a-very-long-branch-name-that-goes-on'))).toBe(
+      'git: feature/a-very-long-branch-na…',
     )
   })
 
   test('reads nothing from an output with no branch', () => {
-    expect(formatGit('')).toBeUndefined()
+    expect(parseGit('')).toBeUndefined()
+  })
+})
+
+describe('remoteWebUrl', () => {
+  test('reads the forms a remote comes in', () => {
+    for (const remote of [
+      'git@github.com:datalogix/claude-config.git',
+      'github.com:datalogix/claude-config',
+      'https://github.com/datalogix/claude-config.git',
+      'https://github.com/datalogix/claude-config/',
+      'ssh://git@github.com:22/datalogix/claude-config.git',
+    ])
+      expect(remoteWebUrl(remote)).toBe('https://github.com/datalogix/claude-config')
+  })
+
+  test('leaves out a token in the URL', () => {
+    expect(remoteWebUrl('https://x-access-token:secret@github.com/o/r.git')).toBe('https://github.com/o/r')
+  })
+
+  test('has no address for a local path or an ssh alias', () => {
+    expect(remoteWebUrl('/srv/git/r.git')).toBeUndefined()
+    expect(remoteWebUrl('../r.git')).toBeUndefined()
+    expect(remoteWebUrl('github-work:o/r.git')).toBeUndefined()
+  })
+})
+
+describe('branchWebUrl', () => {
+  test('drops the remote from the upstream and keeps the slashes of the branch', () => {
+    expect(branchWebUrl('https://github.com/o/r', 'origin/feat/a#b')).toBe('https://github.com/o/r/tree/feat/a%23b')
+  })
+})
+
+describe('gitSegments', () => {
+  const git = { head: 'main', branch: 'main', counts: '●1' }
+
+  test('links the branch and the pull request when they have an address', () => {
+    expect(gitSegments(git, { number: 5, url: 'https://pr' }, 'https://branch')).toEqual([
+      { text: 'main', href: 'https://branch' },
+      ' · ',
+      { text: 'PR #5', href: 'https://pr' },
+      ' · ',
+      '●1',
+    ])
+  })
+
+  test('draws them as plain text otherwise', () => {
+    expect(gitSegments(git, { number: 5 })).toEqual(['main', ' · ', 'PR #5', ' · ', '●1'])
+  })
+})
+
+describe('parseGit upstream', () => {
+  const porcelain = (lines: string[]) => ['# branch.oid a', '# branch.head main', ...lines].join('\n')
+
+  test('keeps an upstream still on the remote', () => {
+    const output = porcelain(['# branch.upstream origin/main', '# branch.ab +0 -0'])
+    expect(parseGit(output)?.upstream).toBe('origin/main')
+  })
+
+  test('drops one gone from the remote, which git reports with no counts', () => {
+    expect(parseGit(porcelain(['# branch.upstream origin/main']))?.upstream).toBeUndefined()
+  })
+
+  test('has none on a branch not pushed', () => {
+    expect(parseGit(porcelain([]))?.upstream).toBeUndefined()
+  })
+})
+
+describe('parsePr', () => {
+  test('reads an open pull request', () => {
+    expect(parsePr('{"number":5,"state":"OPEN","url":"https://github.com/o/r/pull/5"}')).toEqual({
+      number: 5,
+      url: 'https://github.com/o/r/pull/5',
+    })
+  })
+
+  test('leaves out a closed or merged one', () => {
+    expect(parsePr('{"number":5,"state":"CLOSED"}')).toBeUndefined()
+    expect(parsePr('{"number":5,"state":"MERGED"}')).toBeUndefined()
   })
 })
 
 describe('the git state in the status line', () => {
-  const withGit = (on: On, reply: () => unknown) => {
-    on('session.start', (_$, e) => ({ cwd: e.cwd }))
-    on('session.usage', () => ({ value: { rateLimits: [] } }) as never)
-    on('process.run', (() => ({ value: reply() })) as never)
-  }
-  const gitReply = (stdout: string, exitCode = 0) => ({ exitCode, stdout, stderr: '' })
+  const GIT_STATUS = ['git', '--no-optional-locks', 'status', '--porcelain=v2', '--branch']
+  const GH_PR_VIEW = ['gh', 'pr', 'view', '--json', 'number,state,url']
+  const reply = (stdout: string, exitCode = 0) => ({ exitCode, stdout, stderr: '' })
+  const noPr = reply('', 1)
 
-  test('shows it from the session start, before the plan', async ($, on) => {
-    const { lastStatus } = setup(on)
+  type Replies = { git: () => unknown; gh?: () => unknown }
+
+  /** Each call is kept in `calls`, by its executable. */
+  const withProcess = (on: On, replies: Replies, rateLimits: SessionRateLimit[] = []) => {
+    const calls: string[][] = []
     on('session.start', (_$, e) => ({ cwd: e.cwd }))
-    on(
-      'session.usage',
-      () => ({ value: { rateLimits: [{ kind: 'five_hour', percentUsed: 10 } as SessionRateLimit] } }) as never,
-    )
-    on('process.run', (() => ({ value: gitReply(gitStatus('main')) })) as never)
+    on('session.usage', () => ({ value: { rateLimits } }) as never)
+    on('process.run', (async (_$: unknown, e: { argv: string[] }) => {
+      calls.push(e.argv)
+      const answer = e.argv[0] === 'git' ? replies.git : (replies.gh ?? (() => noPr))
+      return { value: await answer() }
+    }) as never)
+    return calls
+  }
+
+  test('shows it after the plan', async ($, on) => {
+    const { lastStatus } = setup(on)
+    withProcess(on, { git: () => reply(gitStatus('main')) }, [
+      { kind: 'five_hour', percentUsed: 10 } as SessionRateLimit,
+    ])
 
     await $.session.start(sessionStartInput)
 
-    expect(lastStatus()).toBe('🌿 main  │  📊 plano: 5h 10%')
+    expect(lastStatus()).toBe('plano: 5h 10%  │  git: main')
   })
 
   test('reads it again when an answer ends', async ($, on) => {
     const { lastStatus } = setup(on)
     let stdout = gitStatus('main')
-    withGit(on, () => gitReply(stdout))
+    withProcess(on, { git: () => reply(stdout) })
     await $.session.start(sessionStartInput)
 
     await $.turn.start({ text: 'oi', turnId: 't1' })
     stdout = gitStatus('main', { files: ['? notes.md'] })
     await $.turn.complete(turnComplete(1_000))
 
-    expect(lastStatus()).toBe('✅ pronto em 1s  │  🌿 main ●1')
+    expect(lastStatus()).toBe('✅ pronto em 1s  │  git: main · ●1')
   })
 
   test('reads it again every minute', async ($, on) => {
     const { lastStatus, clock } = setup(on)
     let stdout = gitStatus('main')
-    withGit(on, () => gitReply(stdout))
+    withProcess(on, { git: () => reply(stdout) })
     await $.session.start(sessionStartInput)
 
     stdout = gitStatus('other')
     await clock.advance(60_000)
 
-    expect(lastStatus()).toBe('🌿 other')
+    expect(lastStatus()).toBe('git: other')
   })
 
   test('leaves the status line outside a repository', async ($, on) => {
     const { lastStatus, clock } = setup(on)
-    let reply = gitReply(gitStatus('main'))
-    withGit(on, () => reply)
+    let gitReply = reply(gitStatus('main'))
+    withProcess(on, { git: () => gitReply })
     await $.session.start(sessionStartInput)
-    expect(lastStatus()).toBe('🌿 main')
+    expect(lastStatus()).toBe('git: main')
 
-    reply = gitReply('', 128)
+    gitReply = reply('', 128)
     await clock.advance(60_000)
 
     expect(lastStatus()).toBeUndefined()
@@ -1875,8 +1979,10 @@ describe('the git state in the status line', () => {
 
   test('goes without it when git cannot start', async ($, on) => {
     const { lastStatus } = setup(on)
-    withGit(on, () => {
-      throw new Error('git not found')
+    withProcess(on, {
+      git: () => {
+        throw new Error('git not found')
+      },
     })
 
     await $.session.start(sessionStartInput)
@@ -1886,8 +1992,6 @@ describe('the git state in the status line', () => {
 
   test('a slow read does not overwrite a newer one', async ($, on) => {
     const { lastStatus } = setup(on)
-    on('session.start', (_$, e) => ({ cwd: e.cwd }))
-    on('session.usage', () => ({ value: { rateLimits: [] } }) as never)
     let releaseSlow = () => {}
     const slow = new Promise<void>((resolve) => (releaseSlow = resolve))
     let markSlowStarted = () => {}
@@ -1896,11 +2000,11 @@ describe('the git state in the status line', () => {
       async () => {
         markSlowStarted()
         await slow
-        return gitReply(gitStatus('old'))
+        return reply(gitStatus('old'))
       },
-      async () => gitReply(gitStatus('new')),
+      async () => reply(gitStatus('new')),
     ]
-    on('process.run', (async () => ({ value: await replies.shift()!() })) as never)
+    withProcess(on, { git: () => replies.shift()!() })
 
     const first = $.session.start(sessionStartInput)
     await slowStarted
@@ -1908,21 +2012,297 @@ describe('the git state in the status line', () => {
     releaseSlow()
     await first
 
-    expect(lastStatus()).toBe('🌿 new')
+    expect(lastStatus()).toBe('git: new')
   })
 
   test('asks git for the status without optional locks', async ($, on) => {
     setup(on)
-    on('session.start', (_$, e) => ({ cwd: e.cwd }))
-    on('session.usage', () => ({ value: { rateLimits: [] } }) as never)
-    const calls: unknown[] = []
-    on('process.run', ((_$: unknown, e: { argv: string[] }) => {
-      calls.push(e.argv)
-      return { value: gitReply(gitStatus('main')) }
-    }) as never)
+    const calls = withProcess(on, { git: () => reply(gitStatus('main')) })
 
     await $.session.start(sessionStartInput)
 
-    expect(calls).toEqual([['git', '--no-optional-locks', 'status', '--porcelain=v2', '--branch']])
+    expect(calls).toEqual([GIT_STATUS])
+  })
+
+  describe('the pull request', () => {
+    const openPr = (number: number) => reply(JSON.stringify({ number, state: 'OPEN', url: `https://pr/${number}` }))
+    const prCalls = (calls: string[][]) => calls.filter((argv) => argv[0] === 'gh')
+
+    test('shows it next to the branch without holding the session start', async ($, on) => {
+      const { lastStatus, clock } = setup(on)
+      const calls = withProcess(on, { git: () => reply(gitStatus('main')), gh: () => openPr(5) })
+
+      await $.session.start(sessionStartInput)
+      expect(lastStatus()).toBe('git: main')
+      await clock.advance(0)
+
+      expect(lastStatus()).toBe('git: main · PR #5')
+      expect(prCalls(calls)).toEqual([GH_PR_VIEW])
+    })
+
+    test('does not read it again on each minute', async ($, on) => {
+      const { clock } = setup(on)
+      const calls = withProcess(on, { git: () => reply(gitStatus('main')), gh: () => openPr(5) })
+      await $.session.start(sessionStartInput)
+
+      await clock.advance(11 * 60_000)
+
+      expect(prCalls(calls)).toHaveLength(1)
+    })
+
+    test('reads it again when an answer ends, at most every 5 minutes', async ($, on) => {
+      const { lastStatus, clock } = setup(on)
+      let number = 5
+      const calls = withProcess(on, { git: () => reply(gitStatus('main')), gh: () => openPr(number) })
+      await $.session.start(sessionStartInput)
+      await clock.advance(0)
+
+      number = 6
+      await $.turn.start({ text: 'oi', turnId: 't1' })
+      await $.turn.complete(turnComplete(1_000))
+      await clock.advance(0)
+      expect(prCalls(calls)).toHaveLength(1)
+
+      await clock.advance(5 * 60_000)
+      await $.turn.start({ text: 'oi', turnId: 't2' })
+      await $.turn.complete(turnComplete(1_000, { turnId: 't2' }))
+      await clock.advance(0)
+
+      expect(prCalls(calls)).toHaveLength(2)
+      expect(lastStatus()).toBe('✅ pronto em 1s  │  git: main · PR #6')
+    })
+
+    test('a new branch drops it at once and reads it again', async ($, on) => {
+      const { lastStatus, statuses, clock } = setup(on)
+      let branch = 'main'
+      const calls = withProcess(on, {
+        git: () => reply(gitStatus(branch)),
+        gh: () => (branch === 'main' ? openPr(5) : noPr),
+      })
+      await $.session.start(sessionStartInput)
+      await clock.advance(0)
+      expect(lastStatus()).toBe('git: main · PR #5')
+
+      branch = 'other'
+      await clock.advance(60_000)
+
+      expect(statuses).toContain('git: other')
+      expect(lastStatus()).toBe('git: other')
+      expect(prCalls(calls)).toHaveLength(2)
+    })
+
+    test('a read for a branch left meanwhile is dropped', async ($, on) => {
+      const { lastStatus, clock } = setup(on)
+      let branch = 'main'
+      let releaseSlow = () => {}
+      const slow = new Promise<void>((resolve) => (releaseSlow = resolve))
+      withProcess(on, {
+        git: () => reply(gitStatus(branch)),
+        gh: async () => {
+          if (branch === 'other') return noPr
+          await slow
+          return openPr(5)
+        },
+      })
+      await $.session.start(sessionStartInput)
+      await clock.advance(0)
+
+      branch = 'other'
+      await clock.advance(60_000)
+      releaseSlow()
+      await clock.advance(0)
+
+      expect(lastStatus()).toBe('git: other')
+    })
+
+    test('keeps it when gh fails and goes without it when gh cannot start', async ($, on) => {
+      const { lastStatus, clock } = setup(on)
+      let gh: () => unknown = () => openPr(5)
+      withProcess(on, { git: () => reply(gitStatus('main')), gh: () => gh() })
+      await $.session.start(sessionStartInput)
+      await clock.advance(0)
+
+      gh = () => {
+        throw new Error('gh not found')
+      }
+      await clock.advance(5 * 60_000)
+      await $.turn.start({ text: 'oi', turnId: 't1' })
+      await $.turn.complete(turnComplete(1_000))
+      await clock.advance(0)
+
+      expect(lastStatus()).toBe('✅ pronto em 1s  │  git: main · PR #5')
+    })
+
+    test('a detached head does not ask for it', async ($, on) => {
+      const { clock } = setup(on)
+      const calls = withProcess(on, { git: () => reply(gitStatus('(detached)')) })
+
+      await $.session.start(sessionStartInput)
+      await clock.advance(0)
+
+      expect(prCalls(calls)).toEqual([])
+    })
+  })
+})
+
+describe('the lines under the prompt', () => {
+  type Ui = {
+    findAll: (query: {
+      type: string
+    }) => Promise<{ key?: string; text?: string; props?: { color?: string; weight?: string } }[]>
+    unmount: () => Promise<void>
+  }
+  const mountHint = ($: unknown, surface: string) =>
+    ($ as { ui: { mount: (args: unknown) => Promise<Ui> } }).ui.mount({
+      plugin: 'status',
+      component: 'PromptHint',
+      requestId: 'hint',
+      surface,
+      props: { isDraft: false, isWorking: false, hint: 'auto mode on' },
+    })
+
+  /** The engine's own line, which the test stands for. */
+  const withLines = (
+    on: On,
+    percentUsed = 10,
+    { status = gitStatus('main'), gh = { exitCode: 1, stdout: '', stderr: '' } } = {},
+  ) => {
+    on('session.start', (_$, e) => ({ cwd: e.cwd }))
+    on(
+      'session.usage',
+      () => ({ value: { rateLimits: [{ kind: 'five_hour', percentUsed } as SessionRateLimit] } }) as never,
+    )
+    on('process.run', (async (_$: unknown, e: { argv: string[] }) => ({
+      value:
+        e.argv[0] !== 'git'
+          ? gh
+          : e.argv[1] === 'remote'
+            ? { exitCode: 0, stdout: 'git@github.com:o/r.git\n', stderr: '' }
+            : { exitCode: 0, stdout: status, stderr: '' },
+    })) as never)
+    on('ui.render', ((engine: { ui: { resolve: (e: unknown) => { Text: never } } }, e: unknown) => {
+      const { Text } = engine.ui.resolve(e)
+      return h(Text, { key: 'hint' }, 'auto mode on')
+    }) as never)
+  }
+  const fullLines = async (ui: Ui) =>
+    (await ui.findAll({ type: 'Text' })).filter((line) => line.props?.weight !== 'semibold')
+  const texts = async (ui: Ui) => (await fullLines(ui)).map((line) => line.text)
+
+  for (const surface of ['terminal', 'desktop']) {
+    test(`draws each part on its own line next to the engine's, in the ${surface}`, async ($, on) => {
+      const { statuses } = setup(on, { surfaces: [surface] })
+      withLines(on)
+      await $.session.start(sessionStartInput)
+      await $.turn.start({ text: 'oi', turnId: 't1' })
+      await $.turn.complete(turnComplete(1_000))
+
+      const ui = await mountHint($, surface)
+      expect(await texts(ui)).toEqual(['status: ✅ pronto em 1s', 'plano: 5h 10%', 'git: main', 'auto mode on'])
+      expect(statuses.at(-1)).toBeUndefined()
+      await ui.unmount()
+    })
+  }
+
+  test('says it is waiting before anything happens, and leaves out the other lines with nothing to show', async ($, on) => {
+    setup(on, { surfaces: ['terminal'] })
+    withLines(on)
+    await $.session.start(sessionStartInput)
+
+    const ui = await mountHint($, 'terminal')
+    expect(await texts(ui)).toEqual(['status: 💤 aguardando', 'plano: 5h 10%', 'git: main', 'auto mode on'])
+    expect((await fullLines(ui))[0]?.props?.color).toBe('subtle')
+    await ui.unmount()
+  })
+
+  test('draws the label in bold, up to the first colon', async ($, on) => {
+    setup(on, { surfaces: ['terminal'] })
+    withLines(on)
+    await $.session.start(sessionStartInput)
+
+    const ui = await mountHint($, 'terminal')
+    const labels = (await ui.findAll({ type: 'Text' })).filter((line) => line.props?.weight === 'semibold')
+    expect(labels.map((label) => label.text)).toEqual(['status:', 'plano:', 'git:'])
+    await ui.unmount()
+  })
+
+  test('links the branch on the remote and the pull request', async ($, on) => {
+    const { clock } = setup(on, { surfaces: ['terminal'] })
+    withLines(on, 10, {
+      status: [
+        '# branch.oid a',
+        '# branch.head feat/x',
+        '# branch.upstream origin/feat/x',
+        '# branch.ab +0 -0',
+        '',
+      ].join('\n'),
+      gh: { exitCode: 0, stdout: '{"number":5,"state":"OPEN","url":"https://github.com/o/r/pull/5"}', stderr: '' },
+    })
+    await $.session.start(sessionStartInput)
+    await clock.advance(0)
+
+    const ui = await mountHint($, 'terminal')
+    const links = await (
+      ui as unknown as { findAll: (q: { type: string }) => Promise<{ props?: { href?: string } }[]> }
+    ).findAll({ type: 'Link' })
+    expect(links.map((link) => link.props?.href)).toEqual([
+      'https://github.com/o/r/tree/feat/x',
+      'https://github.com/o/r/pull/5',
+    ])
+    await ui.unmount()
+  })
+
+  test('a branch not pushed has no link', async ($, on) => {
+    setup(on, { surfaces: ['terminal'] })
+    withLines(on)
+    await $.session.start(sessionStartInput)
+
+    const ui = await mountHint($, 'terminal')
+    const links = await (ui as unknown as { findAll: (q: { type: string }) => Promise<unknown[]> }).findAll({
+      type: 'Link',
+    })
+    expect(links).toEqual([])
+    await ui.unmount()
+  })
+
+  test('colors each line by what it says', async ($, on) => {
+    setup(on, { surfaces: ['terminal'] })
+    withLines(on)
+    await $.session.start(sessionStartInput)
+    await $.turn.start({ text: 'oi', turnId: 't1' })
+
+    const colors = async () => {
+      const ui = await mountHint($, 'terminal')
+      const result = (await fullLines(ui)).map((line) => line.props?.color)
+      await ui.unmount()
+      return result
+    }
+    expect(await colors()).toEqual(['claude', 'suggestion', 'merged', undefined])
+
+    await $.turn.complete(turnComplete(1_000))
+    expect((await colors())[0]).toBe('success')
+
+    await $.turn.start({ text: 'oi', turnId: 't2' })
+    await $.turn.complete(turnComplete(1_000, { turnId: 't2', reason: 'error' }))
+    expect((await colors())[0]).toBe('error')
+  })
+
+  test('the plan turns yellow from the alert on', async ($, on) => {
+    setup(on, { surfaces: ['terminal'] })
+    withLines(on, 95)
+    await $.session.start(sessionStartInput)
+
+    const ui = await mountHint($, 'terminal')
+    expect((await fullLines(ui))[1]?.props?.color).toBe('warning')
+    await ui.unmount()
+  })
+
+  test('falls back to one status line where the lines are not drawn', async ($, on) => {
+    const { lastStatus } = setup(on, { surfaces: ['vscode'] })
+    withLines(on)
+
+    await $.session.start(sessionStartInput)
+
+    expect(lastStatus()).toBe('plano: 5h 10%  │  git: main')
   })
 })

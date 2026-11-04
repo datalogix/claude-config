@@ -1,4 +1,17 @@
-import type { AgentInfo, EngineInterface, Register, SessionRateLimit, TurnCompleteReason } from 'claude-code'
+/* global h */
+import { atom, read, update } from 'claude-code'
+import type {
+  AgentInfo,
+  EngineInterface,
+  Register,
+  RenderElement,
+  SessionRateLimit,
+  TurnCompleteReason,
+} from 'claude-code'
+
+import type { StatusLine } from '../types'
+
+const statusLines = atom({ plugin: 'status', key: 'lines' } as const, [])
 
 const FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 const FRAME_MS = 200
@@ -9,6 +22,9 @@ const FRAME_MS = 200
 const REFRESH_MS = 60_000
 const FRAMES_PER_AGENT_LIST = 5
 const GIT_TIMEOUT_MS = 5_000
+const PR_TIMEOUT_MS = 10_000
+/** `gh` goes over the network, so an answer ending reads the pull request at most this often. */
+const PR_MIN_INTERVAL_MS = 5 * 60_000
 
 const ACTIVE_STATUSES = new Set<AgentInfo['status']>(['pending', 'running', 'waiting'])
 
@@ -52,7 +68,7 @@ const truncate = (text: string, max: number): string => {
 
 const NAME_MAX = 30
 
-/** Short, so the plan is not pushed out of the status line; notices use the full name. */
+/** Short, so the status line does not wrap; notices use the full name. */
 const shortName = (name: string): string => truncate(name, NAME_MAX)
 
 const agentName = (a: AgentInfo): string => a.description || a.name || a.type
@@ -129,7 +145,7 @@ export const formatWorkflows = (names: string[]): string | undefined => {
   return `🔀 ${names.length} workflows`
 }
 
-/** One name only, so the plan is not pushed out of the status line. */
+/** One name only, so the status line does not wrap. */
 export const formatAgents = (agents: AgentInfo[], endedCount = 0, failedCount = 0): string | undefined => {
   if (agents.length === 0) return undefined
   const total = endedCount + agents.length
@@ -157,14 +173,25 @@ export const formatPlan = (windows: SessionRateLimit[], now: number, planAlert: 
     if (!(resetsIn > 0)) return `${name} ${pct}`
     return `${name} ${pct} (renova em ${formatTimeLeft(resetsIn)})`
   })
-  const icon = current.some((window) => window.percentUsed >= planAlert) ? '⚠️' : '📊'
-  return `${icon} plano: ${parts.join(' · ')}`
+  const alert = current.some((window) => window.percentUsed >= planAlert) ? '⚠️ ' : ''
+  return `${alert}plano: ${parts.join(' · ')}`
 }
 
+type GitState = {
+  head: string // the branch, or the short commit when detached
+  branch?: string
+  upstream?: string // tracked and still on the remote
+  counts: string
+}
+
+type PullRequest = { number: number; url?: string }
+
 /** @param porcelain the output of `git status --porcelain=v2 --branch` */
-export const formatGit = (porcelain: string): string | undefined => {
+export const parseGit = (porcelain: string): GitState | undefined => {
   let head: string | undefined
   let oid = ''
+  let upstream: string | undefined
+  let hasUpstreamCounts = false
   let ahead = 0
   let behind = 0
   let changed = 0
@@ -173,19 +200,57 @@ export const formatGit = (porcelain: string): string | undefined => {
     if (ab) {
       ahead = Number(ab[1])
       behind = Number(ab[2])
-    } else if (line.startsWith('# branch.head ')) head = line.slice('# branch.head '.length)
+      hasUpstreamCounts = true
+    } else if (line.startsWith('# branch.upstream ')) upstream = line.slice('# branch.upstream '.length)
+    else if (line.startsWith('# branch.head ')) head = line.slice('# branch.head '.length)
     else if (line.startsWith('# branch.oid ')) oid = line.slice('# branch.oid '.length)
     else if (line && !line.startsWith('#')) changed++
   }
   if (head === undefined) return undefined
-  return [
-    `🌿 ${shortName(head === '(detached)' ? oid.slice(0, 7) : head)}`,
-    changed > 0 && `●${changed}`,
-    ahead > 0 && `↑${ahead}`,
-    behind > 0 && `↓${behind}`,
-  ]
+  const counts = [changed > 0 && `●${changed}`, ahead > 0 && `↑${ahead}`, behind > 0 && `↓${behind}`]
     .filter(Boolean)
     .join(' ')
+  if (head === '(detached)') return { head: oid.slice(0, 7), counts }
+  // With no counts, the upstream is gone from the remote.
+  return { head, branch: head, counts, ...(upstream && hasUpstreamCounts ? { upstream } : {}) }
+}
+
+/**
+ * The web address of a remote, or undefined for a local path or an ssh alias (a host with no dot), whose host is not
+ * a site. Any user or token in the URL is left out, since this ends up on the screen.
+ */
+export const remoteWebUrl = (remote: string): string | undefined => {
+  const match =
+    /^(?:https?|ssh|git):\/\/(?:[^@/]+@)?([^/:]+)(?::\d+)?\/(.+?)(?:\.git)?\/?$/.exec(remote) ??
+    /^(?:[^@/]+@)?([^:/]+):(?!\/\/)(.+?)(?:\.git)?\/?$/.exec(remote)
+  return match?.[1]?.includes('.') ? `https://${match[1]}/${match[2]}` : undefined
+}
+
+/** @param upstream as in `git status`: `origin/feat/x` */
+export const branchWebUrl = (webUrl: string, upstream: string): string =>
+  `${webUrl}/tree/${upstream.split('/').slice(1).map(encodeURIComponent).join('/')}`
+
+type GitSegment = string | { text: string; href: string }
+
+/** @param branchUrl undefined when the branch is not on a remote, so there is nothing to open */
+export const gitSegments = (git: GitState, pr?: PullRequest, branchUrl?: string): GitSegment[] => {
+  const head = shortName(git.head)
+  const segments: GitSegment[] = [branchUrl ? { text: head, href: branchUrl } : head]
+  if (pr) segments.push(pr.url ? { text: `PR #${pr.number}`, href: pr.url } : `PR #${pr.number}`)
+  if (git.counts) segments.push(git.counts)
+  return segments.flatMap((segment, i) => (i > 0 ? [' · ', segment] : [segment]))
+}
+
+export const formatGit = (git: GitState, pr?: PullRequest): string =>
+  `git: ${gitSegments(git, pr)
+    .map((segment) => (typeof segment === 'string' ? segment : segment.text))
+    .join('')}`
+
+/** @param json the output of `gh pr view --json number,state,url`; a closed or merged pull request is not shown */
+export const parsePr = (json: string): PullRequest | undefined => {
+  const pr = JSON.parse(json) as { number?: unknown; state?: unknown; url?: unknown }
+  if (pr.state !== 'OPEN' || typeof pr.number !== 'number') return undefined
+  return typeof pr.url === 'string' ? { number: pr.number, url: pr.url } : { number: pr.number }
 }
 
 /** `agents`: system notifications only for notices about background agents; `never`: toast only. */
@@ -208,7 +273,11 @@ type State = {
   seenAgentIds: Set<string> // since the main turn started, with those it found running: the total of the progress
   failedAgentIds: Set<string> // of seenAgentIds, foreground too, which failedBackgroundAgentIds leaves out
   windows: SessionRateLimit[]
-  git?: string
+  git?: GitState
+  remote?: { upstream: string; webUrl?: string } // read when the upstream changes
+  pr?: PullRequest
+  prBranch?: string // the branch `pr` is of
+  prReadAt: number
   gitReadCount: number // so a slow read that ends after a newer one does not overwrite it
   outcome?: { text: string; isSuccess: boolean } // how the last answer, or the background agents after it, ended
   isWaitingForAgents: boolean // answered with agents still running
@@ -218,11 +287,18 @@ type State = {
 
 const hasBackgroundWork = (s: State): boolean => s.agents.length > 0 || s.workflows.size > 0
 
-const formatStatus = (s: State, now: number): string | undefined => {
+type StatusParts = { status: string; isFailure: boolean; isBusy: boolean; plan?: string; git?: string }
+
+const branchUrlOf = (s: State): string | undefined =>
+  s.remote?.webUrl && s.git?.upstream === s.remote.upstream
+    ? branchWebUrl(s.remote.webUrl, s.remote.upstream)
+    : undefined
+
+const formatStatusParts = (s: State, now: number): StatusParts => {
   const spinnerFrame = FRAMES[s.frame]
   let main: string | undefined
   if (s.mainTurnStartedAt !== undefined)
-    main = `${spinnerFrame} Claude está trabalhando… ${formatElapsed(now - s.mainTurnStartedAt)}`
+    main = `${spinnerFrame} trabalhando… ${formatElapsed(now - s.mainTurnStartedAt)}`
   // A ✅ next to work still running would read as if everything had ended; a failure or interruption stays.
   else if (hasBackgroundWork(s))
     main = [s.outcome?.isSuccess ? undefined : s.outcome?.text, `${spinnerFrame} em segundo plano`]
@@ -230,39 +306,106 @@ const formatStatus = (s: State, now: number): string | undefined => {
       .join(' · ')
   else main = s.outcome?.text
 
-  const text = [
-    main,
-    formatAgents(s.agents, Math.max(0, s.seenAgentIds.size - s.agents.length), s.failedAgentIds.size),
-    formatWorkflows([...s.workflows.values()]),
-    s.git,
-    formatPlan(s.windows, now, s.planAlert),
-  ]
-    .filter(Boolean)
-    .join('  │  ')
-  return text || undefined
+  return {
+    isFailure: s.outcome !== undefined && !s.outcome.isSuccess,
+    isBusy: s.mainTurnStartedAt !== undefined || hasBackgroundWork(s),
+    status: [
+      main,
+      formatAgents(s.agents, Math.max(0, s.seenAgentIds.size - s.agents.length), s.failedAgentIds.size),
+      formatWorkflows([...s.workflows.values()]),
+    ]
+      .filter(Boolean)
+      .join('  │  '),
+    plan: formatPlan(s.windows, now, s.planAlert),
+    git: s.git && formatGit(s.git, s.pr),
+  }
 }
 
+const compact = (parts: (string | undefined)[]): string[] => parts.filter((part) => part) as string[]
+
+/** Under the prompt, one line for each part; where that is not drawn, one status line, which takes no breaks. */
 async function showStatus($: EngineInterface, s: State) {
-  $.ui.status(formatStatus(s, await $.clock.now()))
+  const { status, isFailure, isBusy, plan, git } = formatStatusParts(s, await $.clock.now())
+  const hasLines = (await $.session.surfaces()).some((surface) => surface === 'terminal' || surface === 'desktop')
+  $.ui.status(hasLines ? undefined : compact([status, plan, git]).join('  │  ') || undefined)
+  const lines: StatusLine[] = []
+  lines.push(
+    status
+      ? { text: `status: ${status}`, color: isFailure ? 'error' : isBusy ? 'claude' : 'success' }
+      : { text: 'status: 💤 aguardando', color: 'subtle' },
+  )
+  if (plan) lines.push({ text: plan, color: plan.startsWith('⚠️') ? 'warning' : 'suggestion' })
+  if (git && s.git) lines.push({ text: git, color: 'merged', segments: gitSegments(s.git, s.pr, branchUrlOf(s)) })
+  await update($, statusLines, () => lines)
+}
+
+/** A failure keeps what was read: it says nothing about the pull request, and a branch without one fails too. */
+async function readPr($: EngineInterface, s: State, branch: string) {
+  let pr: PullRequest | undefined
+  try {
+    const { exitCode, stdout } = await $.process.run(['gh', 'pr', 'view', '--json', 'number,state,url'], {
+      timeoutMs: PR_TIMEOUT_MS,
+    })
+    if (exitCode !== 0) return
+    pr = parsePr(stdout)
+  } catch {
+    return
+  }
+  if (s.prBranch !== branch || (pr?.number === s.pr?.number && pr?.url === s.pr?.url)) return
+  s.pr = pr
+  await showStatus($, s)
+}
+
+/** A failure leaves the branch with no link; it is read again only when the upstream changes. */
+async function readRemote($: EngineInterface, upstream: string): Promise<string | undefined> {
+  try {
+    const name = upstream.split('/')[0]!
+    const { exitCode, stdout } = await $.process.run(['git', 'remote', 'get-url', name], { timeoutMs: GIT_TIMEOUT_MS })
+    return exitCode === 0 ? remoteWebUrl(stdout.trim()) : undefined
+  } catch {
+    return undefined
+  }
 }
 
 /** Outside a repository, or with no git to run, the status line goes without it. */
-async function refreshGit($: EngineInterface, s: State) {
+async function refreshGit($: EngineInterface, s: State, isAnswerEnd = false) {
   const readCount = ++s.gitReadCount
-  let git: string | undefined
+  let git: GitState | undefined
   try {
     // No optional locks: a read in the background must not get in the way of the user's own git commands.
     const { exitCode, stdout } = await $.process.run(
       ['git', '--no-optional-locks', 'status', '--porcelain=v2', '--branch'],
       { timeoutMs: GIT_TIMEOUT_MS },
     )
-    if (exitCode === 0) git = formatGit(stdout)
+    if (exitCode === 0) git = parseGit(stdout)
   } catch {
     // Same as above.
   }
-  if (readCount !== s.gitReadCount || git === s.git) return
+  if (readCount !== s.gitReadCount) return
+  let isNewRemote = false
+  if (git?.upstream && git.upstream !== s.remote?.upstream) {
+    const webUrl = await readRemote($, git.upstream)
+    if (readCount !== s.gitReadCount) return
+    s.remote = { upstream: git.upstream, ...(webUrl ? { webUrl } : {}) }
+    isNewRemote = true
+  }
+  const hasChanged =
+    isNewRemote || git?.head !== s.git?.head || git?.counts !== s.git?.counts || git?.upstream !== s.git?.upstream
+  const branch = git?.branch
+  const isNewBranch = branch !== s.prBranch
   s.git = git
-  await showStatus($, s)
+  if (isNewBranch) {
+    s.prBranch = branch
+    s.pr = undefined
+  }
+  if (hasChanged) await showStatus($, s)
+  if (branch === undefined) return
+  const now = await $.clock.now()
+  if (isNewBranch || (isAnswerEnd && now - s.prReadAt >= PR_MIN_INTERVAL_MS)) {
+    s.prReadAt = now
+    // On a timer, so the network never holds the hook that got here.
+    $.clock.after(0, () => readPr($, s, branch))
+  }
 }
 
 type NoticeOptions = {
@@ -429,11 +572,42 @@ export const register: Register = (on, options) => {
     seenAgentIds: new Set(),
     failedAgentIds: new Set(),
     windows: [],
+    prReadAt: 0,
     gitReadCount: 0,
     isWaitingForAgents: false,
     alertedLevelKeys: new Set(),
     windowsAtLimit: new Map(),
   }
+
+  // The engine keeps its own line (the mode, the shortcuts) on the first row, wherever `hint` goes in this tree.
+  on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
+    const lines = await read($, statusLines)
+    if (lines.length === 0) return next(e)
+    const { Box, Link, Text } = $.ui.resolve(e)
+    const hint = await next(e)
+    return h(
+      Box,
+      { flexDirection: 'column' },
+      lines.map(({ text, color, segments }, i) => {
+        // Only the first colon: a branch or an agent's name may have one too.
+        const labelEnd = text.indexOf(':') + 1
+        return h(
+          Text,
+          { key: `line-${i}`, color, wrap: 'truncate-end' },
+          h(Text, { weight: 'semibold' }, text.slice(0, labelEnd)),
+          ...(segments
+            ? [
+                ' ',
+                ...segments.map((segment) =>
+                  typeof segment === 'string' ? segment : h(Link, { href: segment.href }, segment.text),
+                ),
+              ]
+            : [text.slice(labelEnd)]),
+        )
+      }),
+      hint,
+    ) as RenderElement
+  })
 
   on('session.start', async ($, e, next) => {
     const r = await next(e)
@@ -616,7 +790,7 @@ export const register: Register = (on, options) => {
     if (!hasBackgroundWork(s)) stopSpinner(s)
     await showStatus($, s)
     const r = await next(e)
-    await refreshGit($, s)
+    await refreshGit($, s, true)
     return r
   })
 }

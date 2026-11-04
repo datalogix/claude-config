@@ -194,6 +194,8 @@ node bin/cli.js --link                    # install from this clone: edits apply
   they make there. `/datalogix:review` follows the same item for the commit messages it suggests and records the
   result in the progress file ("Decisões do projeto"); it never falls back to a language silently.
 - `/datalogix:review` is a prompt-only skill, written in Portuguese.
+  - `SKILL.md` fetches the default branch at the start of a session. A branch behind it gets a `git pull --ff-only`
+    offer when it is the default branch with a clean tree (outside `report`), and only a warning otherwise.
   - `SKILL.md` drives the flow. It makes the commits the user checks at the end of a step by reading and following
     `../commit/SKILL.md` from its step 2 (commit has `disable-model-invocation` too), with the checked commits as
     step 1's groups: renumbering the commit skill's steps breaks that reference.

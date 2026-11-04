@@ -31,7 +31,8 @@ Argumentos: $ARGUMENTS
   `install`, `pack`, `production`). Etapas de outro tipo de projeto
   são recusadas com aviso. Nos tipos JS, `code` usa `steps/code-js.md`;
   nas aplicações JS/TS, `production` usa `steps/production-js.md`.
-  Esses dois arquivos não são nomes de etapa.
+  Esses dois arquivos não são nomes de etapa. `closing` também não: o
+  fechamento só roda depois da última etapa da revisão completa.
   `http` e `jobs` não são etapas: são checklists extras que a etapa
   `code` aplica nas pastas certas de uma aplicação. `docs` é sempre o
   modo; o passo 1 dele aplica `steps/docs.md`, o mesmo checklist da
@@ -40,7 +41,8 @@ Argumentos: $ARGUMENTS
   que essa pasta pertence, só nela, e, como na etapa avulsa, sem
   fechamento (seção 5, item 7). Com um modo (`naming src/Actions`), só
   os passos por pasta do modo, nessa pasta; o `naming` usa o glossário
-  que já está em "Decisões do projeto". O `deps` não tem passo por
+  que já está em "Decisões do projeto" e, sem ele, só as regras de
+  "Nomenclatura". O `deps` não tem passo por
   pasta: avise e ignore a pasta.
 
 ## 1. Arquivos de apoio
@@ -59,7 +61,9 @@ Precedência: regras do projeto (`CLAUDE.md`, skills e guidelines do
 projeto) > arquivo do tipo > arquivo da etapa/modo > este arquivo.
 
 ## 2. Reconhecer o projeto
-Confira o perfil no início de cada chamada e de cada passo.
+Confira o perfil no início de cada chamada e de cada passo. Na
+primeira chamada da sessão, faça antes o item "Base desatualizada" da
+seção 4, que só depende do git.
 Se o "Perfil do projeto" no progresso não existir, ou se `composer.json`
 ou `package.json` mudou desde o commit registrado nele, ou surgiram
 skills ou tags novas, descubra e registre:
@@ -235,7 +239,7 @@ progresso. Sem progresso, `status` diz que a revisão não começou e
 para.
 
 - **Base desatualizada**: só na primeira chamada da sessão, antes da
-  linha de base. Sem remoto `origin`, siga sem dizer nada. A branch
+  seção 2 e da linha de base. Sem remoto `origin`, siga sem dizer nada. A branch
   padrão é a de `git symbolic-ref --short refs/remotes/origin/HEAD`,
   sem o `origin/`; sem esse ref, `main` ou `master`. Rode `git fetch
   origin <branch padrão>`; se falhar, avise que a base pode estar
@@ -246,8 +250,7 @@ para.
     `## Pendências` mesmo sem o mod `topics`, com
     `- [ ] (recomendo) Atualizar com git pull --ff-only`, dizendo
     quantos commits faltam, e espere a resposta. Se o `pull` falhar,
-    mostre o erro e siga. Depois de atualizar, confira o perfil de
-    novo (seção 2).
+    mostre o erro e siga.
   - Nos outros casos: avise quantos commits faltam e siga. Nunca
     faça merge nem rebase por conta própria.
 - **Branch com data**: antes da linha de base, siga o item "Branch com
@@ -318,17 +321,23 @@ modo.
    para documentar"; em todo passo, as "Correções pendentes" dos
    arquivos dele, que viram itens do relatório. Ele devolve só o
    relatório.
+   Diga a ele que não altere o projeto; para testar uma sugestão, só
+   numa cópia fora dele (`mktemp -d`).
    Antes de mostrar, confira o relatório: descarte itens que repetem
    uma "Decisão do projeto", que já foram recusados antes, ou cujo
    trecho citado não existe no arquivo; transforme em item as perguntas
-   de sim/não óbvio.
+   de sim/não óbvio. Nos itens críticos e importantes, e em todo item
+   que diz que algo falta, refaça a busca ou o comando nesta conversa;
+   corrija ou descarte o que não se sustentar e diga no relatório o
+   que mudou.
 2. Mostre o relatório, com as perguntas no fim (seção 7), convertido
    para o formato da sessão, se houver, e PARE até eu
    dizer o que aplicar ("aplica 1, 3", "todas", "nenhuma", "todas menos
    sugestões", "todas menos 4") e responder as perguntas, na mesma
    mensagem. "pula" adia o passo inteiro sem aplicar nada (fica
    pendente no progresso) e segue para o próximo. Registre em
-   "Decisões do projeto" as respostas que valem adiante.
+   "Decisões do projeto" as respostas que valem adiante. Relatório sem
+   itens nem perguntas: diga isso e vá direto ao item 5.
    Item que não aprovei (fora de "aplica 1, 3", ou com a caixa
    desmarcada) fica como "não aplicado" e pode voltar em outro
    relatório. Só conta como recusado o que eu recusar em texto ou a
@@ -359,9 +368,10 @@ modo.
    (aplicando antes os itens liberados por respostas que eu der).
    - Um commit por funcionalidade ou correção, com os testes, a
      documentação e o lockfile da mudança que acompanham;
-     refatoração e formatação à parte. Cada um com a mensagem e os
-     arquivos, na ordem em que devem ser feitos (o que outro usa vem
-     antes).
+     refatoração e formatação à parte. Cada um com a mensagem, com o
+     título nas regras do passo 3 de `../commit/SKILL.md` (até 72
+     caracteres, contando o tipo), e os arquivos, na ordem em que devem
+     ser feitos (o que outro usa vem antes).
    - Se um arquivo tiver mudanças de mais de um commit, diga quais
      trechos vão em cada.
    - Pergunte quais fazer: um `- [ ] <título do commit>` por commit
@@ -370,6 +380,8 @@ modo.
      renomeado, os dois caminhos); com mais de um, também
      `- [ ] Fazer tudo em um commit só`, com o detalhe "ignora os outros
      commits"; e `- [ ] Seguir para o próximo passo depois dos commits`.
+     Sem commit a sugerir (passo sem mudança, como o glossário do
+     `naming`), só `- [ ] Seguir para o próximo passo`.
      Sem próximo passo (etapa avulsa, caminho, último passo de um modo
      que se aplica), não mostre esse item. Sem o formato da seção 7,
      aceite em texto (ex.: "commita 1 e 2 e segue").
@@ -383,8 +395,13 @@ modo.
      feitos vale como "próxima"; se algum for cancelado ou falhar,
      PARE.
    - Se a mesma resposta liberar itens, aplique-os e rode a
-     verificação antes dos commits. O que eles mudarem fora dos
-     commits marcados vai num novo resumo, e PARE, mesmo com "Seguir".
+     verificação antes dos commits. O que eles mudarem num arquivo de
+     commit marcado entra nele. Depois faça os commits marcados. O
+     resto (tudo, sem commit marcado) vai num novo resumo, com os
+     commits dele sugeridos, e PARE, mesmo com "Seguir".
+   - "Seguir" só existe nesta pausa. Dito antes, na resposta ao
+     relatório (ex.: "aplica todas e segue"), não pula o resumo: mostre-o
+     com os commits e PARE.
    - Fluxo de commit: leia `${CLAUDE_SKILL_DIR}/../commit/SKILL.md`
      e siga-o a partir do passo 2, como se os commits marcados
      fossem os grupos marcados no passo 1 dele (ou, com "Fazer tudo
@@ -418,6 +435,10 @@ modo.
 ## 6. Formato do relatório
 Só reporte o que confirmou lendo o código: cite o trecho e a linha
 exatos; sem suposições ("pode ser que", "talvez em algum lugar").
+Para dizer que algo falta (ferramenta, teste, arquivo), diga onde
+procurou. Sugestão que muda código: confira-a contra o código real e
+diga se rodou numa cópia ou marque "não testada". Diga com todas as
+letras o que não deu para verificar.
 
 Severidade:
 - **crítico**: bug que acontece em uso normal, falha de segurança, perda
@@ -490,7 +511,8 @@ das respostas acima:
   `- [ ] Corrigir o total do pedido com cupom`), com
   `ver: <título do tópico>` recuado logo abaixo;
 - os títulos dos tópicos são únicos na resposta, ignorando
-  maiúsculas, acentos e crases, como o `ver:` os compara: dois
+  maiúsculas, acentos, crases, negrito e itálico, como o `ver:` os
+  compara: dois
   achados parecidos levam o que os distingue no título (ex.:
   "Teste ausente em PedidoService" e "Teste ausente em
   CupomService"), senão o `ver:` do segundo abre o primeiro;
@@ -511,8 +533,9 @@ das respostas acima:
   aplicado depois que essa pergunta for respondida;
 - minha resposta chega como a lista marcada.
 
-Pergunte NA HORA e espere apenas quando não der para seguir: branch
-com data (seção 4), linha de base falhando, `CLAUDE.md` ausente,
+Pergunte NA HORA e espere apenas quando não der para seguir: base
+desatualizada e branch com data (seção 4), linha de base falhando,
+`CLAUDE.md` ausente,
 tipo do projeto em dúvida (seção 2), estágio não registrado (arquivo
 do tipo), idioma dos commits em dúvida (seção 2), requisito de testes
 ausente (arquivo do tipo), skill sem etapa clara, teste existente que

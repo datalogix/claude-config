@@ -187,12 +187,19 @@ já está em "Decisões do projeto" (estágio, idioma, `/init`).
   - lib JS/TS: o `name` do package.json sem `@` e com `/` trocado por
     `-` (ex.: `@datalogix/ui` → `datalogix-ui`)
   - aplicação (Laravel ou JS/TS), ou `name` ausente ou genérico
-    (`laravel/laravel`, `nuxt-app`, `my-app`): o nome da pasta raiz +
-    os 6 primeiros caracteres do hash do caminho absoluto
-    (`pwd | sha1sum | cut -c1-6`), ex.: `loja-3fa91c`
-  Grave o caminho absoluto do projeto no topo do progresso; se ele não
-  bater com o projeto atual, pare e me avise (dois projetos com o
-  mesmo id).
+    (`laravel/laravel`, `nuxt-app`, `my-app`): o nome da pasta do
+    projeto + os 6 primeiros caracteres do hash do caminho dele
+    (`echo "<caminho>" | { sha1sum 2>/dev/null || shasum; } | cut
+    -c1-6`), ex.: `loja-3fa91c`
+  O caminho do projeto é o da cópia principal do repositório, o mesmo
+  em todos os worktrees dele: `git rev-parse --path-format=absolute
+  --git-common-dir`, sem o `/.git` final; fora de um repositório git,
+  `pwd`. Grave-o no topo do progresso, com a pasta de trabalho atual.
+  Caminho gravado diferente: se for um worktree deste repositório
+  (`git worktree list`), troque-o pelo principal e siga; senão, pare e
+  me avise (dois projetos com o mesmo id). Pasta de trabalho gravada
+  diferente: avise, pois o que foi feito nela pode não estar nesta
+  branch, e siga.
 - Nunca crie arquivos de controle dentro do projeto.
 - Estrutura:
   1. **Perfil do projeto** (com o commit em que foi gerado)

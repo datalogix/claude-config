@@ -228,7 +228,7 @@ node bin/cli.js --link                    # install from this clone: edits apply
     `.github/workflows/claude-fix-ci.yml`, plus the `build` script, which those do not run (for JS projects' own CI);
   - `/datalogix:pr`: the pull request sections and title rules of `plugins/laravel/skills/conventions/SKILL.md`, and
     the `no-review` label (`cli/kinds/project/state.js`, `.github/workflows/claude-review.yml`).
-- Review progress lives in `~/.claude/reviews/`, outside the repo.
+- Review progress lives in `~/.claude/reviews/`, outside the repo, one file per repository, shared by its worktrees.
 
 ## Conventions
 

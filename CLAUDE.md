@@ -35,7 +35,8 @@ node bin/cli.js install --link            # install from this clone: edits apply
   `node bin/cli.js --help` and `update` with no `claude`: `engines.node` is the runtime's minimum, and the dev tools need `^22.13.0`, `^24` or `>=26`.
 - `all-checks` aggregates the jobs and is the single required status check; add a new job to its `needs`.
 - Dependabot (`.github/dependabot.yml`), each in one group: GitHub Actions weekly (`ci:` commits), npm monthly
-  (`chore:`), ignoring majors of `@types/node`, which stays at the minimum Node (`engines.node`).
+  (`chore:`), ignoring majors of `@types/node`, which stays at the minimum Node (`engines.node`), and of `typescript`,
+  since typescript-eslint does not support TS 7.
 
 ## Architecture
 

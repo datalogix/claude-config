@@ -2,9 +2,8 @@
 
 Pacote publicado no npm (ou num registry privado), ou instalado por
 git (`private: true`, com `npx github:...`, com ou sem
-`--allow-git=root`), sem
-Laravel: tem `package.json`, sem `composer.json` nem config de
-Nuxt/Next.
+`--allow-git=root`), sem Laravel: tem `package.json`, sem
+`composer.json` nem config de Nuxt/Next.
 
 ## Reconhecimento extra
 - **Estágio**: maior tag semver (`git tag --list --sort=-v:refname`,

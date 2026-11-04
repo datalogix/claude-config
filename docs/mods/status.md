@@ -1,6 +1,6 @@
 # status
 
-Shows in the status line what Claude is doing, the running agents, the
+Shows under the prompt what Claude is doing, the running agents, the
 git state and how much of the plan was used, and sends a notice (toast and
 system notification) when an answer or the background agents end.
 
@@ -37,12 +37,43 @@ comes back as a new answer from Claude. An agent held on its own
 background work still counts as running, so no end notice goes out until
 it really ends.
 
-The git state reads like `🌿 main ●3 ↑1 ↓2`: the branch (the short commit
-when detached), 3 changed files (an untracked folder counts as one), 1
+There are up to three lines, right under the engine's own line (the mode
+and the shortcuts), each with its label in bold. `status:` is always
+there, as `💤 aguardando` when nothing has happened yet; `plano:` and
+`git:` are left out when they have nothing to show:
+
+```
+status: ⠋ trabalhando… 0:42  │  🤖 2/5: Revisar +2
+plano: 5h 16% (renova em 3h09) · semana 31% (renova em 10h29)
+git: feat/status-git · PR #5 · ●3 ↑1 ↓2
+```
+
+Each line has its color: `status:` in the Claude color while working,
+green when done, red after a failure and gray while waiting; `plano:` in blue, yellow from
+`planAlert` on; and `git:` in purple. They are theme colors, so they
+follow the user's theme.
+
+Claude Code draws those lines only in the terminal and the desktop app.
+Elsewhere, such as VS Code, the same parts go on one status line, which
+takes no line breaks, separated by `│`.
+
+The `git:` line has the branch (the short commit when detached), the open
+pull request, 3 changed files (an untracked folder counts as one), 1
 commit ahead of the upstream and 2 behind; a count at zero is left out.
 It is read at the session start, when an answer ends and every minute,
 so a change made during an answer can take up to a minute to show.
-Outside a repository, or when `git` fails, it leaves the status line.
+Outside a repository, or when `git` fails, the line is left out.
+
+The branch links to the remote once it is there, tracked and not deleted
+(`/tree/<branch>` on the remote's site, the address GitHub uses, so another
+host may not open it); a local path or an ssh alias as the remote gets no
+link. The pull request links to its own page. A terminal without hyperlink
+support shows the address after the text.
+
+The pull request comes from `gh pr view`, which goes over the network:
+it is read when the branch changes, and when an answer ends at most every
+5 minutes, so one opened meanwhile can take that long to show. Without
+`gh`, or when it fails, the line keeps what it had.
 
 A plan window whose reset time has passed leaves the status line
 until the next API response brings the new window; a window

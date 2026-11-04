@@ -1,8 +1,9 @@
 {
   "name": "status",
-  "description": "Mostra na linha de status o que o Claude está fazendo, os agentes em execução, o estado do git e quanto do plano já foi usado, e avisa quando uma resposta ou os agentes em segundo plano terminam",
+  "description": "Mostra abaixo do prompt o que o Claude está fazendo, os agentes em execução, o estado do git e quanto do plano já foi usado, e avisa quando uma resposta ou os agentes em segundo plano terminam",
   "author": { "name": "datalogix" },
   "license": "MIT",
+  "types": "./types/index.d.ts",
   "userConfig": {
     "minSeconds": {
       "type": "number",

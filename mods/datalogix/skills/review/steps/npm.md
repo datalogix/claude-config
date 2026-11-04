@@ -21,7 +21,9 @@ Analise:
   `peerDependencies`, repetido em `devDependencies` para os testes.
   Nuxt e Next: o que o servidor importa em produção fica em
   `dependencies` (o build do Nuxt embute quase tudo, mas o Next
-  `standalone` e o `next start` leem o `node_modules`).
+  `standalone` e o `next start` leem o `node_modules`). Node: o que
+  roda em produção fica em `dependencies`, mesmo com etapa de build,
+  salvo se um bundler embute tudo.
 - **Dependências implícitas**: imports de pacotes que só chegam como
   dependência transitiva.
 - **Redundantes**: duas bibliotecas para a mesma coisa (moment e dayjs),
@@ -32,7 +34,7 @@ Analise:
 - **Lockfile**: existe, versionado, coerente com o gerenciador; mais de
   um lockfile no projeto é problema.
 - **Metadados**: `private: true` se não é publicado no npm (sempre nas
-  aplicações Nuxt/Next), `type: "module"` coerente com os configs,
+  aplicações JS/TS), `type: "module"` coerente com os configs,
   `engines` se o projeto depende de uma versão do Node.
 - **Publicação (só lib JS/TS)**: numa lib instalada por git, sem
   publicação (`private: true`), valem só `files`, `license`,
@@ -57,8 +59,10 @@ Analise:
   e o `build`, etapa `ci`):
   - `dev` e `build` (`vite`, `vite build`) se houver Vite; Nuxt:
     `nuxt dev`, `nuxt build` e `nuxt preview`; Next: `next dev`,
-    `next build` e `next start`; lib com etapa de build: `build` com a
-    ferramenta dela (ex.: `tsup`, `tsdown`, `unbuild`)
+    `next build` e `next start`; Vue ou React: também `preview`
+    (`vite preview`); Node: `dev`, `start` e, com etapa de build,
+    `build`; lib com etapa de build: `build` com a ferramenta dela
+    (ex.: `tsup`, `tsdown`, `unbuild`)
   - `lint`: `eslint . && prettier --check .` (o CI não roda `format`,
     então o Prettier entra pelo `lint`)
   - `format`: `prettier --write . && eslint . --fix`

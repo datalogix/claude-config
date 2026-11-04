@@ -26,10 +26,10 @@ Pacote ou lib JS/TS v1+:
   houver correções; sem tag, diga só o tipo da mudança (major, minor
   ou patch)
 
-Aplicação (Laravel ou Nuxt/Next) em produção — notas de deploy, da
+Aplicação (Laravel ou JS/TS) em produção — notas de deploy, da
 mesma lista:
 - migrations novas e se alguma é lenta ou exige ordem/duas fases
-- chaves novas de `.env` e de config (no Next, as `NEXT_PUBLIC_`
+- chaves novas de `.env` e de config (as `NEXT_PUBLIC_` e as `VITE_`
   exigem novo build)
 - comandos a rodar (caches, `queue:restart`, seeders obrigatórios)
 - URLs que mudaram e os redirecionamentos criados

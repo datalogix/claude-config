@@ -5,7 +5,8 @@
   `.phpunit.cache`, `.phpunit.result.cache`, `build/`, `coverage/`,
   `clover.xml` (pacote com cobertura, etapa `ci`), arquivos de IDE e
   SO; nos tipos JS, só os que se aplicam, mais `dist/` (saída do build
-  da lib), `.nuxt/`, `.output/`, `.data/` (Nuxt), `.next/`, `out/` e
+  da lib, da SPA ou do Node), `.nuxt/`, `.output/`, `.data/` (Nuxt),
+  `.next/`, `out/` e
   `next-env.d.ts` (Next), `.env*` exceto o `.env.example`, `*.tgz`
   (`npm pack`)
 - entradas obsoletas ou que ignoram algo que deveria ser versionado

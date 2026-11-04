@@ -14,8 +14,9 @@ Com `report` (ou `report <modo>`):
   que impediria a instalação, sem criar a sandbox nem rodar o build.
 - A etapa `production` também não roda nada: nos tipos Laravel, os
   comandos de cache ficam de fora e caches já em `bootstrap/cache` só
-  são anotados, sem esperar resposta; nas aplicações Nuxt/Next, sem o
-  `build`: se `.output/` ou `.next/` já existir, procure neles o que a
+  são anotados, sem esperar resposta; nas aplicações JS/TS, sem o
+  `build`: se `.output/`, `.next/` ou `dist/` já existir, procure neles
+  o que a
   etapa pede; senão, anote o que ficou sem verificar.
 - Sem `CLAUDE.md`: não pare; registre como item "importante" (rodar
   `/init`) e siga.

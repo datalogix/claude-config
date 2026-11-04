@@ -34,7 +34,7 @@ Lib JS/TS:
 - links para documentação detalhada, changelog, contribuição e
   licença, só os que existirem
 
-Aplicação Nuxt/Next:
+Aplicação JS/TS:
 - o que a aplicação faz, em uma ou duas frases
 - requisitos (Node, gerenciador, API ou serviços que consome)
 - setup local: clonar, `.env` a partir do `.env.example`,
@@ -48,7 +48,7 @@ Em todos: corrija ou remova trechos desatualizados.
 - pacote: todo comando Artisan, opção de config, evento, Contract e
   ponto de extensão público documentado
 - aplicação: arquitetura geral, deploy, filas e agendamento, integrações
-  externas, decisões importantes; Nuxt/Next: também o modo de
+  externas, decisões importantes; Nuxt e Next: também o modo de
   renderização e o cache de cada parte do site
 - lib JS/TS: cada entrada do `exports`, com as funções, opções e
   padrões, os erros lançados e os comandos do `bin`

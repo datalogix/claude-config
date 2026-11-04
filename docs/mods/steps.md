@@ -12,3 +12,5 @@ hides the rows for the current session, at once, even during a turn. A
 tool progress row of any other kind stays visible. The mobile app has
 no spinner, so it hides the rows without showing the step.
 In VS Code the step takes the place of the spinner's word, in the same row.
+While the engine shows a message in place of the word, VS Code shows that
+message alone, with no step.

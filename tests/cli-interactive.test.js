@@ -188,18 +188,30 @@ describe('prompts', { skip: process.platform === 'win32' }, () => {
     assert.doesNotMatch(output, /uninstalled: status/)
   })
 
-  test('warns about an unselected mod also loaded inline only while it stays installed', async () => {
+  test('does not uninstall an unselected mod that is only in the scope of another project', async () => {
     fakeClaude({
-      'plugin list --json': installedMods('status', 'status@inline', 'steps', 'steps@inline'),
+      'plugin list --json': `echo '[{"id":"status@claude-config","scope":"project"}]'`,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+    })
+
+    const { status, output } = await runInteractive([MODS.filter((name) => name !== 'status')])
+
+    assert.equal(status, 0, output)
+    assert.ok(!claudeCalls().some((call) => call.startsWith('plugin uninstall')))
+  })
+
+  test('warns about an unselected mod also loaded from a skills folder only while it stays installed', async () => {
+    fakeClaude({
+      'plugin list --json': installedMods('status', 'status@skills-dir', 'steps', 'steps@skills-dir'),
       'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       'plugin uninstall --keep-data status@claude-config': 'echo busy >&2; exit 1',
     })
 
     const { output } = await runInteractive([MODS.filter((name) => name !== 'status' && name !== 'steps')])
 
-    assert.match(output, /status is also loaded inline/)
+    assert.match(output, /status is also loaded from a skills folder/)
     assert.match(output, /uninstalled: steps/)
-    assert.doesNotMatch(output, /steps is also loaded inline/)
+    assert.doesNotMatch(output, /steps is also loaded from a skills folder/)
   })
 
   test('with nothing selected, uninstalls every mod, renamed ones and old skills included', async () => {

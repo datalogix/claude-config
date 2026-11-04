@@ -259,33 +259,62 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.ok(calls.includes(`plugin update ${PLAIN_MOD}@claude-config --json`))
   })
 
-  test('warns about a mod also loaded inline, even when already installed', () => {
+  test('installs a mod that is only installed in the scope of another project', () => {
     fakeClaude({
-      'plugin list --json': installedMods(PLAIN_MOD, `${PLAIN_MOD}@inline`),
+      'plugin list --json': `echo '[{"id":"${PLAIN_MOD}@claude-config","scope":"project"}]'`,
       'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
     })
 
     const { status, output } = runCli(['install'])
 
     assert.equal(status, 0, output)
-    assert.match(output, new RegExp(`${PLAIN_MOD} is also loaded inline`))
+    const calls = claudeCalls()
+    assert.ok(calls.includes(`plugin install ${PLAIN_MOD}@claude-config`))
+    assert.ok(!calls.includes(`plugin update ${PLAIN_MOD}@claude-config --json`))
+    assert.match(output, new RegExp(`installed: ${PLAIN_MOD}`))
   })
 
-  test('warns about a mod also loaded inline when the marketplace cannot be added', () => {
+  test('takes a mod in the user scope as installed', () => {
     fakeClaude({
-      'plugin list --json': installedMods(PLAIN_MOD, `${PLAIN_MOD}@inline`),
+      'plugin list --json': `echo '[{"id":"${PLAIN_MOD}@claude-config","scope":"user"}]'`,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+    })
+
+    const { status, output } = runCli(['install'])
+
+    assert.equal(status, 0, output)
+    const calls = claudeCalls()
+    assert.ok(calls.includes(`plugin update ${PLAIN_MOD}@claude-config --json`))
+    assert.ok(!calls.includes(`plugin install ${PLAIN_MOD}@claude-config`))
+  })
+
+  test('warns about a mod also loaded from a skills folder, even when already installed', () => {
+    fakeClaude({
+      'plugin list --json': installedMods(PLAIN_MOD, `${PLAIN_MOD}@skills-dir`),
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+    })
+
+    const { status, output } = runCli(['install'])
+
+    assert.equal(status, 0, output)
+    assert.match(output, new RegExp(`${PLAIN_MOD} is also loaded from a skills folder`))
+  })
+
+  test('warns about a mod also loaded from a skills folder when the marketplace cannot be added', () => {
+    fakeClaude({
+      'plugin list --json': installedMods(PLAIN_MOD, `${PLAIN_MOD}@skills-dir`),
       'plugin marketplace add datalogix/claude-config': 'echo denied >&2; exit 1',
     })
 
     const { status, output } = runCli(['install'])
 
     assert.equal(status, 1, output)
-    assert.match(output, new RegExp(`${PLAIN_MOD} is also loaded inline`))
+    assert.match(output, new RegExp(`${PLAIN_MOD} is also loaded from a skills folder`))
   })
 
-  test('does not warn about a mod loaded inline that failed to install', () => {
+  test('does not warn about a mod in a skills folder that failed to install', () => {
     fakeClaude({
-      'plugin list --json': installedMods(`${PLAIN_MOD}@inline`),
+      'plugin list --json': installedMods(`${PLAIN_MOD}@skills-dir`),
       'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
       [`plugin install ${PLAIN_MOD}@claude-config`]: 'echo broken >&2; exit 1',
     })
@@ -293,7 +322,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     const { status, output } = runCli(['install'])
 
     assert.equal(status, 1, output)
-    assert.doesNotMatch(output, new RegExp(`${PLAIN_MOD} is also loaded inline`))
+    assert.doesNotMatch(output, new RegExp(`${PLAIN_MOD} is also loaded from a skills folder`))
   })
 
   test('ends with exit code 1 when a mod fails to install', () => {

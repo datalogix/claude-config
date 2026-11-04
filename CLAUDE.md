@@ -54,8 +54,9 @@ node bin/cli.js install --link            # install from this clone: edits apply
   the mod's options. A marketplace added from another source than the one asked for (GitHub with `--link`, or the
   other way around) is only pointed out: neither it nor the mods are updated, and an installed mod with nothing to
   configure logs `unchanged: <name>`, unless its options could not be read (`hasReadFailed`), which is already reported.
-  A marketplace with no readable source (no text in its source fields) still updates. A mod also loaded inline
-  (`<name>@inline` in `plugin list`) is pointed out on `install`.
+  A marketplace with no readable source (no text in its source fields) still updates. A mod also loaded from a
+  skills folder (`<name>@skills-dir` in `plugin list`) is pointed out on `install`. `plugin list` also lists installs
+  of other projects: only the user scope counts as installed (`listInstalledModIds`).
 - It no longer writes skills. Earlier versions copied them into `~/.claude/skills/<name>` with a `.claude-config`
   marker (or symlinked them with `--link`); `removeOldSkills` deletes those folders, and only those, once the
   `datalogix` mod (`SKILLS_MOD`) is installed or unselected. `update` installs `datalogix` when such folders exist.

@@ -305,7 +305,9 @@ function listInstalledModIds() {
   if (!mods) {
     return undefined
   }
-  return new Set(mods.map((mod) => /** @type {string} */ (mod.id)))
+  // Only the user scope: another project's install is off here and cannot be uninstalled from here.
+  const userMods = mods.filter((mod) => mod.scope === undefined || mod.scope === 'user')
+  return new Set(userMods.map((mod) => /** @type {string} */ (mod.id)))
 }
 
 const RENAMED_MODS = { passos: 'steps', topicos: 'topics' }
@@ -579,9 +581,9 @@ async function askOptions(mod, isInstalled) {
  * @param {string} name
  * @param {Set<string>} installedIds
  */
-function warnInline(name, installedIds) {
-  if (installedIds.has(`${name}@inline`)) {
-    p.log.warn(`${name} is also loaded inline from ~/.claude/mods; remove one of them.`)
+function warnSkillsFolderCopy(name, installedIds) {
+  if (installedIds.has(`${name}@skills-dir`)) {
+    p.log.warn(`${name} is also loaded from a skills folder (${name}@skills-dir); remove one of them.`)
   }
 }
 
@@ -663,7 +665,7 @@ async function syncMods(shouldLink) {
   for (const mod of mods) {
     await syncMod(mod, installedIds, { isSelected: selectedNames.includes(mod.name), canInstall, canUpdate })
     if (installedIds.has(mod.id)) {
-      warnInline(mod.name, installedIds)
+      warnSkillsFolderCopy(mod.name, installedIds)
     }
   }
 

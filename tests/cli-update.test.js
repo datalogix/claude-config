@@ -73,6 +73,18 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     assert.ok(fs.existsSync(skillPath('review')))
   })
 
+  test('leaves alone a mod that is only in the scope of another project', () => {
+    fakeClaude({
+      'plugin list --json': `echo '[{"id":"${PLAIN_MOD}@claude-config","scope":"project"}]'`,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+    })
+
+    const { status, output } = runCli(['update'])
+
+    assert.equal(status, 0, output)
+    assert.ok(!claudeCalls().includes(`plugin update ${PLAIN_MOD}@claude-config --json`))
+  })
+
   test('updates a marketplace added from another source, unlike install', () => {
     fakeClaude({
       'plugin list --json': installedMods(PLAIN_MOD),

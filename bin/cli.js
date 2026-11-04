@@ -370,7 +370,7 @@ function warnOldOptions(mod) {
   } catch {
     return
   }
-  if (options === null || typeof options !== 'object') {
+  if (options === null || typeof options !== 'object' || Array.isArray(options)) {
     return
   }
   // Values are shown so they can be set again; a sensitive option renamed

@@ -403,6 +403,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     ['broken JSON', '{'],
     ['options of null', JSON.stringify({ pluginConfigs: { 'status@claude-config': { options: null } } })],
     ['options of text', JSON.stringify({ pluginConfigs: { 'status@claude-config': { options: 'x' } } })],
+    ['options of a list', JSON.stringify({ pluginConfigs: { 'status@claude-config': { options: ['x'] } } })],
   ])('ignores a settings.json with %s', (_, settings) => {
     fakeClaude({
       'plugin list --json': installedMods('status'),

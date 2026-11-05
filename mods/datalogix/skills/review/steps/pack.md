@@ -39,9 +39,10 @@ instala e é item "crítico".
 - Projeto limpo em `<sandbox>/app`, tudo com `cd <sandbox>/app && ...`
   na mesma chamada (na raiz, o `npm init -y` reescreve o package.json
   do projeto, e o `--prefix` não o impede): `npm init -y`, instale o
-  `.tgz` e as `peerDependencies`, e `typescript` como dependência de
-  desenvolvimento da sandbox (só para conferir os tipos). Se não houver
-  rede ou falhar, pare e me avise.
+  `.tgz` e as `peerDependencies` e, se a lib tiver entradas além do
+  `bin`, `typescript` como dependência de desenvolvimento da sandbox
+  (só para conferir os tipos). Se não houver rede ou falhar, pare e me
+  avise.
 
 ## Conferir
 Rode tudo com `cd <sandbox>/app && ...` na mesma chamada: na raiz do

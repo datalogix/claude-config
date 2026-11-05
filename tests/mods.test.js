@@ -1,5 +1,5 @@
 // @ts-check
-// The rules CLAUDE.md sets for every mod, the copy of a regex two mods keep the same, and the files CI names by hand.
+// The rules CLAUDE.md sets for every mod, the code two mods keep the same, and the files CI names by hand.
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -61,7 +61,10 @@ describe.each(modNames)('the mod %s', (name) => {
 test('the windows job names only test files that exist', () => {
   const job = /^ {2}windows:\n[\s\S]*?^\s+- run: npx vitest run (.+)$/m.exec(read('.github/workflows/ci.yml'))
   assert.ok(job)
-  for (const file of job[1].split(' ')) assert.ok(fs.existsSync(path.join(ROOT, file)), file)
+  const files = job[1].split(' ')
+  for (const file of files) assert.ok(fs.existsSync(path.join(ROOT, file)), file)
+  // It skips itself anywhere else, so this job is the only one that runs it.
+  assert.ok(files.includes('tests/quote-cmd.test.js'))
 })
 
 test('the marketplace lists only mods that exist', () => {
@@ -71,9 +74,38 @@ test('the marketplace lists only mods that exist', () => {
   )
 })
 
-test('status keeps the same FENCE as topics', () => {
-  const fenceOf = (/** @type {string} */ file) => read(file).match(/^const FENCE = .+$/m)?.[0]
-  const fence = fenceOf('mods/topics/hooks/parse.ts')
-  assert.ok(fence)
-  assert.equal(fenceOf('mods/status/hooks/register.ts'), fence)
+describe('status keeps the copies of topics the same', () => {
+  const topics = read('mods/topics/hooks/parse.ts')
+  const status = read('mods/status/hooks/register.ts')
+  const lineOf = (/** @type {string} */ text, /** @type {string} */ name) =>
+    new RegExp(`^const ${name} = .+$`, 'm').exec(text)?.[0]
+  /** From its declaration to the first closing brace at column 0, without the export. */
+  const functionOf = (/** @type {string} */ text, /** @type {string} */ name) =>
+    new RegExp(`^(?:export )?(const ${name} = [\\s\\S]*?^}$)`, 'm').exec(text)?.[1]
+
+  test.each(['FENCE', 'QUOTE', 'LIST_ITEM', 'CODE_MARK', 'INLINE_MAX'])('%s', (name) => {
+    const line = lineOf(topics, name)
+    assert.ok(line)
+    assert.equal(lineOf(status, name), line)
+  })
+
+  test('plainText', () => {
+    const code = functionOf(topics, 'plainText')
+    assert.ok(code)
+    assert.equal(functionOf(status, 'plainText'), code)
+  })
+
+  // status only asks whether a line is code, so its copy returns a boolean; the rest is the same.
+  test('createCodeBlockTracker, apart from what it returns', () => {
+    const code = functionOf(topics, 'createCodeBlockTracker')
+    assert.ok(code)
+    assert.equal(
+      functionOf(status, 'createCodeBlockTracker'),
+      code
+        .replace("(rawLine: string): 'open' | 'close' | 'code' | false", '(rawLine: string): boolean')
+        .replace("return 'open'", 'return true')
+        .replace("return 'close'", 'return true')
+        .replace(" && 'code'", ''),
+    )
+  })
 })

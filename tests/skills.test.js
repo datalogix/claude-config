@@ -199,7 +199,7 @@ describe('the supporting files of the review skill', () => {
 
   test('every file they name exists', () => {
     for (const file of reviewFiles) {
-      for (const [name] of read(file).matchAll(/\b(?:steps|types|modes)\/[\w-]+\.md\b/g)) {
+      for (const [name] of read(file).matchAll(/\b(?:steps|types|modes)\/[\w-]+\.md\b|\btemplates\/[\w.-]+/g)) {
         assert.ok(exists(name), `${file}: ${name}`)
       }
     }

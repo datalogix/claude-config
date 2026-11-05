@@ -170,7 +170,7 @@ Depois da resposta:
   o que outro usa vem antes. Ao dividir por trecho, confira trecho a
   trecho: o que usa algo (função, import, variável) trazido por
   outro trecho vai no mesmo commit ou depois dele; se não der, junte
-  os commits.
+  os commits ou marque "depende de" na prévia (passo 4).
 
 ## 4. Prévia
 Mostre, nesta ordem:
@@ -187,8 +187,11 @@ Mostre, nesta ordem:
 - a mensagem exatamente como será enviada.
 
 Ao dividir (sugerido no passo 3 ou com grupos marcados no passo 1),
-mostre os avisos acima uma vez, no início, e depois, numa prévia só,
-todos os commits, na ordem em que serão feitos, cada um com seus
+decida antes os hunks de cada arquivo dividido, como em "Na divisão",
+abaixo, para a prévia já mostrar o resultado; um commit que ficar sem
+nenhum trecho próprio é juntado ao que recebeu o hunk, e a prévia diz
+isso. Mostre os avisos acima uma vez, no início, e depois, numa prévia
+só, todos os commits, na ordem em que serão feitos, cada um com seus
 arquivos (e o trecho de cada arquivo dividido), a mensagem exatamente
 como será enviada e, se for o caso:
 - "depende de: <commit>", quando usa algo que só um grupo não
@@ -238,14 +241,16 @@ Na divisão:
     rode `git apply --cached --check` e depois `git apply --cached`
     com ele. Apague o arquivo temporário logo depois, com sucesso
     ou não. Se trechos de commits diferentes caírem no mesmo hunk,
-    gere o diff de novo com `-U1`; se ainda caírem juntos, o hunk
-    vai inteiro para o commit da mudança principal, com aviso na
-    prévia. Arquivo novo, apagado, renomeado ou binário vai
+    gere o diff de novo com `-U1` e, se ainda caírem juntos, com
+    `-U0`, que pede `git apply --cached --unidiff-zero`; se nem assim
+    se separarem, o hunk vai inteiro para o commit da mudança
+    principal, com aviso na prévia. Arquivo novo, apagado, renomeado ou binário vai
     inteiro. Nunca altere a cópia de trabalho nem use `git add -p`.
 - Confira com `git diff --cached --stat` que o stage tem só o
   commit da vez. Num arquivo dividido, leia `git show :<arquivo>` e
-  confira que o conteúdo em stage não usa nada que só chega depois;
-  se usar, trate como um stage que não bate. Se um `git apply`
+  confira que o conteúdo em stage não usa nada que só chega depois,
+  salvo o que a prévia marcou com "depende de"; se usar, trate como
+  um stage que não bate. Se um `git apply`
   falhar ou o stage não bater, tire do stage o que entrou para este
   commit, mostre o erro e pare, dizendo quais commits ficaram feitos.
 - Com a confirmação de todos, faça cada commit (passo 5) e siga
@@ -253,9 +258,9 @@ Na divisão:
   vez", antes de cada commit mostre a prévia só dele, com "O que
   fazer?" (confirmar e fazer o commit, e cancelar).
 - Se o usuário cancelar no meio, ou a divisão parar, tire do stage
-  o que entrou para o commit da vez. Se havia algo em stage no
-  início, ponha de volta no stage os arquivos guardados que ainda
-  têm mudanças (`git add --`). Diga quais commits ficaram feitos.
+  o que entrou para o commit da vez. Ponha de volta no stage só os
+  arquivos que já estavam nele antes do passo 1 e ainda têm mudanças
+  (`git add --`). Diga quais commits ficaram feitos.
 
 ## 5. Envio
 - Crie um arquivo com `mktemp`, grave a mensagem nele e rode `git

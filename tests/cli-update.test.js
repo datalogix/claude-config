@@ -480,6 +480,17 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     assert.ok(Date.now() - start < 15_000, 'waited for the child past the timeout')
   })
 
+  test('does not wait for a child that a finished claude leaves holding the output', () => {
+    fakeClaude({ 'plugin list --json': "/bin/sleep 20 & echo '[]'" })
+
+    const start = Date.now()
+    const { status, output } = runCli(['update'], CLI, { DATALOGIX_CLAUDE_TIMEOUT_MS: '3000' })
+
+    assert.equal(status, 0, output)
+    assert.doesNotMatch(output, /timed out/)
+    assert.ok(Date.now() - start < 15_000, 'waited for the child past the grace period')
+  })
+
   test('turns off git credential prompts for claude', () => {
     fakeClaude({ '--version': `echo "$GIT_TERMINAL_PROMPT" > "${path.join(tmpDir, 'prompt')}"` })
 

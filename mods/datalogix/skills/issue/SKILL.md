@@ -333,18 +333,17 @@ a reabre.
 - Para cada corpo, crie um arquivo com `mktemp`, grave o corpo nele
   e passe-o com `--body-file`. Não passe o corpo pela linha de
   comando. Apague o arquivo logo depois do envio, com sucesso ou não.
-- O título segue o mesmo caminho: grave-o num arquivo `mktemp` e
-  passe `--title "$(cat <arquivo do título>)"`. O shell não
-  interpreta o que sai do `$(...)`, então crases e `$` do título
-  não viram comando. Nunca escreva o título direto na linha de
-  comando.
+- O título vai como literal entre aspas simples, trocando cada `'`
+  por `'\''`: `--title '<título>'`. Dentro delas, crases e `$` não
+  viram comando. Nunca o passe entre aspas duplas nem com `$(...)`:
+  numa sessão isolada, um valor calculado na hora é recusado.
 - O sufixo "(novo)" é só da lista: tire-o do nome ao criar o label
   e ao aplicá-lo na issue.
 - Labels marcados com "(novo)": crie-os antes da issue, com
   `gh label create "<label>" [-R <owner/repo>]`. Para `claude`,
-  `claude-plan` e `rollback`, use a cor e a descrição do setup do
-  `datalogix/workflows` (`cli/kinds/project/state.js`); para `task`,
-  que o setup não define, os valores abaixo, que são desta skill.
+  `claude-plan`, `rollback` e `task`, use a cor e a descrição do
+  setup do `datalogix/workflows` (`cli/kinds/project/state.js`), que
+  são os valores abaixo.
   Passe-os com `--color <cor> --description "<descrição>"`. A
   descrição vai em inglês se o idioma do passo 2 for inglês; senão,
   em português:
@@ -355,13 +354,12 @@ a reabre.
   - `rollback`: `b60205`, "Reverte o ambiente para a versão
     anterior" / "Rolls the environment back to the previous
     release";
-  - `task`: `fbca04`, "Envia a issue para o gerenciador de tarefas"
-    / "Sends the issue to the task manager".
+  - `task`: `fbca04`, "Tarefa do gerenciador de tarefas" / "Task of
+    the task manager".
 
   Se falhar, mostre o erro e não crie a issue.
-- Criar: `gh issue create [-R <owner/repo>] --title "$(cat
-  <arquivo do título>)" --body-file <arquivo> [--label "<label>"
-  ...]`.
+- Criar: `gh issue create [-R <owner/repo>] --title '<título>'
+  --body-file <arquivo> [--label "<label>" ...]`.
 - Comentar numa issue parecida: `gh issue comment <número>
   [-R <owner/repo>] --body-file <arquivo>`, com o comentário da
   prévia.
@@ -388,7 +386,8 @@ Com `#<número>`, os passos 2 a 7 valem com estas diferenças:
   forks costumam ter as issues desativadas.
 - Leia a issue (`gh issue view <número> [-R <owner/repo>] --json
   number,title,body,state,labels,url`). Se não existir, diga e
-  pare. Se estiver fechada, avise e pergunte com `- [ ] Reescrever
+  pare. Se a `url` tiver `/pull/`, o número é de um pull request:
+  diga e pare. Se estiver fechada, avise e pergunte com `- [ ] Reescrever
   a #<número> (<título>) mesmo fechada`, na mesma seção
   `## Pendências` das perguntas do passo 4 e da de idioma, se
   houver. Desmarcado, pare.
@@ -425,9 +424,9 @@ Com `#<número>`, os passos 2 a 7 valem com estas diferenças:
   que a issue foi editada por outra pessoa, leia-a de novo e refaça
   a prévia, sem enviar.
 - Envie com `gh issue edit <número> [-R <owner/repo>] [--title
-  "$(cat <arquivo do título>)"] --body-file <arquivo> [--add-label
-  "<label>" ...] [--remove-label "<label>" ...]`, com os arquivos
-  temporários do passo 7 e, no `--remove-label`, só os "Remover"
+  '<título>'] --body-file <arquivo> [--add-label "<label>" ...]
+  [--remove-label "<label>" ...]`, com o título e o arquivo
+  temporário do passo 7 e, no `--remove-label`, só os "Remover"
   marcados. Não toque nos comentários, no responsável nem no
   estado da issue.
 - Não divida a issue: se ela juntar tarefas independentes, sugira

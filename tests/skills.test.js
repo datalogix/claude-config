@@ -179,7 +179,7 @@ describe('the text the skills keep in copies', () => {
   })
 
   test('issue and pr pass the title the same safe way', () => {
-    const start = '- O título segue o mesmo caminho'
+    const start = '- O título vai como literal'
     assert.equal(copyOf('issue/SKILL.md', start, /\n(?:- |\n)/), copyOf('pr/SKILL.md', start, /\n(?:- |\n)/))
   })
 })

@@ -39,9 +39,10 @@ Respostas às seções `## Pendências`, em todos os passos:
   Se falhar, diga o motivo e pare; não tente configurar nada.
 - Fork: os passos abaixo usam o `origin` e um `--head` sem dono, que
   o `gh` procura no próprio repositório do PR. Compare o
-  `nameWithOwner` com o do `origin` (`gh repo view "$(git remote
-  get-url origin)" --json nameWithOwner`, que resolve repositório
-  renomeado e caixa diferente). Se forem outros, diga que a skill só
+  `nameWithOwner` com o do `origin`: rode `git remote get-url
+  origin` e, em outro comando, `gh repo view <url> --json
+  nameWithOwner`, que resolve repositório renomeado e caixa
+  diferente. Se forem outros, diga que a skill só
   abre PR dentro de um mesmo repositório, mostre os dois nomes e pare.
   Com `isFork` verdadeiro, avise na prévia que o PR fica no fork, não
   no original.
@@ -79,7 +80,8 @@ Respostas às seções `## Pendências`, em todos os passos:
   PR segue sem issue (passo 4).
 - Leia a issue (`gh issue view <número> --json
   number,title,body,state,url`). Se não existir, diga e siga sem
-  ela. Se estiver fechada e o número veio de `#<número>`, avise e
+  ela. Se a `url` tiver `/pull/`, o número é de um pull request:
+  diga e siga sem issue. Se estiver fechada e o número veio de `#<número>`, avise e
   pergunte com `- [ ] Continuar com a #<número> (<título>) fechada`
   (passo 1). Desmarcado, pare. Se veio da branch, não faça essa
   pergunta: avise na caixa abaixo que ela está fechada.
@@ -268,14 +270,12 @@ como a skill de issue diz.
 - Crie um arquivo com `mktemp`, grave o corpo nele e passe-o com
   `--body-file`. Não passe o corpo pela linha de comando. Apague o
   arquivo logo depois do envio, com sucesso ou não.
-- O título segue o mesmo caminho: grave-o num arquivo `mktemp` e
-  passe `--title "$(cat <arquivo do título>)"`. O shell não
-  interpreta o que sai do `$(...)`, então crases e `$` do título
-  não viram comando. Nunca escreva o título direto na linha de
-  comando.
-- `gh pr create --base <base> --head <branch> --title "$(cat
-  <arquivo do título>)" --body-file <arquivo> [--draft] [--label
-  "<label>" ...]`.
+- O título vai como literal entre aspas simples, trocando cada `'`
+  por `'\''`: `--title '<título>'`. Dentro delas, crases e `$` não
+  viram comando. Nunca o passe entre aspas duplas nem com `$(...)`:
+  numa sessão isolada, um valor calculado na hora é recusado.
+- `gh pr create --base <base> --head <branch> --title '<título>'
+  --body-file <arquivo> [--draft] [--label "<label>" ...]`.
 - Com `no-review` marcado e sem rascunho, crie com `--draft` e
   depois rode `gh pr ready <url>`. O `gh` aplica os labels só
   depois de criar o PR, e a revisão do Claude, que ignora

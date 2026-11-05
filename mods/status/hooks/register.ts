@@ -232,7 +232,8 @@ export const parseGit = (porcelain: string): GitState | undefined => {
  * user or token in the URL is left out, since this ends up on the screen.
  */
 export const remoteWebUrl = (remote: string): string | undefined => {
-  const site = /^(https?):\/\/(?:[^@/]+@)?([^/]+)\/(.+?)(?:\.git)?\/?$/.exec(remote)
+  // Host and port only, and no @ in the path: a password with a raw / or @ must not end up in the link.
+  const site = /^(https?):\/\/(?:[^@/]+@)?([^/:@]+(?::\d+)?)\/([^@]+?)(?:\.git)?\/?$/.exec(remote)
   if (site) return `${site[1]}://${site[2]}/${site[3]}`
   const match =
     /^(?:ssh|git):\/\/(?:[^@/]+@)?([^/:]+)(?::\d+)?\/(.+?)(?:\.git)?\/?$/.exec(remote) ??

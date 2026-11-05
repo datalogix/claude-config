@@ -1869,6 +1869,13 @@ describe('remoteWebUrl', () => {
     expect(remoteWebUrl('https://x:secret@git.example.com:8443/o/r.git')).toBe('https://git.example.com:8443/o/r')
   })
 
+  test('gives no link for what is not a host and port, so a password with a raw / or @ stays out', () => {
+    expect(remoteWebUrl('https://user:p/ss@host.example.com/x')).toBeUndefined()
+    expect(remoteWebUrl('https://user:12/ss@host.example.com/x')).toBeUndefined()
+    expect(remoteWebUrl('https://a@b@host.example.com/x')).toBeUndefined()
+    expect(remoteWebUrl('https://user:pa%2Fss@host.example.com/x')).toBe('https://host.example.com/x')
+  })
+
   test('leaves out the port of an ssh remote, which is not the site', () => {
     expect(remoteWebUrl('ssh://git@git.example.com:2222/o/r.git')).toBe('https://git.example.com/o/r')
   })

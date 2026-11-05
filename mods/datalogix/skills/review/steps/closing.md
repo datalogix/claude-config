@@ -45,9 +45,10 @@ relatório extra da seção 2 aplicar entra na lista e atualiza as notas
 antes do resumo final.
 
 O que for gravado no projeto vai num commit sugerido como no item 5
-da seção 5 do `SKILL.md`, feito pelo fluxo de commit antes da seção 2
-deste arquivo; o que a seção 2 atualizar, num commit sugerido antes do
-resumo final.
+da seção 5 do `SKILL.md`, sem o item "Seguir", feito pelo fluxo de
+commit antes da seção 2 deste arquivo; o que a seção 2 atualizar, num
+commit sugerido antes do resumo final. Nesses commits, não sugira
+`/datalogix:pr`: ele fica para o fim do resumo final.
 
 Não crie tag nem release; eu faço.
 Em `report`: só descreva o que entraria nas notas, sem criar arquivos,
@@ -62,8 +63,10 @@ PARE até a resposta:
   branch da revisão ou, na branch padrão, o intervalo a partir do pai
   do primeiro commit do que foi revisado (em etapa avulsa, caminho ou
   modo, o primeiro daquela etapa, caminho ou modo); se ele não aceitar
-  um intervalo, diga e oriente-me. Sem nenhuma mudança, pule esta
-  seção;
+  um intervalo, diga e oriente-me. Mudanças sem commit não entram
+  nesses alvos: sem nenhum commit da revisão, rode-o sem alvo (o diff
+  atual); com commits e algo sem commit, avise o que fica de fora. Sem
+  nenhuma mudança, pule esta seção;
 - `- [x] Rodar o /security-review sobre as mudanças da revisão`, só
   se as mudanças da revisão tocam áreas sensíveis: autenticação,
   autorização (policies, gates, middleware), validação de entrada,
@@ -98,4 +101,5 @@ Para mudanças grandes antes do merge, mencione o `/code-review ultra`
 ## 3. Resumo final
 Etapas feitas, passos pulados ("pula"), itens aplicados e recusados,
 "Decisões tomadas", testes adicionados, quebras de API e perguntas e
-correções que ficaram pendentes.
+correções que ficaram pendentes. Para abrir o pull request, sugira
+`/datalogix:pr`.

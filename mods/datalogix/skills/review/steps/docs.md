@@ -69,9 +69,15 @@ Em todos: corrija ou remova trechos desatualizados.
   `datalogix/workflows`
 
 ## Skills e guidelines
-- distribuídas pelo pacote (`resources/boost/`): descrevem a API atual,
-  com classes, componentes, opções e comandos que existem de verdade e
+- distribuídas pelo pacote ou pela lib (`resources/boost/` ou toda
+  outra pasta com `SKILL.md` que um `plugin.json`, um
+  `marketplace.json` ou o `files` entrega, ex.: `mods/<nome>/skills/`;
+  liste com `git ls-files '*SKILL.md'`): descrevem a API atual, com
+  classes, componentes, opções e comandos que existem de verdade e
   exemplos que funcionam; nada removido ou renomeado na revisão
+- skills só de prompt, numa lib em que elas são o produto: cada comando
+  roda como está escrito (confira numa cópia fora do projeto), cada
+  arquivo ou skill citada existe, e as regras não se contradizem
 - do projeto (`.claude/skills`, `.claude/commands`, `.ai/skills`,
   `.ai/guidelines`): refletem as "Decisões do projeto"
 - cada `SKILL.md` com `name` e `description` claros, dizendo quando

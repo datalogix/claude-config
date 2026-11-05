@@ -10,10 +10,14 @@ ou sem `--allow-git=root`), não use `npm pack`: ele recusa
 package.json sem `version` e essa instalação não precisa dele; não
 sugira acrescentá-lo só por isso.
 Troque os dois `npm pack` e a instalação do `.tgz` da Preparação
-por: em `<sandbox>/app`, `npm init -y` (uma vez só) e `npm i
+por: com `cd <sandbox>/app && ...`, `npm init -y` (uma vez só) e `npm i
 --allow-git=root git+file://<caminho absoluto do projeto>#<commit>`,
 que só leva o que tem commit (avise se a árvore estiver suja). Confira
 a lista de arquivos em `node_modules/<nome>`, com os mesmos critérios.
+O clone local ignora o `export-ignore`, que o tarball do GitHub
+respeita: arquivo dessa lista que falte em `git archive --format=tar
+<commit> | tar -t`, salvo o gerado pelo `prepare`, não chega a quem
+instala e é item "crítico".
 
 ## Preparação (tudo FORA do projeto)
 - Sandbox: `~/.claude/reviews/<id>/sandbox/` (`<sandbox>` abaixo),
@@ -32,8 +36,10 @@ a lista de arquivos em `node_modules/<nome>`, com os mesmos critérios.
   - cada caminho de `exports`, `main`, `module`, `types` e `bin` existe
     no pacote
 - `npm pack --pack-destination <sandbox>`.
-- Projeto limpo em `<sandbox>/app`: `npm init -y`, instale o `.tgz` e
-  as `peerDependencies`, e `typescript` como dependência de
+- Projeto limpo em `<sandbox>/app`, tudo com `cd <sandbox>/app && ...`
+  na mesma chamada (na raiz, o `npm init -y` reescreve o package.json
+  do projeto, e o `--prefix` não o impede): `npm init -y`, instale o
+  `.tgz` e as `peerDependencies`, e `typescript` como dependência de
   desenvolvimento da sandbox (só para conferir os tipos). Se não houver
   rede ou falhar, pare e me avise.
 
@@ -48,10 +54,14 @@ teste passaria sem olhar o que foi instalado.
    - CJS, se o pacote declarar `require`: `node -e
      "console.log(Object.keys(require('<entrada>')))"`
    - lib só de navegador: pule a execução no Node e confira só os tipos
-2. Tipos: um `check.mts` que importa cada entrada e usa o principal de
-   cada uma, compilado com `npx tsc --noEmit` duas vezes, com
-   `"moduleResolution": "bundler"` e com `"node16"`
-   (`"module": "node16"`); nenhum erro nem `any` implícito vindo da lib.
+2. Tipos (numa lib só com `bin`, pule, sem instalar o `typescript`):
+   um `check.mts` que importa cada entrada e usa o principal de cada
+   uma, e dois configs na sandbox, ambos com `"strict": true` e
+   `"files": ["check.mts"]`: um com `"module": "esnext"` e
+   `"moduleResolution": "bundler"`, outro com `"module": "node16"` e
+   `"moduleResolution": "node16"`. Rode `npx tsc --noEmit -p <config>`
+   nos dois (sem config, o `tsc` só mostra a ajuda); nenhum erro nem
+   `any` implícito vindo da lib.
 3. O exemplo de uso rápido do README, à risca, sem completar nada de
    cabeça: transforme-o num arquivo na sandbox e execute.
 4. Cada comando do `bin`: rode com `--help` pelo `npx` da sandbox. Sem
@@ -76,4 +86,4 @@ com o novo `#<commit>`; sem commit, diga que a correção não foi
 confirmada.
 
 A sandbox é apagada quando eu disser "próxima" ou, na etapa avulsa,
-ao fim dela.
+ao fim dela; na lib instalada por git, só depois dessa confirmação.

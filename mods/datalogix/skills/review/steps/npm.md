@@ -13,8 +13,8 @@ Analise:
   `vite.config.*`, `tailwind.config.*`, `postcss.config.*`, configs de
   ESLint/Prettier/Stylelint, scripts). Aponte os que parecem não usados
   e use `npm explain <pacote>` (ou equivalente) para ver se outro
-  pacote também o exige (aí removê-lo não o desinstala). É só sugestão:
-  plugins usados só via config dão falso positivo.
+  pacote também o exige (aí removê-lo não o desinstala). É só
+  sugestão: plugins usados só via config dão falso positivo.
 - **dependencies vs devDependencies**: com JS compilado (Vite), quase
   tudo é `devDependencies`; numa lib publicada no npm, o que vai em
   runtime fica em `dependencies` e o framework (Vue, React) em
@@ -38,8 +38,9 @@ Analise:
   `engines` se o projeto depende de uma versão do Node.
 - **Publicação (só lib JS/TS)**: numa lib instalada por git, sem
   publicação (`private: true`), valem só `files`, `license`,
-  `repository` e `description`; os demais itens abaixo não se
-  aplicam:
+  `repository`, `description` e, com etapa de build, o script
+  `prepare` rodando o `build` (sem ele, a saída ignorada pelo git não
+  chega a quem instala); os demais itens abaixo não se aplicam:
   - `exports` em todas as entradas, com a condição `types` primeiro e
     `import`/`require` batendo com os formatos do build; `main`,
     `module` e `types` só como fallback, coerentes com o `exports`
@@ -52,6 +53,9 @@ Analise:
     escopo publicado no npm público
   - script `prepublishOnly` (ou `prepack`) rodando o `build`, para
     não publicar sem build
+- **Licença (só lib JS/TS)**: `LICENSE` na raiz, como no item
+  "Licença" de `composer.md` (nesta mesma pasta), comparando com
+  `templates/LICENSE` e com o `license` do package.json.
 - **Scripts** (convenção de `datalogix/workflows`: numa aplicação, o
   CI roda `typecheck`, `lint` e `test` do `package.json` quando
   existem, pelo gerenciador do lockfile; num pacote, o CI não roda JS,

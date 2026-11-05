@@ -2,7 +2,8 @@
 
 Só se existir front-end. Arquivos gerados/compilados ficam fora.
 Nomenclatura, documentação no código e docblocks: mesmas regras de
-`code.md` (nesta mesma pasta); leia só essas seções de lá.
+`code.md` ou, nos tipos JS, de `code-js.md` (nesta mesma pasta); leia
+só essas seções de lá.
 
 Nos tipos Laravel, as seções "Views", "CSS", "JS/TS" e "Testes". Nos
 tipos JS, "CSS", "JS/TS", a seção do framework ("Vue", mais "Nuxt"

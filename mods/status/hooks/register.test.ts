@@ -1760,6 +1760,8 @@ describe('extractExcerpt', () => {
     ['> ```\n> code\n\nFeito', 'Feito'],
     ['- ~~~riscado~~~ texto\nFeito', 'Feito'],
     ['- ```js\n  code\n\nFeito', 'Feito'],
+    ['  ```\n  code\nFeito', 'Feito'],
+    ['  ```\n  code\n```\nFeito', 'Feito'],
   ] as const) {
     test(`${JSON.stringify(answer)} is ${JSON.stringify(text)}`, () => expect(extractExcerpt(answer)).toBe(text))
   }

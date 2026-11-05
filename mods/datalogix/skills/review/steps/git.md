@@ -19,6 +19,12 @@
 - aplicação: `.env` ignorado e `.env.example` versionado; `storage/` e
   `bootstrap/cache/` com seus `.gitignore` internos; `public/build`,
   `public/hot` e `public/storage` ignorados
+- organização (item "sugestão", só num arquivo desorganizado, nunca por
+  gosto): entradas agrupadas por assunto, com um comentário curto em cada
+  grupo; nada duplicado nem coberto por outra regra (`/vendor` e
+  `vendor/`). Ao reorganizar, mantenha cada exceção depois da regra que
+  ela desfaz (`!.env.example` depois de `.env.*`) e confira que `git
+  status --porcelain --ignored` sai igual antes e depois
 
 ## .gitattributes
 - ausente: item "importante" que cria o arquivo com as regras

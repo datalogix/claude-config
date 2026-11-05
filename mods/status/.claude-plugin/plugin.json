@@ -27,7 +27,7 @@
     "excerpt": {
       "type": "boolean",
       "title": "Trecho da resposta na notificação",
-      "description": "Mostra a primeira linha de texto da resposta na notificação do sistema (pode aparecer na tela de bloqueio)",
+      "description": "Mostra a primeira linha de texto da resposta na notificação do sistema (pode aparecer na tela de bloqueio); a descrição de um agente sempre aparece na notificação dele",
       "default": false
     }
   }

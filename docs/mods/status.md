@@ -9,7 +9,7 @@ system notification) when an answer or the background agents end.
 | `minSeconds` | `30` | only send a notice for answers, and background agents that end while others keep running, that took at least this long. Errors, refusals of the answer or of a background agent, and interrupted background agents always send one; an interrupted answer, or a foreground agent's refusal or interruption, never does. A notice is the toast; the system notification follows `notify` |
 | `planAlert` | `90` | highlight the plan at or above this percentage (1–100) and show a toast when usage reaches it or 75%; at the limit, send a notice instead (the system notification follows `notify`) |
 | `notify` | `always` | system notifications: `always`, `agents` (background agents only) or `never` (toast only) |
-| `excerpt` | `false` | put the first line of text of the answer (fenced code blocks, rules, table rows that start with `\|` and lines that are only an HTML comment skipped) in the system notification (it may show on the lock screen, so it is off by default) |
+| `excerpt` | `false` | put the first line of text of the answer (fenced code blocks, rules, table rows that start with `\|`, lines that are only an HTML comment and lines with no letter or digit skipped, also in a quote or a list item) in the system notification (it may show on the lock screen, so it is off by default). An agent's description is always in its notification, whatever this says |
 
 The options were renamed from `segundos`, `alertaPlano`, `notificar`
 (`sempre`/`agentes`/`nunca`) and `trecho`, and `excerpt` was called

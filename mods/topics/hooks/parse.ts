@@ -99,7 +99,7 @@ export const plainText = (t: string) => {
       // An escaped mark is text, so it stays out of the emphasis and link passes, as a code span does.
       .replace(/\\([\\*_~[\]])/g, (_, mark: string) => `${CODE_MARK}${spans.push(mark) - 1}${CODE_MARK}`)
       // Before emphasis, which could take the _ of a URL.
-      .replace(new RegExp(`!?\\[([^\\]]{1,${INLINE_MAX}})\\]\\([^)]{0,${INLINE_MAX}}\\)`, 'g'), '$1')
+      .replace(new RegExp(`!?\\[([^\\][]{1,${INLINE_MAX}})\\]\\([^)]{0,${INLINE_MAX}}\\)`, 'g'), '$1')
       .replace(new RegExp(`(?<!~)~~(?=[^\\s~])(.{1,${INLINE_MAX}}?)(?<=[^\\s~])~~(?!~)`, 'g'), '$1')
       // Emphasis pairs only: a lone * (2 * 3), globs (src/*.ts, *.md), paths (__init__.py) and $_ENV stay. Bold may
       // start with . or / (**.env**): a glob's ** (**/*.ts) has no pair closing before a space.

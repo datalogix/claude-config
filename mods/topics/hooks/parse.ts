@@ -61,6 +61,7 @@ const PREVIEW_MAX = 90
 // since each mod installs on its own: change both. tests/mods.test.js compares only the regex, not the closing rule.
 const FENCE = /^\s*(?:(?:[-*+]|\d+[.)])\s+)?(`{3,}(?!.*`)|~{3,})/
 const QUOTE = /^\s*(?:>\s?)+/
+const LIST_ITEM = /^\s*(?:[-*+]|\d+[.)])(?:\s|$)/
 /** Emphasis or a code span no longer than this comes off: unbounded, a line of openers took quadratic time. */
 const INLINE_MAX = 1000
 
@@ -132,8 +133,10 @@ const createCodeBlockTracker = () => {
   let openFence = ''
   // Where the list item that opened the block has its text, and whether a quote opened it: the block ends with them.
   let itemColumn = 0
-  // An indented fence may be in a list item, which a line at column 0 ends unless it is a fence closing the block.
-  let isIndented = false
+  // Whether the text before a block is a list, and whether a block is indented in one: a line at column 0 ends the
+  // item and the block with it, unless it is a fence closing the block. Outside a list, it is still code (CommonMark).
+  let isInList = false
+  let isIndentedInList = false
   let isInQuote = false
   return (rawLine: string): 'open' | 'close' | 'code' | false => {
     const isQuoteLine = QUOTE.test(rawLine)
@@ -147,12 +150,13 @@ const createCodeBlockTracker = () => {
       fence[0] === openFence[0] &&
       fence.length >= openFence.length &&
       !line.trim().slice(fence.length).trim()
-    if (line.trim() && (column < itemColumn || (isIndented && column === 0 && !isClosing))) openFence = ''
+    if (line.trim() && (column < itemColumn || (isIndentedInList && column === 0 && !isClosing))) openFence = ''
+    if (!openFence && line.trim()) isInList = LIST_ITEM.test(line) || (isInList && column > 0)
     if (fence && !openFence) {
       openFence = fence
       const isOnMarker = !line.trimStart().startsWith(fence)
       itemColumn = isOnMarker ? line.indexOf(fence) : 0
-      isIndented = !isOnMarker && column > 0
+      isIndentedInList = !isOnMarker && column > 0 && isInList
       isInQuote = isQuoteLine
       return 'open'
     }

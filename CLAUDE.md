@@ -191,9 +191,9 @@ node bin/cli.js --link                    # install from this clone: edits apply
   `tests/skills.test.js` runs every item written in a code span in the skills' Markdown files through `parseActions`,
   refuses one outside a span or cut short by a backtick inside it and requires each `SKILL.md` to have items and the
   `## Pendências` title. It also pins what one skill relies on in another (the issue skill's step 2 and "Idioma" item;
-  the commit skill's steps 1 and 2, "Branch com data", `grupos:` and "Com grupos marcados") and checks that every step
-  in review's type files has its checklist, that every file review names exists and that the bare names in `steps/`
-  are files of that folder.
+  the commit skill's steps 1 and 2, "Branch com data", `grupos:` and "Com grupos marcados"), compares the text the
+  skills keep in copies, since each is read alone, and checks that every step in review's type files has its checklist,
+  that every file review names exists and that the bare names in `steps/` are files of that folder.
 - `/datalogix:issue`, `/datalogix:pr` and `/datalogix:commit` take the language of issues, pull requests and commits
   from a `- Issues and pull requests: <language>` line in the target project's `CLAUDE.md` (pr and commit by
   following the "Idioma" item of the issue skill's step 2). Without it they detect the language from the default

@@ -146,6 +146,44 @@ test('the commit skill still reads paths safely', () => {
   assert.ok(commit.includes('--name-only --no-renames'))
 })
 
+describe('the text the skills keep in copies', () => {
+  /**
+   * From `start` up to `end`, with line breaks as spaces, since each file wraps it by hand.
+   *
+   * @param {string} file
+   * @param {string} start
+   * @param {RegExp} end
+   */
+  const copyOf = (file, start, end) => {
+    const text = read(file)
+    const from = text.indexOf(start)
+    assert.ok(from >= 0, `${file}: ${start}`)
+    const rest = text.slice(from + start.length)
+    return `${start}${rest.slice(0, rest.search(end))}`.replace(/\s+/g, ' ')
+  }
+
+  const ANSWERS = 'Respostas às seções `## Pendências`'
+
+  test('issue and pr read the answers to their lists the same way', () => {
+    assert.equal(copyOf('issue/SKILL.md', ANSWERS, /\n\n/), copyOf('pr/SKILL.md', ANSWERS, /\n\n/))
+  })
+
+  test.each(['commit', 'ci'])('%s starts the answers from the same rules', (skill) => {
+    const answers = copyOf(`${skill}/SKILL.md`, ANSWERS, /\n\n/)
+    assert.ok(answers.includes('- Cada caixa vale como chega na resposta: marcada é sim; desmarcada, não faça aquilo.'))
+    assert.ok(
+      answers.includes(
+        '- Resposta só em texto, sem a lista: nenhuma caixa conta como marcada, salvo as que o texto citar',
+      ),
+    )
+  })
+
+  test('issue and pr pass the title the same safe way', () => {
+    const start = '- O título segue o mesmo caminho'
+    assert.equal(copyOf('issue/SKILL.md', start, /\n(?:- |\n)/), copyOf('pr/SKILL.md', start, /\n(?:- |\n)/))
+  })
+})
+
 describe('the supporting files of the review skill', () => {
   /** @param {string} file */
   const exists = (file) => fs.existsSync(new URL(`review/${file}`, skillsDir))

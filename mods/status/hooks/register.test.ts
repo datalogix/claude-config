@@ -1885,6 +1885,19 @@ describe('remoteWebUrl', () => {
     expect(remoteWebUrl('https://x-access-token:secret@github.com/o/r.git')).toBe('https://github.com/o/r')
   })
 
+  test('gives no link for a query, a fragment or an @ in the path, in any form', () => {
+    expect(remoteWebUrl('https://github.com/o/r.git?token=abc')).toBeUndefined()
+    expect(remoteWebUrl('https://github.com/o/r.git#token=abc')).toBeUndefined()
+    expect(remoteWebUrl('ssh://github.com/o/r.git?token=abc')).toBeUndefined()
+    expect(remoteWebUrl('github.com:o/r.git?token=abc')).toBeUndefined()
+    expect(remoteWebUrl('ssh://user.x:12/ss@host.com/path')).toBeUndefined()
+    expect(remoteWebUrl('u.x:pa/ss@host.com:path')).toBeUndefined()
+  })
+
+  test('takes no double slash from an absolute scp path', () => {
+    expect(remoteWebUrl('git@github.com:/o/r.git')).toBe('https://github.com/o/r')
+  })
+
   test('has no address for a local path or an ssh alias', () => {
     expect(remoteWebUrl('/srv/git/r.git')).toBeUndefined()
     expect(remoteWebUrl('../r.git')).toBeUndefined()

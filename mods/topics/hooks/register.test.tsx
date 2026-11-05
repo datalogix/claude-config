@@ -170,6 +170,13 @@ describe('parseAnswer', () => {
       ['A', 'B'],
     ],
     ['a title of only spaces is not a topic', ['x', '##  ', 'y', '## A', 'z'], ['A']],
+    ['the end of a list item ends a fence opened on it', ['- ~~~riscado~~~ texto', '', '## A', '## B'], ['A', 'B']],
+    ['the end of a quote ends a fence opened in it', ['> ```', '> code', '', '## A', '## B'], ['A', 'B']],
+    [
+      'a quoted fence does not close a block opened outside',
+      ['## A', '```', '> ```', '## dentro', '```', '## B'],
+      ['A', 'B'],
+    ],
   ] as const) {
     test(name, () => {
       expect(parseAnswer(lines.join('\n')).topics.map((t) => t.title)).toEqual(titles)
@@ -493,6 +500,14 @@ describe('previewOf', () => {
     const start = Date.now()
     expect(previewOf('*a '.repeat(40_000)).endsWith('…')).toBe(true)
     expect(Date.now() - start).toBeLessThan(1_000)
+  })
+
+  test('drops the emphasis of a long line', () => {
+    expect(previewOf(`**${'a'.repeat(400)}**`).startsWith('aaa')).toBe(true)
+  })
+
+  test('skips a code block in a quote', () => {
+    expect(previewOf('> ```js\n> code\n> ```\nFeito')).toBe('Feito')
   })
 
   test('drops list and title markup', () => {

@@ -52,6 +52,9 @@ const PREVIEW_MAX = 90
 // copy of this regex and of createCodeBlockTracker's closing rule (same character, at least as long, nothing after),
 // since each mod installs on its own: change both. tests/mods.test.js compares only the regex, not the closing rule.
 const FENCE = /^\s*(?:(?:[-*+]|\d+[.)])\s+)?(`{3,}(?!.*`)|~{3,})/
+const QUOTE = /^\s*(?:>\s?)+/
+/** Emphasis or a code span no longer than this comes off: unbounded, a line of openers took quadratic time. */
+const INLINE_MAX = 1000
 
 /** Only tests the line: whether it opens or closes a block is createCodeBlockTracker's job. */
 const isFence = (line: string) => FENCE.test(line)
@@ -75,17 +78,26 @@ export const plainText = (t: string) => {
   return (
     t
       .replace(
-        /(`+)(.*?)(?<!`)\1(?!`)/g,
+        new RegExp(`(\`+)(.{0,${INLINE_MAX}}?)(?<!\`)\\1(?!\`)`, 'g'),
         (_, _ticks, code: string) => `${CODE_MARK}${spans.push(code) - 1}${CODE_MARK}`,
       )
       .replace(/`/g, '')
       // Emphasis pairs only: a lone * (2 * 3), globs (src/*.ts, *.md), paths (__init__.py) and $_ENV stay. Bold may
       // start with . or / (**.env**): a glob's ** (**/*.ts) has no pair closing before a space.
       .replace(
-        /(?<![\p{L}\p{N}*/.])(\*{2,3}(?=[^\s*])|\*(?=[^\s*/.]))(.+?)(?<=[^\s*])\1(?![\p{L}\p{N}*/]|\.[\p{L}\p{N}])/gu,
+        new RegExp(
+          `(?<![\\p{L}\\p{N}*/.])(\\*{2,3}(?=[^\\s*])|\\*(?=[^\\s*/.]))(.{1,${INLINE_MAX}}?)(?<=[^\\s*])\\1(?![\\p{L}\\p{N}*/]|\\.[\\p{L}\\p{N}])`,
+          'gu',
+        ),
         '$2',
       )
-      .replace(/(?<![\p{L}\p{N}_/.])(_{1,3})(?=[^\s_/.])(.+?)(?<=[^\s_])\1(?![\p{L}\p{N}_/]|\.[\p{L}\p{N}])/gu, '$2')
+      .replace(
+        new RegExp(
+          `(?<![\\p{L}\\p{N}_/.])(_{1,3})(?=[^\\s_/.])(.{1,${INLINE_MAX}}?)(?<=[^\\s_])\\1(?![\\p{L}\\p{N}_/]|\\.[\\p{L}\\p{N}])`,
+          'gu',
+        ),
+        '$2',
+      )
       .replace(new RegExp(`${CODE_MARK}(\\d+)${CODE_MARK}`, 'g'), (_, i: string) => spans[Number(i)]!)
   )
 }
@@ -100,10 +112,20 @@ export const toggle = (list: readonly number[], i: number): number[] =>
 /** The returned function is called with each line in order; `'code'` is a line inside a block. */
 const createCodeBlockTracker = () => {
   let openFence = ''
-  return (line: string): 'open' | 'close' | 'code' | false => {
+  // Where the list item that opened the block has its text, and whether a quote opened it: the block ends with them.
+  let itemColumn = 0
+  let isInQuote = false
+  return (rawLine: string): 'open' | 'close' | 'code' | false => {
+    const isQuoteLine = QUOTE.test(rawLine)
+    if (isInQuote && !isQuoteLine) openFence = ''
+    // A > inside a block opened outside a quote is code.
+    const line = !openFence || isInQuote ? rawLine.replace(QUOTE, '') : rawLine
+    if (itemColumn && line.trim() && line.search(/\S/) < itemColumn) openFence = ''
     const fence = FENCE.exec(line)?.[1]
     if (fence && !openFence) {
       openFence = fence
+      itemColumn = line.trimStart().startsWith(fence) ? 0 : line.indexOf(fence)
+      isInQuote = isQuoteLine
       return 'open'
     }
     if (
@@ -196,8 +218,7 @@ export const parseAnswer = (text: string): ParsedAnswer => {
 export const previewOf = (body: string): string => {
   const trackCodeLine = createCodeBlockTracker()
   const line = body.split('\n').find((l) => !trackCodeLine(l) && l.trim()) ?? ''
-  // Cut first: plainText grows quadratically on a huge line, and only the start is shown.
-  const clean = plainText(line.slice(0, 4 * PREVIEW_MAX).replace(/^\s*(>\s*)*((#+|[-*+]|\d+[.)])\s+)?/, '')).trim()
+  const clean = plainText(line.replace(/^\s*(>\s*)*((#+|[-*+]|\d+[.)])\s+)?/, '')).trim()
   // By code point, so an emoji is not cut in half.
   const chars = [...clean]
   return chars.length > PREVIEW_MAX ? `${chars.slice(0, PREVIEW_MAX - 1).join('')}…` : clean

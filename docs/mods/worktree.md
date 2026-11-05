@@ -17,11 +17,12 @@ Uncommitted changes do not follow a worktree. When there are any, the
 question offers leaving them in the current folder, the recommended
 choice, or taking them along, warning that this can conflict with the
 worktree's base and unstages what is staged. Only that second choice runs
-`git stash push -u -m "worktree-<name>"` and keeps the entry's sha, since
-the stash stack is shared across worktrees. In the worktree it runs
-`git stash apply <sha>` and then drops that entry. A failed push creates no
-worktree, a failed `EnterWorktree` restores the changes in the current
-folder, and any failed restore stops there with the stash still stored.
+`git stash push -u -m "worktree-<name>"` and finds the entry's sha by that
+message, since the stash stack is shared across worktrees. In the worktree
+it runs `git stash apply <sha>` and then drops that entry. A failed push
+creates no worktree, a failed `EnterWorktree` restores the changes in the
+current folder, and any failed restore stops there with the stash still
+stored.
 
 After creating a worktree, Claude warns if `.claude/worktrees/` is not
 ignored by git in the main checkout, where the folder is.

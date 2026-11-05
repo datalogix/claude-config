@@ -43,7 +43,8 @@ describe('the worktree instruction', () => {
   test('restores the entry it stored by sha, since the stash stack is shared across worktrees', async ($, on) => {
     on('prompt.compose', () => ({ sections: [] }) as never)
     const { sections } = await $.prompt.compose(input)
-    expect(sections[0]?.text).toContain("`git rev-parse 'stash@{0}'`")
+    expect(sections[0]?.text).toContain("`git stash list --format='%H %gs'`")
+    expect(sections[0]?.text).not.toContain('stash@{0}')
     expect(sections[0]?.text).toContain('`git stash apply <sha>`')
     expect(sections[0]?.text).toContain("`git stash list --format='%gd %H'`")
     expect(sections[0]?.text).not.toContain('git stash pop')

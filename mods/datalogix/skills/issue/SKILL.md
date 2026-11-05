@@ -188,8 +188,8 @@ O que corrigir e onde.
 - Nunca escreva `@claude` no título, no corpo ou num comentário,
   nem entre crases: num comentário, o texto dispara o workflow
   `claude.yml`; no título e no corpo, dispara na abertura da issue
-  em quem usa o `@v1` dos workflows e, nos demais, pode ser copiado
-  para um comentário. Se a descrição tiver `@claude`, escreva
+  em quem usa uma versão antiga dos workflows e, nos demais, pode ser
+  copiado para um comentário. Se a descrição tiver `@claude`, escreva
   "o Claude" no lugar e avise na prévia (passo 6).
 - Não invente requisitos nem passos de reprodução. O que faltar e
   for essencial vira pergunta, feita antes da prévia em uma única

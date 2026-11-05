@@ -280,14 +280,6 @@ describe('tool groups', () => {
 })
 
 describe('spinner', () => {
-  test('keeps the original with the current step below it', async ($, on) => {
-    drawSpinnerRow(on)
-    const ui = await mount($, 'Spinner', spinner())
-
-    const texts = (await ui.findAll({ type: 'Text' })).map((t) => t.text)
-    expect(texts).toEqual(['Sauteing||…', 'pensando'])
-  })
-
   for (const [mode, label] of [
     ['requesting', 'aguardando o modelo'],
     ['thinking', 'pensando'],

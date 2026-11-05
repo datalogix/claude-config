@@ -48,6 +48,7 @@ Tudo que quem instala a lib usa ou de que depende:
   eventos ou callbacks, slots ou `children`, `ref` exposto, e as
   classes e variáveis CSS documentadas
 - comandos do `bin` e suas opções
+- skills e mods distribuídos: nome de cada comando e seus argumentos
 - arquivos expostos além do JS: CSS, assets, JSON
 - faixa de `peerDependencies` e de `engines.node`, e os formatos
   publicados (ESM, CJS)

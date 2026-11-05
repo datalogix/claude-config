@@ -49,7 +49,7 @@ describe('cmdLine through cmd.exe', { skip: process.platform !== 'win32' }, () =
   test.each([
     ['a plain argument', ['plugin', 'install', 'steps@claude-config']],
     ['spaces and cmd operators', ['a b&c|d', 'x>y', 'x<y', '(z)']],
-    ['% and ! that cmd must not expand', ['%PATH%', '!x!', '%%', '100%']],
+    ['% and ! that cmd must not expand', ['%PATH%', '%PATH:a=b%', '!x!', '%%', '100%']],
     ['quotes and the backslashes before them', ['say "hi"', 'say \\"hi', 'a\\\\"', '"']],
     ['carets and other metacharacters', ['^', 'a^b', ';,=*?', '`']],
     ['Windows paths, with a trailing backslash', ['C:\\dir\\', 'C:\\a\\b', 'C:\\Program Files\\x']],

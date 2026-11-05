@@ -92,6 +92,41 @@ Não sugira criar a badge num README sem ela.
   usar; conteúdo enxuto, sem repetir o README
 - nada que contradiga outra skill, guideline ou o `CLAUDE.md`
 
+## Guias do Laravel Boost (só pacote Laravel)
+Um pacote leva guias ao Boost de quem o instala, sem depender dele, e
+o `php artisan boost:install` os carrega:
+- `resources/boost/guidelines/core.blade.php`: carregado sempre, curto:
+  o que o pacote faz, convenções e estrutura exigidas, e como usar os
+  principais recursos, com exemplos em `@verbatim` e `<code-snippet
+  name="..." lang="php">`
+- `resources/boost/skills/<nome>/SKILL.md`: carregado sob demanda, com
+  `name` e `description` no frontmatter, para uma tarefa com passos
+  próprios (ex.: criar um recurso do pacote)
+
+Sem `resources/boost/`: item "sugestão" que propõe os arquivos, com o
+texto de cada um no relatório, tirado da API pública atual. Um pacote
+pequeno, sem convenção própria, fica só com o `core.blade.php`; não
+proponha skill que repita o guia. Com a pasta, confira contra o código,
+como em "Skills e guidelines", e que o `.gitattributes` não a exclua.
+
+## Formatação dos documentos
+Vale para README, `/docs`, CHANGELOG, UPGRADE, CONTRIBUTING e guias, com
+um item "sugestão" por arquivo, juntando os ajustes:
+- títulos: um só `#`, sem pular nível, no mesmo estilo em todo o arquivo
+- tabelas com as colunas alinhadas, inclusive o separador
+- listas com o mesmo marcador e o mesmo recuo; texto de itens paralelos
+  na mesma forma
+- blocos de código com a linguagem na cerca, e linha em branco em volta
+  de títulos, listas, tabelas e blocos
+- badges juntas, logo abaixo do título, sem espaço a mais entre elas
+- largura de linha igual à do resto do arquivo, sem uma linha muito mais
+  longa que as vizinhas; links relativos que existem
+
+Com o Prettier cobrindo Markdown, ele resolve o que alcança: rode-o e
+aponte só o resto. Com `*.md` no `.prettierignore`, ajuste à mão, sem
+reformatar o arquivo inteiro. Cuidado em skills e guias, onde a quebra
+de uma lista pode mudar o sentido.
+
 ## Ao aplicar
 Marque como "documentado" na lista "Mudanças para documentar" o que
 foi coberto; não apague: o fechamento usa a lista.

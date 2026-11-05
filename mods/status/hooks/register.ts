@@ -88,26 +88,31 @@ const createCodeBlockTracker = () => {
   let openFence = ''
   // Where the list item that opened the block has its text, and whether a quote opened it: the block ends with them.
   let itemColumn = 0
+  // An indented fence may be in a list item, which a line at column 0 ends unless it is a fence closing the block.
+  let isIndented = false
   let isInQuote = false
   return (rawLine: string): boolean => {
     const isQuoteLine = QUOTE.test(rawLine)
     if (isInQuote && !isQuoteLine) openFence = ''
     // A > inside a block opened outside a quote is code.
     const line = !openFence || isInQuote ? rawLine.replace(QUOTE, '') : rawLine
-    if (itemColumn && line.trim() && line.search(/\S/) < itemColumn) openFence = ''
+    const column = line.search(/\S/)
     const fence = FENCE.exec(line)?.[1]
-    if (fence && !openFence) {
-      openFence = fence
-      itemColumn = line.trimStart().startsWith(fence) ? 0 : line.indexOf(fence)
-      isInQuote = isQuoteLine
-      return true
-    }
-    if (
-      fence &&
+    const isClosing =
+      fence !== undefined &&
       fence[0] === openFence[0] &&
       fence.length >= openFence.length &&
       !line.trim().slice(fence.length).trim()
-    ) {
+    if (line.trim() && (column < itemColumn || (isIndented && column === 0 && !isClosing))) openFence = ''
+    if (fence && !openFence) {
+      openFence = fence
+      const isOnMarker = !line.trimStart().startsWith(fence)
+      itemColumn = isOnMarker ? line.indexOf(fence) : 0
+      isIndented = !isOnMarker && column > 0
+      isInQuote = isQuoteLine
+      return true
+    }
+    if (isClosing) {
       openFence = ''
       return true
     }

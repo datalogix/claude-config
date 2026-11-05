@@ -11,8 +11,11 @@ import { describe, expect, test } from 'claude-code/testing'
 import type { Engine as TestEngine } from 'claude-code/testing'
 
 import {
+  parseActions,
   parseAnswer,
+  plainText,
   previewOf,
+  questionOf,
   STANCE_MARK,
   stanceOf,
   sentText,
@@ -172,6 +175,8 @@ describe('parseAnswer', () => {
     ['a title of only spaces is not a topic', ['x', '##  ', 'y', '## A', 'z'], ['A']],
     ['the end of a list item ends a fence opened on it', ['- ~~~riscado~~~ texto', '', '## A', '## B'], ['A', 'B']],
     ['the end of a quote ends a fence opened in it', ['> ```', '> code', '', '## A', '## B'], ['A', 'B']],
+    ['the end of a list item ends an indented fence', ['- item', '  ```', '  x', '## A', '## B'], ['A', 'B']],
+    ['a fence at column 0 closes an indented one', ['## A', '  ```', '  x', '```', '## B'], ['A', 'B']],
     [
       'a quoted fence does not close a block opened outside',
       ['## A', '```', '> ```', '## dentro', '```', '## B'],

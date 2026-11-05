@@ -51,8 +51,8 @@ Run the same command to install and to keep up to date. Mods have no
 
 To go through every mod and option again, or to remove a mod, use
 `--configure`. An unselected mod is removed: its data stays, its options
-do not. Without a terminal, `--configure` installs every mod and changes no
-option.
+do not. Without a terminal, `--configure` installs every mod and changes
+no option.
 
 ```bash
 npx --allow-git=root github:datalogix/claude-config#main --configure

@@ -36,7 +36,8 @@ recebe este checklist na etapa `resources`, pasta `routes/`.
 
 ## Comandos e agendamento
 - comandos com assinatura e descrição claras, códigos de saída
-  corretos, confirmação em operações destrutivas (`--force` em produção)
+  corretos, confirmação em operações destrutivas (`--force` em
+  produção)
 - tarefas agendadas com `withoutOverlapping`, `onOneServer` (se houver
   mais de um servidor) e timezone explícito quando o horário importa
 - processamento em lote (`chunkById`, `lazyById`) em vez de carregar

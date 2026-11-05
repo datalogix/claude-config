@@ -196,9 +196,11 @@ já está em "Decisões do projeto" (estágio, idioma, `/init`).
     (`echo "<caminho>" | { sha1sum 2>/dev/null || shasum; } | cut
     -c1-6`), ex.: `loja-3fa91c`
   O caminho do projeto é o da cópia principal do repositório, o mesmo
-  em todos os worktrees dele: `git rev-parse --path-format=absolute
-  --git-common-dir`, sem o `/.git` final; fora de um repositório git,
-  `pwd`. Grave-o no topo do progresso, com a pasta de trabalho atual.
+  em todos os worktrees dele, mais a subpasta do projeto num monorepo:
+  `git rev-parse --path-format=absolute --git-common-dir`, sem o
+  `/.git` final, seguido de `git rev-parse --show-prefix`; fora de um
+  repositório git, `pwd`. Grave-o no topo do progresso, com a pasta de
+  trabalho atual.
   Caminho gravado diferente: se for um worktree deste repositório
   (`git worktree list`), troque-o pelo principal e siga; senão, pare e
   me avise (dois projetos com o mesmo id). Pasta de trabalho gravada

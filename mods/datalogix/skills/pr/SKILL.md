@@ -38,11 +38,13 @@ Respostas às seções `## Pendências`, em todos os passos:
   nameWithOwner,visibility,isFork,defaultBranchRef`).
   Se falhar, diga o motivo e pare; não tente configurar nada.
 - Fork: os passos abaixo usam o `origin` e um `--head` sem dono, que
-  o `gh` procura no próprio repositório do PR. Se a URL do `origin`
-  (`git remote get-url origin`) não tiver o `nameWithOwner`, diga
-  que a skill só abre PR dentro de um mesmo repositório, mostre os
-  dois nomes e pare. Com `isFork` verdadeiro, avise na prévia que o
-  PR fica no fork, não no original.
+  o `gh` procura no próprio repositório do PR. Compare o
+  `nameWithOwner` com o do `origin` (`gh repo view "$(git remote
+  get-url origin)" --json nameWithOwner`, que resolve repositório
+  renomeado e caixa diferente). Se forem outros, diga que a skill só
+  abre PR dentro de um mesmo repositório, mostre os dois nomes e pare.
+  Com `isFork` verdadeiro, avise na prévia que o PR fica no fork, não
+  no original.
 - Base: `--base` ou a branch padrão. Se a branch atual for a base,
   diga que é preciso uma branch própria e pare. HEAD destacado
   (`git branch --show-current` vazio): diga o mesmo e pare.

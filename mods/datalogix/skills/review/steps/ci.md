@@ -9,7 +9,9 @@ Os projetos Laravel da Datalogix usam os workflows reutilizáveis de
 `v<N>` entre as branches e as tags daquele repositório (`gh api
 --paginate repos/datalogix/workflows/branches --jq '.[].name'` e o
 mesmo com `tags`), não a branch padrão nem o "Latest" do GitHub, que
-podem estar atrás. O que mora lá (permissões,
+podem estar atrás. Sem conseguir determiná-la (sem `gh` ou sem acesso),
+não rode o `check`, pule as comparações de versão abaixo e diga que
+não foram verificadas. O que mora lá (permissões,
 versões de actions, matriz padrão, jobs) não é revisado aqui. Numa
 aplicação, ESLint, Prettier, `tsc` e Vitest chegam ao CI pelos
 scripts `lint`, `typecheck` e `test` (etapas `composer` e `npm`); o

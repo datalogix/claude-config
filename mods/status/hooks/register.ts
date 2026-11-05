@@ -78,7 +78,7 @@ const shortAgentName = (a: AgentInfo): string => shortName(agentName(a))
 const EXCERPT_MAX = 80
 
 // A fence of backticks cannot have a backtick in its info string (CommonMark). mods/topics/hooks/parse.ts keeps a
-// copy of FENCE, QUOTE, LIST_ITEM, THEMATIC_BREAK, TABLE_ROW, HTML_COMMENT, CODE_MARK, INLINE_MAX, plainText and
+// copy of FENCE, QUOTE, LIST_ITEM, TABLE_ROW, HTML_COMMENT, CHECKBOX, CODE_MARK, INLINE_MAX, isSkippedLine, plainText and
 // createCodeBlockTracker, since each mod installs on its own: change both. tests/mods.test.js compares them.
 const FENCE = /^\s*(?:(?:[-*+]|\d+[.)])\s+)?(`{3,}(?!.*`)|~{3,})/
 const QUOTE = /^\s*(?:>\s?)+/
@@ -93,6 +93,8 @@ const createCodeBlockTracker = () => {
   // item and the block with it, unless it is a fence closing the block. Outside a list, it is still code (CommonMark).
   let isInList = false
   let isIndentedInList = false
+  // The fence of a block a line at column 0 ended: its closing fence, when it comes, opens nothing.
+  let orphanFence = ''
   let isInQuote = false
   return (rawLine: string): boolean => {
     const isQuoteLine = QUOTE.test(rawLine)
@@ -101,14 +103,21 @@ const createCodeBlockTracker = () => {
     const line = !openFence || isInQuote ? rawLine.replace(QUOTE, '') : rawLine
     const column = line.search(/\S/)
     const fence = FENCE.exec(line)?.[1]
-    const isClosing =
+    const closes = (open: string) =>
       fence !== undefined &&
-      fence[0] === openFence[0] &&
-      fence.length >= openFence.length &&
+      fence[0] === open[0] &&
+      fence.length >= open.length &&
       !line.trim().slice(fence.length).trim()
+    const isClosing = closes(openFence)
+    if (openFence && line.trim() && isIndentedInList && column === 0 && !isClosing) orphanFence = openFence
     if (line.trim() && (column < itemColumn || (isIndentedInList && column === 0 && !isClosing))) openFence = ''
     if (!openFence && line.trim()) isInList = LIST_ITEM.test(line) || (isInList && column > 0)
+    if (fence && !openFence && orphanFence && column > 0 && closes(orphanFence)) {
+      orphanFence = ''
+      return true
+    }
     if (fence && !openFence) {
+      orphanFence = ''
       openFence = fence
       const isOnMarker = !line.trimStart().startsWith(fence)
       itemColumn = isOnMarker ? line.indexOf(fence) : 0
@@ -124,22 +133,14 @@ const createCodeBlockTracker = () => {
   }
 }
 
-const THEMATIC_BREAK = /^\s*([-*_]\s*){3,}$/
 const TABLE_ROW = /^\s*\|/
 const HTML_COMMENT = /^\s*(<!--((?!-->).)*-->\s*)+$/
 const CHECKBOX = /^\[[ xX]\](?:\s+|$)/
 
-/** A rule, a table row, a comment or a line with no letter or digit, also in a quote or a list item. */
+/** A table row, a comment or a line with no letter or digit (a rule too), also in a quote or a list item. */
 const isSkippedLine = (rawLine: string): boolean => {
-  const unquoted = rawLine.replace(QUOTE, '')
-  const text = unquoted.replace(LIST_ITEM, '').trimStart().replace(CHECKBOX, '')
-  return (
-    THEMATIC_BREAK.test(unquoted) ||
-    THEMATIC_BREAK.test(text) ||
-    TABLE_ROW.test(text) ||
-    HTML_COMMENT.test(text) ||
-    !/[\p{L}\p{N}]/u.test(text)
-  )
+  const text = rawLine.replace(QUOTE, '').replace(LIST_ITEM, '').trimStart().replace(CHECKBOX, '')
+  return TABLE_ROW.test(text) || HTML_COMMENT.test(text) || !/[\p{L}\p{N}]/u.test(text)
 }
 
 /** Stands in for a code span while emphasis comes off; a private use character, so no answer writes it. */
@@ -160,7 +161,7 @@ const plainText = (t: string) => {
       // An escaped mark is text, so it stays out of the emphasis and link passes, as a code span does.
       .replace(/\\([\\*_~[\]])/g, (_, mark: string) => `${CODE_MARK}${spans.push(mark) - 1}${CODE_MARK}`)
       // Before emphasis, which could take the _ of a URL.
-      .replace(new RegExp(`!?\\[([^\\][]{1,${INLINE_MAX}})\\]\\([^)]{0,${INLINE_MAX}}\\)`, 'g'), '$1')
+      .replace(new RegExp(`!?\\[([^\\][]{0,${INLINE_MAX}})\\]\\([^)]{0,${INLINE_MAX}}\\)`, 'g'), '$1')
       .replace(new RegExp(`(?<!~)~~(?=[^\\s~])(.{1,${INLINE_MAX}}?)(?<=[^\\s~])~~(?!~)`, 'g'), '$1')
       // Emphasis pairs only: a lone * (2 * 3), globs (src/*.ts, *.md), paths (__init__.py) and $_ENV stay. Bold may
       // start with . or / (**.env**): a glob's ** (**/*.ts) has no pair closing before a space.
@@ -492,10 +493,15 @@ type NoticeOptions = {
 
 export const projectName = (cwd: string): string => cwd.split(/[\\/]/).filter(Boolean).at(-1) ?? cwd
 
+/** An OSC or CSI sequence, in its 7-bit or 8-bit form. */
+const ESCAPE_SEQUENCE =
+  // eslint-disable-next-line no-control-regex
+  /\u001b\][^\u0007\u001b\u009c]*(?:\u0007|\u001b\\|\u009c)?|(?:\u001b\[|\u009b)[0-?]*[ -/]*[@-~]/g
+
 /** An escape sequence whole, then any other control or text direction character: the body is sent as given. */
 const withoutControlChars = (text: string): string =>
   text
-    .replace(/\p{Cc}\][^\p{Cc}]*\p{Cc}\\?|\p{Cc}\[[0-?]*[ -/]*[@-~]/gu, '')
+    .replace(ESCAPE_SEQUENCE, '')
     .replace(/[\p{Cc}‪-‮⁦-⁩]+/gu, ' ')
     .trim()
 
@@ -506,7 +512,9 @@ async function sendNotice($: EngineInterface, s: State, text: string, options: N
   try {
     s.project ??= projectName(await $.session.cwd())
     const detail = s.shouldIncludeExcerpt ? options.notificationDetail : undefined
-    await $.ui.notify(withoutControlChars(detail ? `${text}: ${detail}` : text), { title: s.project })
+    await $.ui.notify(withoutControlChars(detail ? `${text}: ${detail}` : text), {
+      title: withoutControlChars(s.project),
+    })
   } catch {
     // A hook denied it or the write failed: the toast already went out.
   }

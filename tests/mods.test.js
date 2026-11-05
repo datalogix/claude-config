@@ -83,7 +83,7 @@ describe('status keeps the copies of topics the same', () => {
   const functionOf = (/** @type {string} */ text, /** @type {string} */ name) =>
     new RegExp(`^(?:export )?(const ${name} = [\\s\\S]*?^}$)`, 'm').exec(text)?.[1]
 
-  test.each(['FENCE', 'QUOTE', 'LIST_ITEM', 'THEMATIC_BREAK', 'TABLE_ROW', 'HTML_COMMENT', 'CODE_MARK', 'INLINE_MAX'])(
+  test.each(['FENCE', 'QUOTE', 'LIST_ITEM', 'TABLE_ROW', 'HTML_COMMENT', 'CHECKBOX', 'CODE_MARK', 'INLINE_MAX'])(
     '%s',
     (name) => {
       const line = lineOf(topics, name)
@@ -92,10 +92,10 @@ describe('status keeps the copies of topics the same', () => {
     },
   )
 
-  test('plainText', () => {
-    const code = functionOf(topics, 'plainText')
+  test.each(['plainText', 'isSkippedLine'])('%s', (name) => {
+    const code = functionOf(topics, name)
     assert.ok(code)
-    assert.equal(functionOf(status, 'plainText'), code)
+    assert.equal(functionOf(status, name), code)
   })
 
   // status only asks whether a line is code, so its copy returns a boolean; the rest is the same.
@@ -107,7 +107,7 @@ describe('status keeps the copies of topics the same', () => {
       code
         .replace("(rawLine: string): 'open' | 'close' | 'code' | false", '(rawLine: string): boolean')
         .replace("return 'open'", 'return true')
-        .replace("return 'close'", 'return true')
+        .replaceAll("return 'close'", 'return true')
         .replace(" && 'code'", ''),
     )
   })

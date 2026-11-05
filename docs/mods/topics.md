@@ -7,7 +7,8 @@ transcript), with a one-line preview. Titles, items and previews are
 drawn as plain text: emphasis marks, backticks, strikethrough and link
 targets come off and what a code span holds stays as written; the list
 sent back keeps the original text. A preview skips fenced code blocks,
-rules, table rows and lines that are only an HTML comment. The thin rule
+table rows, lines that are only an HTML comment and lines with no letter
+or digit, such as a rule, also in a quote or a list item. The thin rule
 after a title is drawn on the terminal only.
 `/topics` opens the last answer in a keyboard-driven pane (Tab, arrows,
 1–9 for the topics, a/f to open or close all); its items and its send

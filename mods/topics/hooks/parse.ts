@@ -34,30 +34,50 @@ export const stanceOf = (t: string): Stance | undefined => {
   return word.startsWith('n') ? 'notRecommended' : word === 'avalie' ? 'evaluate' : 'recommended'
 }
 
+/** Drops the run of `mark` with no pair: a closer before any opener, else the first opener left. */
+const withoutUnpairedRun = (text: string, mark: string, length: number): string => {
+  // Code spans are filled in (same length) so a ** in code (`**kwargs`) is not counted.
+  const outsideCode = text.replace(/(?<!`)(`+)(?!`).*?(?<!`)\1(?!`)/g, (span) => 'x'.repeat(span.length))
+  const delimiter = `\\${mark}`
+  const openers: number[] = []
+  let unpaired: number | undefined
+  let loose: number | undefined
+  for (const { index } of outsideCode.matchAll(
+    new RegExp(`(?<!${delimiter})${delimiter}{${length}}(?!${delimiter})`, 'g'),
+  )) {
+    const before = outsideCode[index - 1] ?? ' '
+    const after = outsideCode[index + length] ?? ' '
+    // Inside a word, _ is not emphasis (snake_case).
+    if (mark === '_' && /[\p{L}\p{N}]/u.test(before) && /[\p{L}\p{N}]/u.test(after)) continue
+    const canClose = !/\s/.test(before)
+    if (canClose && openers.length > 0) openers.pop()
+    else if (!/\s/.test(after)) openers.push(index)
+    else if (canClose) unpaired ??= index
+    // A lone * between spaces is arithmetic (2 * 3); a longer run there is a mark that lost its side.
+    else if (length > 1) loose ??= index
+  }
+  unpaired ??= openers[0] ?? loose
+  return unpaired === undefined ? text : `${text.slice(0, unpaired)}${text.slice(unpaired + length)}`
+}
+
 /** Also drops the emphasis left unpaired when the mark took one side of it: `**(recomendo) cache local**`. */
 export const withoutStanceMark = (t: string) => {
-  const match = STANCE_MARK.exec(t)
-  const mark = match?.[0] ?? ''
+  const mark = STANCE_MARK.exec(t)?.[0] ?? ''
   const text = t.replace(STANCE_MARK, ' ').trim()
-  const before = mark.slice(0, mark.indexOf('(')).replace(/[^*_]/g, '')
-  const after = mark.slice(mark.indexOf(')') + 1).replace(/[^*_]/g, '')
-  const run = before.length > after.length ? before.slice(after.length) : after.slice(before.length)
-  if (!run) return text
-  // Code spans are blanked out (same length) so a ** in code (`**kwargs`) is not counted.
-  const outsideCode = text.replace(/(?<!`)(`+)(?!`).*?(?<!`)\1(?!`)/g, (span) => ' '.repeat(span.length))
-  const delimiter = `\\${run[0]}`
-  const runs = [
-    ...outsideCode.matchAll(new RegExp(`(?<!${delimiter})${delimiter}{${run.length}}(?!${delimiter})`, 'g')),
-  ]
-  if (runs.length % 2 === 0) return text
-  const unpaired = (match?.index === 0 ? runs[0] : runs.at(-1))!.index
-  return `${text.slice(0, unpaired)}${text.slice(unpaired + run.length)}`.replace(/\s{2,}/g, ' ').trim()
+  const before = mark.slice(0, mark.indexOf('('))
+  const after = mark.slice(mark.indexOf(')') + 1)
+  let result = text
+  for (const emphasis of ['*', '_']) {
+    const length = Math.abs(before.split(emphasis).length - after.split(emphasis).length)
+    if (length > 0) result = withoutUnpairedRun(result, emphasis, length)
+  }
+  return result === text ? text : result.replace(/\s{2,}/g, ' ').trim()
 }
 
 const PREVIEW_MAX = 90
 
 // A fence of backticks cannot have a backtick in its info string (CommonMark). mods/status/hooks/register.ts keeps a
-// copy of FENCE, QUOTE, LIST_ITEM, THEMATIC_BREAK, TABLE_ROW, HTML_COMMENT, CODE_MARK, INLINE_MAX, plainText and
+// copy of FENCE, QUOTE, LIST_ITEM, TABLE_ROW, HTML_COMMENT, CHECKBOX, CODE_MARK, INLINE_MAX, isSkippedLine, plainText and
 // createCodeBlockTracker, since each mod installs on its own: change both. tests/mods.test.js compares them.
 const FENCE = /^\s*(?:(?:[-*+]|\d+[.)])\s+)?(`{3,}(?!.*`)|~{3,})/
 const QUOTE = /^\s*(?:>\s?)+/
@@ -68,10 +88,16 @@ const INLINE_MAX = 1000
 /** Only tests the line: whether it opens or closes a block is createCodeBlockTracker's job. */
 const isFence = (line: string) => FENCE.test(line.replace(QUOTE, ''))
 
-// Lines with no text to show, as extractExcerpt in mods/status/hooks/register.ts skips them.
 const THEMATIC_BREAK = /^\s*([-*_]\s*){3,}$/
 const TABLE_ROW = /^\s*\|/
 const HTML_COMMENT = /^\s*(<!--((?!-->).)*-->\s*)+$/
+const CHECKBOX = /^\[[ xX]\](?:\s+|$)/
+
+/** A table row, a comment or a line with no letter or digit (a rule too), also in a quote or a list item. */
+const isSkippedLine = (rawLine: string): boolean => {
+  const text = rawLine.replace(QUOTE, '').replace(LIST_ITEM, '').trimStart().replace(CHECKBOX, '')
+  return TABLE_ROW.test(text) || HTML_COMMENT.test(text) || !/[\p{L}\p{N}]/u.test(text)
+}
 
 const normalizeTitle = (t: string) =>
   t
@@ -99,7 +125,7 @@ export const plainText = (t: string) => {
       // An escaped mark is text, so it stays out of the emphasis and link passes, as a code span does.
       .replace(/\\([\\*_~[\]])/g, (_, mark: string) => `${CODE_MARK}${spans.push(mark) - 1}${CODE_MARK}`)
       // Before emphasis, which could take the _ of a URL.
-      .replace(new RegExp(`!?\\[([^\\][]{1,${INLINE_MAX}})\\]\\([^)]{0,${INLINE_MAX}}\\)`, 'g'), '$1')
+      .replace(new RegExp(`!?\\[([^\\][]{0,${INLINE_MAX}})\\]\\([^)]{0,${INLINE_MAX}}\\)`, 'g'), '$1')
       .replace(new RegExp(`(?<!~)~~(?=[^\\s~])(.{1,${INLINE_MAX}}?)(?<=[^\\s~])~~(?!~)`, 'g'), '$1')
       // Emphasis pairs only: a lone * (2 * 3), globs (src/*.ts, *.md), paths (__init__.py) and $_ENV stay. Bold may
       // start with . or / (**.env**): a glob's ** (**/*.ts) has no pair closing before a space.
@@ -137,6 +163,8 @@ const createCodeBlockTracker = () => {
   // item and the block with it, unless it is a fence closing the block. Outside a list, it is still code (CommonMark).
   let isInList = false
   let isIndentedInList = false
+  // The fence of a block a line at column 0 ended: its closing fence, when it comes, opens nothing.
+  let orphanFence = ''
   let isInQuote = false
   return (rawLine: string): 'open' | 'close' | 'code' | false => {
     const isQuoteLine = QUOTE.test(rawLine)
@@ -145,14 +173,21 @@ const createCodeBlockTracker = () => {
     const line = !openFence || isInQuote ? rawLine.replace(QUOTE, '') : rawLine
     const column = line.search(/\S/)
     const fence = FENCE.exec(line)?.[1]
-    const isClosing =
+    const closes = (open: string) =>
       fence !== undefined &&
-      fence[0] === openFence[0] &&
-      fence.length >= openFence.length &&
+      fence[0] === open[0] &&
+      fence.length >= open.length &&
       !line.trim().slice(fence.length).trim()
+    const isClosing = closes(openFence)
+    if (openFence && line.trim() && isIndentedInList && column === 0 && !isClosing) orphanFence = openFence
     if (line.trim() && (column < itemColumn || (isIndentedInList && column === 0 && !isClosing))) openFence = ''
     if (!openFence && line.trim()) isInList = LIST_ITEM.test(line) || (isInList && column > 0)
+    if (fence && !openFence && orphanFence && column > 0 && closes(orphanFence)) {
+      orphanFence = ''
+      return 'close'
+    }
     if (fence && !openFence) {
+      orphanFence = ''
       openFence = fence
       const isOnMarker = !line.trimStart().startsWith(fence)
       itemColumn = isOnMarker ? line.indexOf(fence) : 0
@@ -244,12 +279,7 @@ export const parseAnswer = (text: string): ParsedAnswer => {
 
 export const previewOf = (body: string): string => {
   const trackCodeLine = createCodeBlockTracker()
-  const line =
-    body
-      .split('\n')
-      .find(
-        (l) => !trackCodeLine(l) && l.trim() && !THEMATIC_BREAK.test(l) && !TABLE_ROW.test(l) && !HTML_COMMENT.test(l),
-      ) ?? ''
+  const line = body.split('\n').find((l) => !trackCodeLine(l) && !isSkippedLine(l)) ?? ''
   const clean = plainText(line.replace(/^\s*(>\s*)*((#+|[-*+]|\d+[.)])\s+([[(][ xX•●][\])]\s+)?)?/, '')).trim()
   // By code point, so an emoji is not cut in half.
   const chars = [...clean]

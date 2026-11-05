@@ -304,10 +304,64 @@ export const branchWebUrl = (webUrl: string, upstream: string): string =>
 
 type GitSegment = NonNullable<StatusLine['segments']>[number]
 
+/** `https://github.com/o/r` is `o/r`. */
+export const repoName = (webUrl: string): string | undefined => {
+  try {
+    return new URL(webUrl).pathname.slice(1) || undefined
+  } catch {
+    return undefined
+  }
+}
+
+const lastSegment = (path: string): string => path.split(/[\\/]/).filter(Boolean).at(-1) ?? path
+
+/**
+ * The folder as the status line names it: its last two segments or, in a linked worktree, the project and the
+ * worktree, since `worktrees/review` says nothing about the project.
+ */
+export const folderLabel = (root: string, commonDir?: string): string => {
+  const isLinkedWorktree = commonDir !== undefined && /[\\/]\.git$/.test(commonDir) && commonDir.slice(0, -5) !== root
+  if (isLinkedWorktree) return `${lastSegment(commonDir.slice(0, -5))} (${lastSegment(root)})`
+  return root.split(/[\\/]/).filter(Boolean).slice(-2).join('/')
+}
+
+/** Opens the folder in VS Code; the drive of a Windows path keeps its colon. */
+export const folderHref = (path: string): string =>
+  `vscode://file/${path
+    .replace(/\\/g, '/')
+    .replace(/^\//, '')
+    .split('/')
+    .map((segment) => (/^[A-Za-z]:$/.test(segment) ? segment : encodeURIComponent(segment)))
+    .join('/')}`
+
+/** Only the terminal opens any address; another surface draws the rest as plain text, and warns about it. */
+const canLink = (surface: string, href: string): boolean =>
+  surface === 'terminal' || /^(?:https:|http:\/\/localhost\b)/.test(href)
+
+/** Only the APP_URL of a `.env`, and only one that runs on this machine: the rest of that file is not read here. */
+export const localAppUrl = (env: string): { text: string; href: string } | undefined => {
+  const value = /^APP_URL=(.*)$/m
+    .exec(env)?.[1]
+    ?.trim()
+    .replace(/^(["'])(.*)\1$/, '$2')
+  if (!value) return undefined
+  try {
+    const url = new URL(value)
+    const isLocal = url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname.endsWith('.test')
+    return /^https?:$/.test(url.protocol) && isLocal ? { text: `🌐 ${url.host}`, href: url.href } : undefined
+  } catch {
+    return undefined
+  }
+}
+
 /** @param branchUrl undefined when the branch is not on a remote, so there is nothing to open */
-export const gitSegments = (git: GitState, pr?: PullRequest, branchUrl?: string): GitSegment[] => {
+export const gitSegments = (git: GitState, pr?: PullRequest, branchUrl?: string, repoUrl?: string): GitSegment[] => {
   const head = shortName(git.head)
-  const segments: GitSegment[] = [branchUrl ? { text: head, href: branchUrl } : head]
+  const repo = repoUrl ? repoName(repoUrl) : undefined
+  const segments: GitSegment[] = [
+    ...(repoUrl && repo ? [{ text: repo, href: repoUrl }] : []),
+    branchUrl ? { text: head, href: branchUrl } : head,
+  ]
   if (pr) segments.push(pr.url ? { text: `PR #${pr.number}`, href: pr.url } : `PR #${pr.number}`)
   if (git.counts) segments.push(git.counts)
   return segments.flatMap((segment, i) => (i > 0 ? [' · ', segment] : [segment]))
@@ -321,8 +375,8 @@ export const withoutPrInHint = (segments: GitSegment[], hint: string): GitSegmen
   return segments.filter((_, i) => i !== index && i !== index - 1)
 }
 
-export const formatGit = (git: GitState, pr?: PullRequest): string =>
-  `git: ${gitSegments(git, pr)
+export const formatGit = (git: GitState, pr?: PullRequest, repoUrl?: string): string =>
+  `git: ${gitSegments(git, pr, undefined, repoUrl)
     .map((segment) => (typeof segment === 'string' ? segment : segment.text))
     .join('')}`
 
@@ -355,6 +409,8 @@ type State = {
   windows: SessionRateLimit[]
   git?: GitState
   remote?: { upstream: string; webUrl?: string } // read when the upstream changes
+  location?: Location // read when the working folder changes
+  isReadingLocation?: boolean
   pr?: PullRequest
   prBranch?: string // the branch `pr` is of
   prReadAt: number
@@ -365,6 +421,14 @@ type State = {
   windowsAtLimit: Map<string, string | undefined> // kind at 100% → resetsAt
 }
 
+type Location = {
+  cwd: string
+  label: string
+  href: string
+  originUrl?: string
+  appUrl?: { text: string; href: string }
+}
+
 const hasBackgroundWork = (s: State): boolean => s.agents.length > 0 || s.workflows.size > 0
 
 type StatusParts = { status: string; isFailure: boolean; isBusy: boolean; plan?: string; git?: string }
@@ -373,6 +437,9 @@ const branchUrlOf = (s: State): string | undefined =>
   s.remote?.webUrl && s.git?.upstream === s.remote.upstream
     ? branchWebUrl(s.remote.webUrl, s.remote.upstream)
     : undefined
+
+/** The upstream's remote or, on a branch not pushed yet, `origin`. */
+const repoUrlOf = (s: State): string | undefined => s.remote?.webUrl ?? s.location?.originUrl
 
 const formatStatusParts = (s: State, now: number): StatusParts => {
   const spinnerFrame = FRAMES[s.frame]
@@ -397,7 +464,7 @@ const formatStatusParts = (s: State, now: number): StatusParts => {
       .filter(Boolean)
       .join('  │  '),
     plan: formatPlan(s.windows, now, s.planAlert),
-    git: s.git && formatGit(s.git, s.pr),
+    git: s.git && formatGit(s.git, s.pr, repoUrlOf(s)),
   }
 }
 
@@ -409,13 +476,25 @@ async function showStatus($: EngineInterface, s: State) {
   const hasLines = (await $.session.surfaces()).some((surface) => surface === 'terminal' || surface === 'desktop')
   $.ui.status(hasLines ? undefined : compact([status, plan, git]).join('  │  ') || undefined)
   const lines: StatusLine[] = []
-  lines.push(
-    status
-      ? { text: `status: ${status}`, color: isFailure ? 'error' : isBusy ? 'claude' : 'success' }
-      : { text: 'status: 💤 aguardando', color: 'subtle' },
-  )
+  const statusText = status || '💤 aguardando'
+  const { location } = s
+  lines.push({
+    text: `status: ${statusText}`,
+    color: !status ? 'subtle' : isFailure ? 'error' : isBusy ? 'claude' : 'success',
+    ...(location
+      ? {
+          segments: [
+            { text: location.label, href: location.href },
+            '  │  ',
+            statusText,
+            ...(location.appUrl ? ['  │  ', location.appUrl] : []),
+          ],
+        }
+      : {}),
+  })
   if (plan) lines.push({ text: plan, color: plan.startsWith('⚠️') ? 'warning' : 'suggestion' })
-  if (git && s.git) lines.push({ text: git, color: 'merged', segments: gitSegments(s.git, s.pr, branchUrlOf(s)) })
+  if (git && s.git)
+    lines.push({ text: git, color: 'merged', segments: gitSegments(s.git, s.pr, branchUrlOf(s), repoUrlOf(s)) })
   await update($, statusLines, () => lines)
 }
 
@@ -447,6 +526,47 @@ async function readRemote($: EngineInterface, upstream: string): Promise<string 
   }
 }
 
+/** Each part on its own: a project with no remote or no `.env` still has its folder. */
+async function readLocation($: EngineInterface, cwd: string): Promise<Location> {
+  let root = cwd
+  let commonDir: string | undefined
+  try {
+    const { exitCode, stdout } = await $.process.run(
+      ['git', 'rev-parse', '--path-format=absolute', '--show-toplevel', '--git-common-dir'],
+      { timeoutMs: GIT_TIMEOUT_MS },
+    )
+    const [top, common] = stdout.trim().split('\n')
+    if (exitCode === 0 && top && common && /^(?:\/|[A-Za-z]:)/.test(top)) {
+      root = top
+      commonDir = common
+    }
+  } catch {
+    // Outside a repository, the folder is the working folder.
+  }
+  let originUrl: string | undefined
+  try {
+    const { exitCode, stdout } = await $.process.run(['git', 'remote', 'get-url', 'origin'], {
+      timeoutMs: GIT_TIMEOUT_MS,
+    })
+    if (exitCode === 0) originUrl = remoteWebUrl(stdout.trim())
+  } catch {
+    // No remote: the repository is left out.
+  }
+  let appUrl: Location['appUrl']
+  try {
+    appUrl = localAppUrl(await $.fs.read(`${root}/.env`))
+  } catch {
+    // No .env: nothing says the app runs here.
+  }
+  return {
+    cwd,
+    label: folderLabel(root, commonDir),
+    href: folderHref(root),
+    ...(originUrl ? { originUrl } : {}),
+    ...(appUrl ? { appUrl } : {}),
+  }
+}
+
 /** Outside a repository, or with no git to run, the status line goes without it. */
 async function refreshGit($: EngineInterface, s: State, isAnswerEnd = false) {
   const readCount = ++s.gitReadCount
@@ -467,7 +587,23 @@ async function refreshGit($: EngineInterface, s: State, isAnswerEnd = false) {
     if (readCount !== s.gitReadCount) return
     s.remote = { upstream: git.upstream, ...(webUrl ? { webUrl } : {}) }
   }
-  const hasChanged = git?.head !== s.git?.head || git?.counts !== s.git?.counts || git?.upstream !== s.git?.upstream
+  const cwd = await $.session.cwd()
+  const hasNewLocation = cwd !== s.location?.cwd && !s.isReadingLocation
+  if (hasNewLocation) {
+    // One read at a time: a slow one must not hold back the git line of a newer read.
+    s.isReadingLocation = true
+    try {
+      s.location = await readLocation($, cwd)
+    } finally {
+      s.isReadingLocation = false
+    }
+    if (readCount !== s.gitReadCount) {
+      await showStatus($, s)
+      return
+    }
+  }
+  const hasChanged =
+    hasNewLocation || git?.head !== s.git?.head || git?.counts !== s.git?.counts || git?.upstream !== s.git?.upstream
   const branch = git?.branch
   const isNewBranch = branch !== s.prBranch
   s.git = git
@@ -689,9 +825,10 @@ export const register: Register = (on, options) => {
           ...(segments
             ? [
                 ' ',
-                ...withoutPrInHint(segments, e.props.hint).map((segment) =>
-                  typeof segment === 'string' ? segment : h(Link, { href: segment.href }, segment.text),
-                ),
+                ...withoutPrInHint(segments, e.props.hint).map((segment) => {
+                  if (typeof segment === 'string') return segment
+                  return canLink(e.surface, segment.href) ? h(Link, { href: segment.href }, segment.text) : segment.text
+                }),
               ]
             : [text.slice(labelEnd)]),
         )

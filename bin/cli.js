@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // @ts-check
 import * as p from '@clack/prompts'
-import { spawnSync } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -18,6 +18,8 @@ const SETTINGS_FILE = path.join(process.env.CLAUDE_CONFIG_DIR || CLAUDE_DIR, 'se
 
 /** A claude call that hangs (network, a git waiting for input) fails after this; tests lower it. */
 const CLAUDE_TIMEOUT_MS = Number(process.env.DATALOGIX_CLAUDE_TIMEOUT_MS) || 120_000
+/** How long a timed-out claude has to clean up after SIGTERM, before SIGKILL. */
+const CLAUDE_KILL_GRACE_MS = 5000
 
 /** Written by earlier versions into each copied skill: a copy without it is never removed. */
 const MARKER_FILE = '.claude-config'
@@ -237,31 +239,68 @@ function removeOldSkills(installedIds, unselectedNames, names) {
 }
 
 /**
+ * @param {string} command
+ * @param {string[]} args
+ * @param {boolean} isShell
+ * @param {string} [input]
+ * @returns {Promise<{ status?: number | null, error?: Error, stdout: string, stderr: string, isTimedOut: boolean }>}
+ */
+function spawnClaude(command, args, isShell, input) {
+  return new Promise((resolve) => {
+    // A git asking for credentials would wait on a prompt nobody sees: it fails instead.
+    const child = spawn(command, args, { shell: isShell, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } })
+    let stdout = ''
+    let stderr = ''
+    let isTimedOut = false
+    /** @type {NodeJS.Timeout | undefined} */
+    let killTimer
+    const timeoutTimer = setTimeout(() => {
+      isTimedOut = true
+      child.kill('SIGTERM')
+      // A process can ignore SIGTERM.
+      killTimer = setTimeout(() => child.kill('SIGKILL'), CLAUDE_KILL_GRACE_MS)
+    }, CLAUDE_TIMEOUT_MS)
+    /** @param {{ status?: number | null, error?: Error }} end */
+    const finish = (end) => {
+      clearTimeout(timeoutTimer)
+      clearTimeout(killTimer)
+      // A child that outlives claude could keep these open, and with them this process.
+      child.stdout.destroy()
+      child.stderr.destroy()
+      resolve({ ...end, stdout, stderr, isTimedOut })
+    }
+    child.stdout.setEncoding('utf8').on('data', (chunk) => (stdout += chunk))
+    child.stderr.setEncoding('utf8').on('data', (chunk) => (stderr += chunk))
+    // A claude that exits without reading its stdin is reported by its exit code.
+    child.stdin.on('error', () => {})
+    child.stdin.end(input)
+    child.on('error', (error) => finish({ error }))
+    // Normally on close, which has all the output; a timeout on exit, since a child of claude may hold the output open.
+    child.on('exit', (status) => {
+      if (isTimedOut) {
+        finish({ status })
+      }
+    })
+    child.on('close', (status) => finish({ status }))
+  })
+}
+
+/**
  * @param {string[]} args
  * @param {string} [input]
- * @returns {Result}
+ * @returns {Promise<Result>}
  */
-function runClaude(args, input) {
-  /** @type {import('node:child_process').SpawnSyncOptionsWithStringEncoding} */
-  const options = {
-    encoding: 'utf8',
-    input,
-    timeout: CLAUDE_TIMEOUT_MS,
-    // A process can ignore SIGTERM, and spawnSync would keep waiting for it.
-    killSignal: 'SIGKILL',
-    // A git asking for credentials would wait on a prompt nobody sees: it fails instead.
-    env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
-  }
-  let result = spawnSync('claude', args, options)
+async function runClaude(args, input) {
+  let result = await spawnClaude('claude', args, false, input)
   // The native installer's claude.exe runs directly; npm's claude.cmd, which
   // Node cannot find without a shell, only through cmd.
   if (isWindows && errorCode(result.error) === 'ENOENT') {
-    result = spawnSync(cmdLine('claude', args), { ...options, shell: true })
+    result = await spawnClaude(cmdLine('claude', args), [], true, input)
   }
-  if (errorCode(result.error) === 'ETIMEDOUT') {
+  if (result.isTimedOut) {
     return { ok: false, stdout: '', stderr: `timed out after ${CLAUDE_TIMEOUT_MS / 1000}s`, isTimedOut: true }
   }
-  return { ok: !result.error && result.status === 0, stdout: result.stdout ?? '', stderr: result.stderr ?? '' }
+  return { ok: !result.error && result.status === 0, stdout: result.stdout, stderr: result.stderr }
 }
 
 /** @param {Error | undefined} error */
@@ -269,9 +308,9 @@ function errorCode(error) {
   return /** @type {NodeJS.ErrnoException | undefined} */ (error)?.code
 }
 
-/** @returns {boolean} */
-function checkClaudeCli() {
-  const result = runClaude(['--version'])
+/** @returns {Promise<boolean>} */
+async function checkClaudeCli() {
+  const result = await runClaude(['--version'])
   if (result.ok) {
     return true
   }
@@ -291,10 +330,10 @@ function checkClaudeCli() {
  * @param {string} label
  * @param {string[]} args
  * @param {string} key
- * @returns {Record<string, unknown>[] | undefined}
+ * @returns {Promise<Record<string, unknown>[] | undefined>}
  */
-function runClaudeList(label, args, key) {
-  const result = runClaude(args)
+async function runClaudeList(label, args, key) {
+  const result = await runClaude(args)
   if (!checkResult(label, result)) {
     return undefined
   }
@@ -307,9 +346,9 @@ function runClaudeList(label, args, key) {
   return items
 }
 
-/** @returns {Set<string> | undefined} undefined when claude could not list them */
-function listInstalledModIds() {
-  const mods = runClaudeList('could not list the installed mods', ['plugin', 'list', '--json'], 'id')
+/** @returns {Promise<Set<string> | undefined>} undefined when claude could not list them */
+async function listInstalledModIds() {
+  const mods = await runClaudeList('could not list the installed mods', ['plugin', 'list', '--json'], 'id')
   if (!mods) {
     return undefined
   }
@@ -337,7 +376,7 @@ const RENAMED_MODS = { passos: 'steps', topicos: 'topics' }
  * @param {Set<string>} installedIds
  * @param {string[]} unselectedNames mods the user chose not to install
  */
-function uninstallRenamedMods(installedIds, unselectedNames) {
+async function uninstallRenamedMods(installedIds, unselectedNames) {
   for (const [oldName, newName] of Object.entries(RENAMED_MODS)) {
     const id = modId(oldName)
     if (!installedIds.has(id)) {
@@ -347,7 +386,7 @@ function uninstallRenamedMods(installedIds, unselectedNames) {
       p.log.warn(`kept: ${oldName} (${newName} is not installed yet; run again to replace it)`)
       continue
     }
-    if (checkResult(oldName, runClaude(['plugin', 'uninstall', '--keep-data', id]))) {
+    if (checkResult(oldName, await runClaude(['plugin', 'uninstall', '--keep-data', id]))) {
       p.log.info(`uninstalled: ${oldName} (renamed to ${newName})`)
       hasModChanges = true
     }
@@ -359,10 +398,10 @@ function uninstallRenamedMods(installedIds, unselectedNames) {
  * default, and never keys the userConfig no longer has (see warnOldOptions).
  *
  * @param {Mod} mod
- * @returns {{ values: Record<string, string>, configured: Set<string> } | undefined}
+ * @returns {Promise<{ values: Record<string, string>, configured: Set<string> } | undefined>}
  */
-function readOptionState(mod) {
-  const result = runClaude(['plugin', 'configure', mod.id, '--json'])
+async function readOptionState(mod) {
+  const result = await runClaude(['plugin', 'configure', mod.id, '--json'])
   if (!checkResult(`${mod.name}: could not read its options (skipped configuring)`, result)) {
     return undefined
   }
@@ -408,10 +447,10 @@ function warnOldOptions(mod) {
 /**
  * `entry` is absent when not added; undefined when claude could not list.
  *
- * @returns {{ entry?: Record<string, unknown> } | undefined}
+ * @returns {Promise<{ entry?: Record<string, unknown> } | undefined>}
  */
-function findMarketplace() {
-  const list = runClaudeList(
+async function findMarketplace() {
+  const list = await runClaudeList(
     'marketplace: could not list the marketplaces',
     ['plugin', 'marketplace', 'list', '--json'],
     'name',
@@ -445,10 +484,10 @@ function isSamePath(a, b) {
  * known to list this checkout's mods.
  *
  * @param {boolean} shouldLink
- * @returns {{ canInstall: boolean, canUpdate: boolean, isUpdated: boolean } | undefined}
+ * @returns {Promise<{ canInstall: boolean, canUpdate: boolean, isUpdated: boolean } | undefined>}
  */
-function ensureMarketplace(shouldLink) {
-  const listed = findMarketplace()
+async function ensureMarketplace(shouldLink) {
+  const listed = await findMarketplace()
   if (!listed) {
     return undefined
   }
@@ -469,12 +508,12 @@ function ensureMarketplace(shouldLink) {
     p.log.info(
       `marketplace: ${marketplace.name} (already added${currentSource ? ` from ${tildify(currentSource)}` : ''})`,
     )
-    return { canInstall: true, canUpdate: true, isUpdated: updateMarketplace() }
+    return { canInstall: true, canUpdate: true, isUpdated: await updateMarketplace() }
   }
 
   const isAdded = checkResult(
     `marketplace: could not add ${requestedSource}`,
-    runClaude(['plugin', 'marketplace', 'add', requestedSource]),
+    await runClaude(['plugin', 'marketplace', 'add', requestedSource]),
   )
   if (isAdded) {
     p.log.success(`marketplace: ${marketplace.name} (${tildify(requestedSource)})`)
@@ -482,9 +521,9 @@ function ensureMarketplace(shouldLink) {
   return { canInstall: isAdded, canUpdate: isAdded, isUpdated: isAdded }
 }
 
-/** @returns {boolean} */
-function updateMarketplace() {
-  const isUpdated = checkResult('marketplace', runClaude(['plugin', 'marketplace', 'update', marketplace.name]))
+/** @returns {Promise<boolean>} */
+async function updateMarketplace() {
+  const isUpdated = checkResult('marketplace', await runClaude(['plugin', 'marketplace', 'update', marketplace.name]))
   if (isUpdated) {
     p.log.success(`marketplace: ${marketplace.name} updated`)
   }
@@ -495,8 +534,8 @@ function updateMarketplace() {
  * @param {string} name
  * @param {string} id
  */
-function updateMod(name, id) {
-  const result = runClaude(['plugin', 'update', id, '--json'])
+async function updateMod(name, id) {
+  const result = await runClaude(['plugin', 'update', id, '--json'])
   if (!checkResult(name, result)) {
     return
   }
@@ -524,7 +563,7 @@ async function askOptions(mod, isInstalled) {
   }
 
   const optionState = isInstalled
-    ? readOptionState(mod)
+    ? await readOptionState(mod)
     : { values: /** @type {Record<string, string>} */ ({}), configured: new Set() }
   if (!optionState) {
     // Asking from the defaults would show them as the current values.
@@ -591,7 +630,7 @@ function warnSkillsFolderCopy(name, installedIds) {
 async function syncMod(mod, installedIds, { isSelected, canInstall, canUpdate, shouldAskInstalled }) {
   const isInstalled = installedIds.has(mod.id)
   if (!isSelected) {
-    if (isInstalled && checkResult(mod.name, runClaude(['plugin', 'uninstall', '--keep-data', mod.id]))) {
+    if (isInstalled && checkResult(mod.name, await runClaude(['plugin', 'uninstall', '--keep-data', mod.id]))) {
       p.log.info(`uninstalled: ${mod.name}`)
       installedIds.delete(mod.id)
       hasModChanges = true
@@ -605,7 +644,7 @@ async function syncMod(mod, installedIds, { isSelected, canInstall, canUpdate, s
   // from this checkout's plugin.json. A failed update still asks: configuring
   // does not need the network.
   if (isInstalled && canUpdate) {
-    updateMod(mod.name, mod.id)
+    await updateMod(mod.name, mod.id)
   }
   if (isInstalled) {
     warnOldOptions(mod)
@@ -621,7 +660,7 @@ async function syncMod(mod, installedIds, { isSelected, canInstall, canUpdate, s
     }
     return
   }
-  if (!isInstalled && !installMod(mod.name, installedIds)) {
+  if (!isInstalled && !(await installMod(mod.name, installedIds))) {
     return
   }
   // Through stdin and not --config: no answer goes through cmd.exe, and a
@@ -629,7 +668,7 @@ async function syncMod(mod, installedIds, { isSelected, canInstall, canUpdate, s
   const hasValuesToStore = Object.keys(toStore).length > 0
   if (
     hasValuesToStore &&
-    checkResult(mod.name, runClaude(['plugin', 'configure', mod.id, '--values-stdin'], JSON.stringify(toStore)))
+    checkResult(mod.name, await runClaude(['plugin', 'configure', mod.id, '--values-stdin'], JSON.stringify(toStore)))
   ) {
     p.log.success(`configured: ${mod.name}`)
     hasModChanges = true
@@ -669,11 +708,11 @@ async function run(shouldLink, shouldConfigure) {
   if (shouldLink && ROOT.split(path.sep).includes('node_modules')) {
     throw new Error('--link needs a clone of the repository: run "node bin/cli.js --link" inside it.')
   }
-  if (!checkClaudeCli()) {
+  if (!(await checkClaudeCli())) {
     return
   }
   // Without the list every mod would look new: installed again, asked from the defaults.
-  const installedIds = listInstalledModIds()
+  const installedIds = await listInstalledModIds()
   if (!installedIds) {
     return
   }
@@ -698,7 +737,7 @@ async function run(shouldLink, shouldConfigure) {
   const marketplaceState =
     isAskingAll && selectedNames.length === 0
       ? { canInstall: true, canUpdate: false, isUpdated: false }
-      : ensureMarketplace(shouldLink)
+      : await ensureMarketplace(shouldLink)
   if (!marketplaceState) {
     return
   }
@@ -723,18 +762,18 @@ async function run(shouldLink, shouldConfigure) {
   }
 
   const unselectedNames = isAskingAll ? mods.map((mod) => mod.name).filter((name) => !selectedNames.includes(name)) : []
-  uninstallRenamedMods(installedIds, unselectedNames)
+  await uninstallRenamedMods(installedIds, unselectedNames)
   removeOldSkills(installedIds, unselectedNames, oldSkills)
 }
 
 /**
  * @param {string} name
  * @param {Set<string>} installedIds gets the mod's id when it installs
- * @returns {boolean}
+ * @returns {Promise<boolean>}
  */
-function installMod(name, installedIds) {
+async function installMod(name, installedIds) {
   const id = modId(name)
-  if (!checkResult(name, runClaude(['plugin', 'install', id]))) {
+  if (!checkResult(name, await runClaude(['plugin', 'install', id]))) {
     return false
   }
   p.log.success(`installed: ${name}`)

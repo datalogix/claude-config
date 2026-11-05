@@ -18,9 +18,10 @@ Argumentos: $ARGUMENTS
 - `reset`: confirmar comigo e apagar o `progress.md` deste projeto
   (`reset <modo>` apaga só a seção daquele modo em "Modos de foco";
   as "Decisões do projeto" ficam). Relatórios e sandbox ficam. Sem
-  progresso, diga que não há o que apagar. Depois de apagar, pare,
-  salvo se a mesma mensagem pedir mais: primeiro o reset, depois o
-  resto, um modo por vez, na ordem em que os citei.
+  progresso, diga que não há o que apagar. Depois disso, pare, salvo
+  se a mesma mensagem pedir mais: primeiro o reset, depois o resto, um
+  modo por vez, na ordem em que os citei. Se eu recusar a confirmação,
+  pare, sem fazer o resto.
 - Modos de foco, cada um revisa SÓ aquele aspecto:
   - `docs`: documentação, incluindo docblocks (`modes/docs.md`)
   - `naming`: nomenclatura (`modes/naming.md`)
@@ -59,6 +60,9 @@ existir, pare e me avise.
 
 Precedência: regras do projeto (`CLAUDE.md`, skills e guidelines do
 projeto) > arquivo do tipo > arquivo da etapa/modo > este arquivo.
+Exceção: em `report`, o que o arquivo do tipo manda perguntar ou propor
+vira suposição anotada (`modes/report.md`), salvo o banco de testes de
+`laravel-app`.
 
 ## 2. Reconhecer o projeto
 Confira o perfil no início de cada chamada e de cada passo. Na
@@ -117,7 +121,7 @@ skills ou tags novas, descubra e registre:
   - Sem runner: item "importante" que oferece instalar o Vitest pelo
     gerenciador do projeto (ex.: `npm i -D vitest`), só se eu aprovar.
   - Comando: script `test` do `package.json` se existir; senão
-    `vitest run` (ou `jest`).
+    `npx vitest run` (ou `npx jest`).
 - **Ferramentas de qualidade**: nos tipos Laravel, Pint,
   PHPStan/Larastan, Rector (em `vendor/bin` e no composer.json, com a
   versão do Pint). Use só as que existirem; não instale.
@@ -140,12 +144,15 @@ skills ou tags novas, descubra e registre:
   - `.ai/skills/*/SKILL.md`, `.ai/guidelines/*` (Laravel Boost, do
     projeto)
   - `resources/boost/skills/*/SKILL.md`, `resources/boost/guidelines/*`
-    (Laravel Boost, distribuídas por um pacote)
+    (Laravel Boost, distribuídas por um pacote) e toda outra pasta com
+    `SKILL.md` que um `plugin.json`, um `marketplace.json` ou o `files`
+    entrega (ex.: `mods/<nome>/skills/`)
   Leia só o frontmatter (`name`, `description`) e classifique:
   - **Ferramenta da revisão** (`.claude/`, `.ai/`): mapeie cada uma para
     as etapas em que se aplica, pela descrição. Se não estiver claro,
     pergunte.
-  - **Produto** (`resources/boost/`): revisado na etapa de documentação.
+  - **Produto** (`resources/boost/` e essas outras pastas): revisado na
+    etapa de documentação.
   - Mesma skill em `.claude/skills` e `.ai/skills`: a de `.ai/` é a
     fonte.
   Mostre no perfil: skill · origem · etapas.
@@ -191,21 +198,21 @@ já está em "Decisões do projeto" (estágio, idioma, `/init`).
   - lib JS/TS: o `name` do package.json sem `@` e com `/` trocado por
     `-` (ex.: `@datalogix/ui` → `datalogix-ui`)
   - aplicação (Laravel ou JS/TS), ou `name` ausente ou genérico
-    (`laravel/laravel`, `nuxt-app`, `my-app`): o nome da pasta do
-    projeto + os 6 primeiros caracteres do hash do caminho dele
+    (`laravel/laravel`, `nuxt-app`, `my-app`): o último segmento do
+    caminho do projeto (abaixo) + os 6 primeiros caracteres do hash dele
     (`echo "<caminho>" | { sha1sum 2>/dev/null || shasum; } | cut
     -c1-6`), ex.: `loja-3fa91c`
   O caminho do projeto é o da cópia principal do repositório, o mesmo
   em todos os worktrees dele, mais a subpasta do projeto num monorepo:
   `git rev-parse --path-format=absolute --git-common-dir`, sem o
-  `/.git` final, seguido de `git rev-parse --show-prefix`; fora de um
-  repositório git, `pwd`. Grave-o no topo do progresso, com a pasta de
+  `/.git` final e, numa subpasta, seguido de `/` e de `git rev-parse
+  --show-prefix`, sem a barra final; fora de um repositório git, `pwd`. Grave-o no topo do progresso, com a pasta de
   trabalho atual.
   Caminho gravado diferente: se for um worktree deste repositório
   (`git worktree list`), troque-o pelo principal e siga; senão, pare e
   me avise (dois projetos com o mesmo id). Pasta de trabalho gravada
   diferente: avise, pois o que foi feito nela pode não estar nesta
-  branch, e siga.
+  branch, grave a atual e siga.
 - Nunca crie arquivos de controle dentro do projeto.
 - Estrutura:
   1. **Perfil do projeto** (com o commit em que foi gerado)
@@ -240,6 +247,10 @@ arquivo do tipo), para calcular o `<id>` da seção 3, e leem o
 progresso. Sem progresso, `status` diz que a revisão não começou e
 para.
 
+- **Primeira chamada da sessão**, aqui e na seção 2: a primeira que
+  chega a esta seção. `help`, `status` e `reset` sem mais pedidos não
+  contam; depois de um `report`, que roda sem `build` e não altera
+  nada, a próxima chamada conta de novo.
 - **Base desatualizada**: só na primeira chamada da sessão, antes da
   seção 2 e da linha de base. Sem remoto `origin`, siga sem dizer
   nada. A branch padrão é a de `git symbolic-ref --short
@@ -270,7 +281,7 @@ para.
   "Blade" de `steps/composer.md`.
 - **Verificação front-end** (só se houver front-end): dependências pelo
   lockfile se faltar `node_modules` (ex.: `npm ci`), e os scripts
-  existentes de testes JS/TS, `typecheck`/`tsc --noEmit`, lint (ESLint,
+  existentes de testes JS/TS, `typecheck`/`npx tsc --noEmit`, lint (ESLint,
   Stylelint, Prettier em modo check) e `build`. Roda na linha de base,
   no fechamento e em todo passo que alterou views, CSS, JS/TS, assets,
   `package.json`, lockfile ou configs de build (Vite, Tailwind, PostCSS).
@@ -282,12 +293,16 @@ para.
   mostre e diga se a árvore já tinha mudanças (`git status
   --porcelain`). Se eu mandar seguir, registre as falhas em "Decisões
   do projeto" como conhecidas.
+- Depois de um `reset` sem modo na mesma sessão: com o HEAD e o `git
+  status --porcelain` iguais aos da linha de base, não a rode de novo,
+  diga isso e pergunte de novo sobre as falhas que eu tinha mandado
+  seguir, pois a resposta foi apagada; senão, rode-a.
 - **Passo de formatação**: se na linha de base só falharem os checks de
-  formatação (`pint --test`, `prettier --check`), proponha um passo
-  próprio antes das etapas: rodar `pint` (com `--blade` nas mesmas
-  condições da verificação PHP; nos tipos JS, não) e `prettier
-  --write` direto, nunca o script `format` (que também roda `eslint
-  --fix`); nenhuma outra mudança. Depois, rodar a verificação completa,
+  formatação (`vendor/bin/pint --test`, `npx prettier --check .`),
+  proponha um passo próprio antes das etapas: rodar `vendor/bin/pint`
+  (com `--blade` nas mesmas condições da verificação PHP; nos tipos
+  JS, não) e `npx prettier --write .` direto, nunca o script `format`
+  (que também roda `eslint --fix`); nenhuma outra mudança. Depois, rodar a verificação completa,
   sugerir um commit só de formatação, com `- [ ] Fazer o commit de
   formatação` (pelo fluxo de commit da seção 5), e que eu inclua o
   hash dele no `.git-blame-ignore-revs` num commit seguinte, e PARAR
@@ -311,7 +326,8 @@ modo.
    estágio exigir (não vale para `report`, que não altera nada). Se
    falhar, pare e me diga o que resolver.
 1. Faça a ANÁLISE num subagente (ferramenta Task/Agent), para não lotar
-   a conversa. Passe a ele: os caminhos absolutos do arquivo da
+   a conversa. Passe a ele: a pasta de trabalho atual (num worktree,
+   avise que só trabalhe nela), os caminhos absolutos do arquivo da
    etapa/modo, de todos os que ele ou o arquivo do tipo citarem para o
    passo (ex.: no modo `docs`, `steps/docs.md` e `steps/code.md`; na
    etapa `code`, `steps/http.md` e `steps/jobs.md`) e do arquivo do tipo
@@ -327,8 +343,13 @@ modo.
    Diga a ele que não altere o projeto, salvo os comandos que o arquivo
    da etapa manda rodar e cujo resultado o git ignora (`build`, caches
    do Laravel, que a etapa limpa); para testar uma sugestão, só numa
-   cópia fora dele (`mktemp -d`).
-   Antes de mostrar, confira o relatório: descarte itens que repetem
+   cópia fora dele (`mktemp -d`). Fora disso, não apague nem grave nada
+   fora dessa cópia. Se rodar algo fora dessas regras, mesmo sem
+   efeito, diga no fim do relatório o comando e o resultado.
+   Antes de mostrar, compare o `git status --porcelain` com o de antes
+   da análise; se mudou, ou se ele relatou um comando assim, diga isso
+   no relatório, sem desfazer por conta própria. Confira também o
+   relatório: descarte itens que repetem
    uma "Decisão do projeto", que já foram recusados antes, ou cujo
    trecho citado não existe no arquivo; transforme em item as perguntas
    de sim/não óbvio. Nos itens críticos e importantes, e em todo item
@@ -343,13 +364,17 @@ modo.
    pendente no progresso) e segue para o próximo. Registre em
    "Decisões do projeto" as respostas que valem adiante. Relatório sem
    itens nem perguntas: diga isso e vá direto ao item 5.
+   No formato da seção 7, esta pausa só tem as caixas dos itens e as
+   alternativas das perguntas, nunca uma caixa de "Seguir", "nenhuma"
+   ou "pula". Todas desmarcadas valem como "nenhuma": vá ao item 5.
+   "pula" vem em texto e vale mais que as caixas enviadas junto.
    Item que não aprovei (fora de "aplica 1, 3", ou com a caixa
    desmarcada) fica como "não aplicado" e pode voltar em outro
    relatório. Só conta como recusado o que eu recusar em texto ou a
    caixa que veio com `(recomendo)` e eu desmarquei.
 3. Aplique só o aprovado, um item de cada vez, nesta conversa ou, com
-   muitos itens, num subagente (ferramenta Task/Agent), passando os
-   itens aprovados, as decisões e as regras deste item. Confira o diff
+   muitos itens, num subagente (ferramenta Task/Agent), passando a
+   pasta de trabalho, os itens aprovados, as decisões e as regras deste item. Confira o diff
    que ele devolver; a verificação (item 4), o progresso e os commits
    ficam nesta conversa. Adicione testes quando
    mudar comportamento ou cobrir algo sem teste. Ao renomear, atualize
@@ -550,7 +575,9 @@ aprovada (apagar arquivos, editar migration, mudar versão mínima,
 quebrar API pública).
 
 ## 8. Divisão de pastas grandes
-Vale para todo passo por pasta, inclusive nos modos.
+Vale para todo passo por pasta, inclusive nos modos, e para a etapa
+`docs` que passar destes limites, dividida por assunto (README e docs;
+cada grupo de skills).
 - Divida quando a pasta passar de **15 arquivos** OU **1.500 linhas**
   (`wc -l`, sem gerados); o `CLAUDE.md` do projeto pode definir outros
   limites. Se não der para ficar abaixo sem separar arquivos que

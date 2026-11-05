@@ -16,7 +16,7 @@ Passos, um por vez:
 
 Nos tipos JS, os passos 1 e 2 tratam só dos testes JS/TS e o passo 3
 não existe. No passo 1 valem "o que não tem teste" (seção 1) e a
-cobertura com `vitest run --coverage`, só se o provider
+cobertura com `npx vitest run --coverage`, só se o provider
 (`@vitest/coverage-v8` ou `-istanbul`) já estiver instalado; sem ele,
 não instale nada: leia os testes e o código e mapeie os módulos sem
 teste correspondente. No passo 2, as pastas que têm testes, inclusive

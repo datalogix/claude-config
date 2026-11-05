@@ -21,7 +21,8 @@
 5. `code` — código PHP, uma pasta por vez
 6. `resources` — config, database, routes, lang, stubs, uma por vez
 7. `frontend` — views, CSS, JS, TS, uma pasta por vez, se existir
-8. `docs` — README, /docs, CLAUDE.md, skills e guidelines
+8. `docs` — README, /docs, CLAUDE.md, skills e guidelines, guias do
+   Laravel Boost e formatação dos documentos
 9. `install` — instalação real numa aplicação Laravel limpa
 10. `closing` — fechamento
 

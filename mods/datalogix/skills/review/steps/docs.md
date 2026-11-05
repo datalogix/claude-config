@@ -44,6 +44,14 @@ Aplicação JS/TS:
 
 Em todos: corrija ou remova trechos desatualizados.
 
+Badge do `.github/workflows/datalogix.yml` no README (item "sugestão",
+só se ela já existir): a badge nativa do GitHub mostra o `name` do
+workflow, `datalogix`, e o texto entre colchetes só é o alternativo.
+Sugira a do shields.io, que aceita rótulo, com `ci` nos dois lugares,
+pois ela fica vermelha por qualquer job, não só pelos testes:
+`[![ci](https://img.shields.io/github/actions/workflow/status/<owner>/<repo>/datalogix.yml?branch=main&label=ci)](https://github.com/<owner>/<repo>/actions/workflows/datalogix.yml)`.
+Não sugira criar a badge num README sem ela.
+
 ## Documentação detalhada
 - pacote: todo comando Artisan, opção de config, evento, Contract e
   ponto de extensão público documentado

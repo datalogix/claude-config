@@ -102,9 +102,9 @@ node bin/cli.js --link                    # install from this clone: edits apply
   fallback (running `update`) against the real `cmd.exe`, through a fake `claude.cmd` shaped like npm's shim, on the
   `windows` CI job only.
 - Every `claude` call (`runClaude`) has a timeout (`CLAUDE_TIMEOUT_MS`, 120s; tests lower it with
-  `DATALOGIX_CLAUDE_TIMEOUT_MS`) that kills it with SIGKILL, since `spawnSync` would keep waiting for a process that
-  ignores SIGTERM, and runs with `GIT_TERMINAL_PROMPT=0`, so a hung network call or a git asking for credentials fails
-  the step instead of freezing the installer. A `claude --version` that times out is such a failure
+  `DATALOGIX_CLAUDE_TIMEOUT_MS`) that sends SIGTERM, so it can clean up, and SIGKILL 5s later (`spawnClaude`), and runs
+  with `GIT_TERMINAL_PROMPT=0`, so a hung network call or a git asking for credentials fails the step instead of
+  freezing the installer. A `claude --version` that times out is such a failure
   (`checkClaudeCli`); any other failure of it means the CLI is not installed, which only warns and skips the mods.
 - `tests/cli-install.test.js` and `tests/cli-update.test.js` run the real CLI without a TTY, with a temporary `HOME`
   and a fake `claude` shell script on `PATH` that logs its arguments; `tests/cli-interactive.test.js` runs the

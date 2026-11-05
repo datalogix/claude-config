@@ -452,6 +452,34 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     assert.ok(Date.now() - start < 15_000, 'waited for the process past the timeout')
   })
 
+  test('gives a timed-out claude a SIGTERM to clean up first', () => {
+    const cleaned = path.join(tmpDir, 'cleaned')
+    fakeClaude({
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+      'plugin marketplace update claude-config': `trap 'echo yes > "${cleaned}"; exit 0' TERM; /bin/sleep 20 & wait`,
+    })
+
+    const { status, output } = runCli(['update'], CLI, { DATALOGIX_CLAUDE_TIMEOUT_MS: '3000' })
+
+    assert.equal(status, 1, output)
+    assert.match(output, /marketplace: timed out after 3s/)
+    assert.equal(fs.readFileSync(cleaned, 'utf8').trim(), 'yes')
+  })
+
+  test('does not wait for a child that a timed-out claude leaves holding the output', () => {
+    fakeClaude({
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+      'plugin marketplace update claude-config': '/bin/sleep 20',
+    })
+
+    const start = Date.now()
+    const { status, output } = runCli(['update'], CLI, { DATALOGIX_CLAUDE_TIMEOUT_MS: '3000' })
+
+    assert.equal(status, 1, output)
+    assert.match(output, /marketplace: timed out after 3s/)
+    assert.ok(Date.now() - start < 15_000, 'waited for the child past the timeout')
+  })
+
   test('turns off git credential prompts for claude', () => {
     fakeClaude({ '--version': `echo "$GIT_TERMINAL_PROMPT" > "${path.join(tmpDir, 'prompt')}"` })
 

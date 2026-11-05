@@ -21,8 +21,8 @@ Rode, quando disponíveis: `composer validate --strict`,
   `minimum-stability`/`prefer-stable`.
 - **Scripts** (convenção de `datalogix/workflows`: o CI roda
   `composer test`, então CI, máquina local e Claude testam do mesmo
-  jeito; `lint` e `format` são locais: o CI roda o Pint direto e, só
-  numa aplicação, o PHPStan):
+  jeito; `lint` e `format` são locais: o CI roda o Pint direto e o
+  PHPStan se o `composer.json` o exigir):
   - `test`: aplicação
     `["@php artisan config:clear --ansi", "@php artisan test"]`;
     pacote `@php vendor/bin/pest` (ou `phpunit`)

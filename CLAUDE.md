@@ -215,8 +215,8 @@ node bin/cli.js --link                    # install from this clone: edits apply
   - `steps/` has one checklist per step; `http` and `jobs` are extra checklists that the `code` step applies.
   - `modes/` holds the focus modes and the `report` mode.
   - `templates/LICENSE` must stay identical to the root `LICENSE`, which `tests/license.test.js` enforces.
-- Several rules follow `datalogix/workflows`, on its `v2` branch (`main` and the `v1` tags have neither `cli/` nor
-  `project.yml`); check it before changing them:
+- Several rules follow the latest version of `datalogix/workflows`: its highest `v<N>` branch or tag, not the default
+  branch or the latest release, which can be older. Check it before changing them:
   - `/datalogix:review`: the reusable workflows for CI, scripts, Pint/ESLint/Prettier, Pest/Vitest and Testbench;
   - `/datalogix:issue`: the `claude`/`claude-plan` labels (inputs of `.github/workflows/claude.yml`) and the `rollback`
     label (`.github/workflows/project.yml` and `deploy.yml`), created with the colors and descriptions of

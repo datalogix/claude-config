@@ -121,8 +121,9 @@ check its skills.
   classifies each failure as caused by the change, pre-existing, flaky
   or infrastructure. For failures the change caused in the code checks
   (Pint, PHPStan, Pest/PHPUnit, the `lint`, `test`, `typecheck` and
-  `build` scripts, `composer audit`, the Node audit) it proposes fixes, applies only the
-  ones you check and runs just what failed to validate them. Only if you
+  `build` scripts, `composer audit`, the Node audit) it proposes
+  fixes, applies only the ones you check and runs just what failed to
+  validate them. Only if you
   check them does it reproduce a failure locally (when no log can be
   read) or rerun the failed jobs (`gh run rerun --failed`). It never
   commits, pushes or comments; on `claude/` branches,

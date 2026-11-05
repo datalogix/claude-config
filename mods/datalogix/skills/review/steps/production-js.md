@@ -17,9 +17,8 @@ React com Vite, Node).
   - Node: nada vai ao navegador, mas segredos ficam fora de imagem,
     logs e respostas de erro
 - procure no build (`.output/public/`, `.next/static/`, `dist/`) os
-  nomes das
-  variáveis privadas e trechos dos valores de exemplo: nada pode
-  aparecer lá
+  nomes das variáveis privadas e trechos dos valores de exemplo: nada
+  pode aparecer lá
 
 ## Segurança
 - headers de segurança (CSP, HSTS, X-Frame-Options,
@@ -34,7 +33,6 @@ React com Vite, Node).
   `productionBrowserSourceMaps`; Vite: `build.sourcemap`)
 - ferramentas de desenvolvimento desligadas em produção (Nuxt
   `devtools`, páginas e rotas de teste)
-
 - Node: CORS restrito, `trust proxy` coerente com a infraestrutura,
   limite de tamanho do body
 
@@ -73,8 +71,7 @@ React com Vite, Node).
 
 ## Build e deploy
 - rode o `build`, se houver, e leia os avisos (chunks grandes, imports
-  circulares,
-  dependências que não deveriam ir para o cliente)
+  circulares, dependências que não deveriam ir para o cliente)
 - destino de deploy coerente com o config: preset do Nitro (Nuxt),
   `output: 'standalone'` ou `'export'` (Next), pasta publicada (Vue ou
   React); script `start` (ou `preview`) que roda o build

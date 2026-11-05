@@ -58,9 +58,9 @@ node bin/cli.js --link                    # install from this clone: edits apply
   that mod; a reply without an `inputs` object only warns and skips it too. Cancelling a prompt ends with the run's
   closing hint (`reloadHint`): `/clear`, and `/reload-plugins` when a mod already changed (`hasModChanges`).
 - Every run updates the marketplace (only when it was already added, and not when every mod was left unselected) and
-  the mods already installed (`updateMarketplace`, `updateMod`). It logs `updated: <name>`, and a failed marketplace update still updates the mods.
-  A failed update still asks for the mod's options with `--configure`. Without `--link`, the marketplace updates from
-  whatever source it has. With `--link`, one added from elsewhere is only pointed out: neither it nor the mods are
+  the mods already installed (`updateMarketplace`, `updateMod`). It logs `updated: <name>`, and a failed marketplace
+  update still updates the mods. A failed update still asks for the mod's options with `--configure`. Without
+  `--link`, the marketplace updates from whatever source it has. With `--link`, one added from elsewhere is only pointed out: neither it nor the mods are
   updated, and an installed mod with nothing to configure logs `unchanged: <name>`, unless its options could not be read
   (`hasReadFailed`), which is already reported. A marketplace with no readable source (no text in its source fields)
   still updates. A mod also loaded from a skills folder (`<name>@skills-dir` in `plugin list`) is pointed out.

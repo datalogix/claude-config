@@ -29,9 +29,10 @@ passo e analise. Arquivos gerados ficam fora (`dist/`, `.nuxt/`,
 - **Testes faltando** para o comportamento do passo.
 
 ## Lib
-- importar a lib não pode ter efeito colateral (nada roda no topo do
-  módulo além de declarações), coerente com o `sideEffects` do
-  package.json
+- importar uma entrada do `exports` não pode ter efeito colateral
+  (nada roda no topo do módulo além de declarações), coerente com o
+  `sideEffects` do package.json; o arquivo do `bin` é um programa e
+  fica fora desta regra
 - API do Node (`fs`, `process`, `Buffer`) só se o alvo for Node, ou
   isolada numa entrada com a condição `node` no `exports`
 - erros lançados com classe ou `code` próprios, que quem usa consegue

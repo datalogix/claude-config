@@ -55,7 +55,8 @@ Analise:
     não publicar sem build
 - **Licença (só lib JS/TS)**: `LICENSE` na raiz, como no item
   "Licença" de `composer.md` (nesta mesma pasta), comparando com
-  `templates/LICENSE` e com o `license` do package.json.
+  `templates/LICENSE` e com o `license` do package.json. Num `name`
+  sem escopo, o vendor é o dono em `repository`.
 - **Scripts** (convenção de `datalogix/workflows`: numa aplicação, o
   CI roda `typecheck`, `lint` e `test` do `package.json` quando
   existem, pelo gerenciador do lockfile; num pacote, o CI não roda JS,

@@ -8,7 +8,8 @@ só essas seções de lá.
 Nos tipos Laravel, as seções "Views", "CSS", "JS/TS" e "Testes". Nos
 tipos JS, "CSS", "JS/TS", a seção do framework ("Vue", mais "Nuxt"
 num projeto Nuxt; "React", mais "Next" num projeto Next) e "Testes";
-numa lib, também "Lib de componentes".
+numa lib, sem "JS/TS", que `code-js.md` cobre, e com "Lib de
+componentes".
 
 ## Views (Blade, componentes, Livewire)
 - XSS: `{!! !!}` com dado não confiável, atributos e URLs sem escape;

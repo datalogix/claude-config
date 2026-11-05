@@ -62,7 +62,9 @@ teste passaria sem olhar o que foi instalado.
    `"moduleResolution": "bundler"`, outro com `"module": "node16"` e
    `"moduleResolution": "node16"`. Rode `npx tsc --noEmit -p <config>`
    nos dois (sem config, o `tsc` só mostra a ajuda); nenhum erro nem
-   `any` implícito vindo da lib.
+   `any` implícito vindo da lib. Numa lib com alvo Node, instale também
+   `@types/node` na sandbox e use `"types": ["node"]` nos dois configs:
+   sem isso, um tipo do Node no `.d.ts` da lib dá erro falso.
 3. O exemplo de uso rápido do README, à risca, sem completar nada de
    cabeça: transforme-o num arquivo na sandbox e execute.
 4. Cada comando do `bin`: rode com `--help` pelo `npx` da sandbox. Sem

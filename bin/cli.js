@@ -101,7 +101,8 @@ function exitIfCancelled(value) {
 
 /** @param {string} message */
 function reportFailure(message) {
-  p.log.error(message)
+  // A failure may quote a claude that names the marketplace's URL.
+  p.log.error(message.replace(/\b(?:https?|ssh|git):\/\/\S+/gi, (url) => withoutCredentials(url)))
   hasFailed = true
 }
 
@@ -473,7 +474,14 @@ function textOrUndefined(value) {
  * @returns {string}
  */
 function withoutCredentials(source) {
-  return source.replace(/^(https?:\/\/)[^/]*@/i, '$1')
+  const url = /^((?:https?|ssh|git):\/\/)(.*)$/i.exec(source)
+  if (!url) return source
+  const scheme = url[1] ?? ''
+  const address = (url[2] ?? '').replace(/[?#].*$/, '')
+  const at = address.lastIndexOf('@')
+  // The user of an ssh URL (git@host) is no secret; anything else before an @ may be, even with a raw /.
+  const isPlainUser = !/^https?/i.test(scheme) && !/[:/]/.test(address.slice(0, at))
+  return `${scheme}${at < 0 || isPlainUser ? address : address.slice(at + 1)}`
 }
 
 /**

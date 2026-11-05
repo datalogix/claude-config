@@ -526,6 +526,21 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.doesNotMatch(output, /secret/)
   })
 
+  test.each([
+    ['a password with a slash', 'https://user:p/secret@example.invalid/x.git', 'https://example.invalid/x.git'],
+    ['a token in the query', 'https://example.invalid/x.git?token=secret', 'https://example.invalid/x.git'],
+    ['a token in the fragment', 'https://example.invalid/x.git#secret', 'https://example.invalid/x.git'],
+    ['a password in an ssh URL', 'ssh://git:secret@example.invalid/x.git', 'ssh://example.invalid/x.git'],
+  ])('keeps %s out of the output', (_, url, shown) => {
+    fakeClaude({ 'plugin marketplace list --json': `echo '[{"name":"claude-config","url":"${url}"}]'` })
+
+    const { status, output } = runCli(['install'])
+
+    assert.equal(status, 0, output)
+    assert.ok(output.includes(`already added from ${shown}`), output)
+    assert.doesNotMatch(output, /secret/)
+  })
+
   test('keeps the user of an ssh marketplace URL in the output', () => {
     fakeClaude({
       'plugin marketplace list --json': `echo '[{"name":"claude-config","url":"ssh://git@example.invalid/x.git"}]'`,

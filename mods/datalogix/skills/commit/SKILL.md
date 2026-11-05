@@ -241,10 +241,9 @@ Na divisão:
     rode `git apply --cached --check` e depois `git apply --cached`
     com ele. Apague o arquivo temporário logo depois, com sucesso
     ou não. Se trechos de commits diferentes caírem no mesmo hunk,
-    gere o diff de novo com `-U1` e, se ainda caírem juntos, com
-    `-U0`, que pede `git apply --cached --unidiff-zero`; se nem assim
-    se separarem, o hunk vai inteiro para o commit da mudança
-    principal, com aviso na prévia. Arquivo novo, apagado, renomeado ou binário vai
+    gere o diff de novo com `-U1`; se ainda caírem juntos, o hunk
+    vai inteiro para o commit da mudança principal, com aviso na
+    prévia. Arquivo novo, apagado, renomeado ou binário vai
     inteiro. Nunca altere a cópia de trabalho nem use `git add -p`.
 - Confira com `git diff --cached --stat` que o stage tem só o
   commit da vez. Num arquivo dividido, leia `git show :<arquivo>` e

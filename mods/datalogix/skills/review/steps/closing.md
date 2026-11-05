@@ -1,6 +1,8 @@
 # Etapa: closing (fechamento)
 
-Depois da última etapa da revisão completa.
+Depois da última etapa da revisão completa. Em `report`: pule a seção
+2 e, na seção 1, só descreva o que entraria nas notas, sem criar
+arquivos.
 
 ## 1. Notas de versão (conforme o tipo e o estágio)
 Pacote ou lib pré-v1, ou aplicação não lançada: pule este item.
@@ -51,8 +53,6 @@ commit sugerido antes do resumo final. Nesses commits, não sugira
 `/datalogix:pr`: ele fica para o fim do resumo final.
 
 Não crie tag nem release; eu faço.
-Em `report`: só descreva o que entraria nas notas, sem criar arquivos,
-e pule a seção 2.
 
 ## 2. Revisão independente
 Quem fez as mudanças não deve ser o único a revisá-las. As skills
@@ -84,7 +84,8 @@ PARE até a resposta:
   da revisão já foi enviada, avise quais ficam de fora.
 
 Rode as marcadas nesta ordem, pela ferramenta de skills (Skill), sem
-nível (`max` e `ultra` só se eu pedir). Sem a ferramenta, ou se uma
+nível, que repete o último que digitei: diga qual ela usou (`max` só
+se eu pedir; `ultra`, só eu inicio). Sem a ferramenta, ou se uma
 skill não estiver disponível, diga e oriente-me a rodá-la.
 
 Os achados das duas viram um único relatório extra, no ciclo normal

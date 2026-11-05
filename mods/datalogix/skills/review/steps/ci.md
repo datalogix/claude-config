@@ -28,8 +28,9 @@ linha em "Recomendações gerais" como melhoria de
   é "sugestão"; a correção é `npx --allow-git=root
   github:datalogix/workflows#<versão> setup` (interativo: eu rodo) ou
   `protect` para o ruleset
-- sem o `datalogix.yml`, ou com ele chamando outra versão: item
-  "importante" pedindo o `setup`
+- sem o `datalogix.yml`, ou com ele chamando outra major: item
+  "importante" pedindo o `setup`; chamando outro ref (branch, SHA): a
+  severidade do `check` ou, se ele não rodou, "importante"
 
 ## Aplicação
 - `datalogix.yml` chamando
@@ -79,7 +80,10 @@ workflow próprio.
   `.github/workflows/ci.yml` pronto, seguindo os itens abaixo
 - gatilhos `push` na branch padrão e `pull_request`
 - Node pelo `.nvmrc`/`.node-version` (`node-version-file`) ou LTS; lib:
-  matriz com a menor versão do `engines.node` e a LTS
+  matriz com a menor versão do `engines.node` e a LTS; se as
+  ferramentas de desenvolvimento exigem mais que o `engines`, um job à
+  parte na versão mínima, só com as dependências de runtime, rodando o
+  `bin` ou importando as entradas
 - instalação pelo lockfile, com o gerenciador dele (`npm ci`,
   `pnpm install --frozen-lockfile`, `yarn install --immutable`), e
   cache do gerenciador no `setup-node`

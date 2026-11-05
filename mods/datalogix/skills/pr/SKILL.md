@@ -81,8 +81,8 @@ Respostas às seções `## Pendências`, em todos os passos:
 - Leia a issue (`gh issue view <número> --json
   number,title,body,state,url`). Se não existir, diga e siga sem
   ela. Se a `url` tiver `/pull/`, o número é de um pull request:
-  diga e siga sem issue. Se estiver fechada e o número veio de `#<número>`, avise e
-  pergunte com `- [ ] Continuar com a #<número> (<título>) fechada`
+  diga e siga sem issue. Se estiver fechada e o número veio de
+  `#<número>`, avise e pergunte com `- [ ] Continuar com a #<número> (<título>) fechada`
   (passo 1). Desmarcado, pare. Se veio da branch, não faça essa
   pergunta: avise na caixa abaixo que ela está fechada.
 - Se o número veio da branch, ele pode não ser de uma issue (ex.:

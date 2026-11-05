@@ -121,7 +121,7 @@ skills ou tags novas, descubra e registre:
   - Sem runner: item "importante" que oferece instalar o Vitest pelo
     gerenciador do projeto (ex.: `npm i -D vitest`), só se eu aprovar.
   - Comando: script `test` do `package.json` se existir; senão
-    `npx vitest run` (ou `npx jest`).
+    `npx --no-install vitest run` (ou `npx --no-install jest`).
 - **Ferramentas de qualidade**: nos tipos Laravel, Pint,
   PHPStan/Larastan, Rector (em `vendor/bin` e no composer.json, com a
   versão do Pint). Use só as que existirem; não instale.
@@ -206,8 +206,8 @@ já está em "Decisões do projeto" (estágio, idioma, `/init`).
   em todos os worktrees dele, mais a subpasta do projeto num monorepo:
   `git rev-parse --path-format=absolute --git-common-dir`, sem o
   `/.git` final e, numa subpasta, seguido de `/` e de `git rev-parse
-  --show-prefix`, sem a barra final; fora de um repositório git, `pwd`. Grave-o no topo do progresso, com a pasta de
-  trabalho atual.
+  --show-prefix`, sem a barra final; fora de um repositório git, `pwd`.
+  Grave-o no topo do progresso, com a pasta de trabalho atual.
   Caminho gravado diferente: se for um worktree deste repositório
   (`git worktree list`), troque-o pelo principal e siga; senão, pare e
   me avise (dois projetos com o mesmo id). Pasta de trabalho gravada
@@ -281,8 +281,8 @@ para.
   "Blade" de `steps/composer.md`.
 - **Verificação front-end** (só se houver front-end): dependências pelo
   lockfile se faltar `node_modules` (ex.: `npm ci`), e os scripts
-  existentes de testes JS/TS, `typecheck`/`npx tsc --noEmit`, lint (ESLint,
-  Stylelint, Prettier em modo check) e `build`. Roda na linha de base,
+  existentes de testes JS/TS, `typecheck`/`npx --no-install tsc
+  --noEmit`, lint (ESLint, Stylelint, Prettier em modo check) e `build`. Roda na linha de base,
   no fechamento e em todo passo que alterou views, CSS, JS/TS, assets,
   `package.json`, lockfile ou configs de build (Vite, Tailwind, PostCSS).
 - **Verificação completa** = as duas. Nos tipos JS não há verificação
@@ -298,11 +298,12 @@ para.
   diga isso e pergunte de novo sobre as falhas que eu tinha mandado
   seguir, pois a resposta foi apagada; senão, rode-a.
 - **Passo de formatação**: se na linha de base só falharem os checks de
-  formatação (`vendor/bin/pint --test`, `npx prettier --check .`),
-  proponha um passo próprio antes das etapas: rodar `vendor/bin/pint`
-  (com `--blade` nas mesmas condições da verificação PHP; nos tipos
-  JS, não) e `npx prettier --write .` direto, nunca o script `format`
-  (que também roda `eslint --fix`); nenhuma outra mudança. Depois, rodar a verificação completa,
+  formatação (`vendor/bin/pint --test`, `npx --no-install prettier
+  --check .`), proponha um passo próprio antes das etapas: rodar
+  `vendor/bin/pint` (com `--blade` nas mesmas condições da verificação
+  PHP; nos tipos JS, não) e `npx --no-install prettier --write .`
+  direto, nunca o script `format` (que também roda `eslint --fix`);
+  nenhuma outra mudança. Depois, rodar a verificação completa,
   sugerir um commit só de formatação, com `- [ ] Fazer o commit de
   formatação` (pelo fluxo de commit da seção 5), e que eu inclua o
   hash dele no `.git-blame-ignore-revs` num commit seguinte, e PARAR
@@ -374,8 +375,8 @@ modo.
    caixa que veio com `(recomendo)` e eu desmarquei.
 3. Aplique só o aprovado, um item de cada vez, nesta conversa ou, com
    muitos itens, num subagente (ferramenta Task/Agent), passando a
-   pasta de trabalho, os itens aprovados, as decisões e as regras deste item. Confira o diff
-   que ele devolver; a verificação (item 4), o progresso e os commits
+   pasta de trabalho, os itens aprovados, as decisões e as regras
+   deste item. Confira o diff que ele devolver; a verificação (item 4), o progresso e os commits
    ficam nesta conversa. Adicione testes quando
    mudar comportamento ou cobrir algo sem teste. Ao renomear, atualize
    todas as referências (código, testes, config, views, docs, skills) e

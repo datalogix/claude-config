@@ -31,8 +31,8 @@ git (`private: true`, com `npx github:...`, com ou sem
 4. `code` — código JS/TS de `src/` (ou da pasta que o `exports`, o
    `bin` ou o build indicam, e as demais pastas com código próprio,
    `steps/code-js.md`), uma pasta por vez; numa lib de
-   componentes, aplique também as seções de componentes de
-   `steps/frontend.md` ("Vue" ou "React" e "Lib de componentes")
+   componentes, aplique também estas seções de `steps/frontend.md`:
+   "CSS", "Vue" ou "React", "Lib de componentes" e "Testes"
 5. `docs` — README, /docs, CLAUDE.md, skills e guidelines
 6. `pack` — o pacote como o npm entrega, instalado num projeto limpo
 7. `closing` — fechamento

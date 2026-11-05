@@ -53,7 +53,7 @@ Caminhos abaixo são relativos a ela; passe-os absolutos aos subagentes.
   Leia SÓ o do tipo detectado, uma vez por sessão.
 - `steps/<etapa>.md`: checklist de cada etapa. Leia só a etapa da vez.
 - `modes/<modo>.md`: instruções de cada modo. Leia só o modo pedido.
-- `templates/LICENSE`: modelo de licença dos pacotes (etapa `composer`).
+- `templates/LICENSE`: modelo de licença (etapas `composer` e `npm`).
 Não leia arquivos que o passo atual não usa. Se um arquivo citado não
 existir, pare e me avise.
 
@@ -239,8 +239,9 @@ progresso. Sem progresso, `status` diz que a revisão não começou e
 para.
 
 - **Base desatualizada**: só na primeira chamada da sessão, antes da
-  seção 2 e da linha de base. Sem remoto `origin`, siga sem dizer nada. A branch
-  padrão é a de `git symbolic-ref --short refs/remotes/origin/HEAD`,
+  seção 2 e da linha de base. Sem remoto `origin`, siga sem dizer
+  nada. A branch padrão é a de `git symbolic-ref --short
+  refs/remotes/origin/HEAD`,
   sem o `origin/`; sem esse ref, `main` ou `master`. Rode `git fetch
   origin <branch padrão>`; se falhar, avise que a base pode estar
   antiga e siga. Conte o que falta com `git rev-list --count
@@ -321,8 +322,10 @@ modo.
    para documentar"; em todo passo, as "Correções pendentes" dos
    arquivos dele, que viram itens do relatório. Ele devolve só o
    relatório.
-   Diga a ele que não altere o projeto; para testar uma sugestão, só
-   numa cópia fora dele (`mktemp -d`).
+   Diga a ele que não altere o projeto, salvo os comandos que o arquivo
+   da etapa manda rodar e cujo resultado o git ignora (`build`, caches
+   do Laravel, que a etapa limpa); para testar uma sugestão, só numa
+   cópia fora dele (`mktemp -d`).
    Antes de mostrar, confira o relatório: descarte itens que repetem
    uma "Decisão do projeto", que já foram recusados antes, ou cujo
    trecho citado não existe no arquivo; transforme em item as perguntas

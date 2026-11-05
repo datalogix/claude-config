@@ -5,6 +5,10 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 import {
   branchWebUrl,
   extractExcerpt,
+  folderHref,
+  folderLabel,
+  localAppUrl,
+  repoName,
   formatAgents,
   formatDuration,
   formatGit,
@@ -1901,6 +1905,57 @@ describe('formatGit', () => {
   })
 })
 
+describe('the folder and the app in the status line', () => {
+  test('names the folder by its last two segments', () => {
+    expect(folderLabel('/Users/dev/code/laravel-config', '/Users/dev/code/laravel-config/.git')).toBe(
+      'code/laravel-config',
+    )
+    expect(folderLabel('/Users/dev/code/laravel-config')).toBe('code/laravel-config')
+    expect(folderLabel('C:\\code\\laravel-config')).toBe('code/laravel-config')
+  })
+
+  test('names a linked worktree by the project and the worktree', () => {
+    expect(folderLabel('/Users/dev/code/app/.claude/worktrees/review', '/Users/dev/code/app/.git')).toBe('app (review)')
+  })
+
+  test('takes a submodule, whose git dir is elsewhere, as a plain folder', () => {
+    expect(folderLabel('/code/app/lib/x', '/code/app/.git/modules/x')).toBe('lib/x')
+  })
+
+  test('opens the folder in VS Code, encoding what a URL cannot hold', () => {
+    expect(folderHref('/Users/dev/my app#1')).toBe('vscode://file/Users/dev/my%20app%231')
+    expect(folderHref('C:\\code\\app')).toBe('vscode://file/C:/code/app')
+  })
+
+  for (const [env, app] of [
+    ['APP_URL=http://laravel-config.test', { text: '🌐 laravel-config.test', href: 'http://laravel-config.test/' }],
+    ['A=1\nAPP_URL="http://localhost:8000"\nB=2', { text: '🌐 localhost:8000', href: 'http://localhost:8000/' }],
+    ["APP_URL='https://127.0.0.1:8443/x'", { text: '🌐 127.0.0.1:8443', href: 'https://127.0.0.1:8443/x' }],
+    ['APP_URL=https://exemplo.com.br', undefined],
+    ['APP_URL=javascript://localhost/%0aalert(1)', undefined],
+    ['APP_URL=', undefined],
+    ['APP_URL=nao e url', undefined],
+    ['DB_PASSWORD=http://localhost', undefined],
+  ] as const) {
+    test(`${JSON.stringify(env)} gives ${JSON.stringify(app)}`, () => expect(localAppUrl(env)).toEqual(app))
+  }
+
+  test('names the repository from the web address', () => {
+    expect(repoName('https://github.com/datalogix/claude-config')).toBe('datalogix/claude-config')
+    expect(repoName('https://github.com')).toBeUndefined()
+  })
+
+  test('puts the repository first in the git line, as a link', () => {
+    const git = { head: 'main', branch: 'main' } as never
+    expect(gitSegments(git, undefined, undefined, 'https://github.com/o/r')).toEqual([
+      { text: 'o/r', href: 'https://github.com/o/r' },
+      ' · ',
+      'main',
+    ])
+    expect(formatGit(git, undefined, 'https://github.com/o/r')).toBe('git: o/r · main')
+  })
+})
+
 describe('remoteWebUrl', () => {
   test('reads the forms a remote comes in', () => {
     for (const remote of [
@@ -2142,6 +2197,7 @@ describe('the git state in the status line', () => {
     const slow = new Promise<void>((resolve) => (release = resolve))
     let markStarted = () => {}
     const started = new Promise<void>((resolve) => (markStarted = resolve))
+    let hasStarted = false
     const statuses = [
       reply(gitStatus('old', { ab: '# branch.upstream origin/old\n# branch.ab +0 -0' })),
       reply(gitStatus('new')),
@@ -2150,11 +2206,14 @@ describe('the git state in the status line', () => {
     on('session.usage', () => ({ value: { rateLimits: [] } }) as never)
     on('process.run', (async (_$: unknown, e: { argv: string[] }) => {
       if (e.argv[0] === 'gh') return { value: noPr }
-      if (e.argv[1] === 'remote') {
+      // Only the read of the upstream's remote is slow; the folder's own read of origin finds none.
+      if (e.argv[1] === 'remote' && !hasStarted) {
+        hasStarted = true
         markStarted()
         await slow
         return { value: reply('git@github.com:o/r.git\n') }
       }
+      if (e.argv[1] === 'remote' || e.argv[1] === 'rev-parse') return { value: { exitCode: 1, stdout: '', stderr: '' } }
       return { value: statuses.shift()! }
     }) as never)
 
@@ -2173,7 +2232,11 @@ describe('the git state in the status line', () => {
 
     await $.session.start(sessionStartInput)
 
-    expect(calls).toEqual([GIT_STATUS])
+    expect(calls).toEqual([
+      GIT_STATUS,
+      ['git', 'rev-parse', '--path-format=absolute', '--show-toplevel', '--git-common-dir'],
+      ['git', 'remote', 'get-url', 'origin'],
+    ])
   })
 
   describe('the pull request', () => {
@@ -2314,6 +2377,8 @@ describe('the lines under the prompt', () => {
     })
 
   /** The engine's own line, which the test stands for. */
+  const LAUDE_FOLDER_LINK = 'vscode://file/Users/dev/code/laudecode/laude'
+
   const withLines = (
     on: On,
     percentUsed = 10,
@@ -2350,7 +2415,13 @@ describe('the lines under the prompt', () => {
       await $.turn.complete(turnComplete(1_000))
 
       const ui = await mountHint($, surface)
-      expect(await texts(ui)).toEqual(['status: ✅ pronto em 1s', 'plano: 5h 10%', 'git: main', 'auto mode on'])
+      // The text of a Link holds its href too, here.
+      expect(await texts(ui)).toEqual([
+        `status: ${surface === 'terminal' ? LAUDE_FOLDER_LINK : 'code/laude'}  │  ✅ pronto em 1s`,
+        'plano: 5h 10%',
+        'git: https://github.com/o/ro/r · main',
+        'auto mode on',
+      ])
       expect(statuses.at(-1)).toBeUndefined()
       await ui.unmount()
     })
@@ -2362,7 +2433,12 @@ describe('the lines under the prompt', () => {
     await $.session.start(sessionStartInput)
 
     const ui = await mountHint($, 'terminal')
-    expect(await texts(ui)).toEqual(['status: 💤 aguardando', 'plano: 5h 10%', 'git: main', 'auto mode on'])
+    expect(await texts(ui)).toEqual([
+      `status: ${LAUDE_FOLDER_LINK}  │  💤 aguardando`,
+      'plano: 5h 10%',
+      'git: https://github.com/o/ro/r · main',
+      'auto mode on',
+    ])
     expect((await fullLines(ui))[0]?.props?.color).toBe('subtle')
     await ui.unmount()
   })
@@ -2410,6 +2486,8 @@ describe('the lines under the prompt', () => {
       ui as unknown as { findAll: (q: { type: string }) => Promise<{ props?: { href?: string } }[]> }
     ).findAll({ type: 'Link' })
     expect(links.map((link) => link.props?.href)).toEqual([
+      'vscode://file/Users/dev/code/laude',
+      'https://github.com/o/r',
       'https://github.com/o/r/tree/feat/x',
       'https://github.com/o/r/pull/5',
     ])
@@ -2422,11 +2500,52 @@ describe('the lines under the prompt', () => {
     await $.session.start(sessionStartInput)
 
     const ui = await mountHint($, 'terminal')
-    const links = await (ui as unknown as { findAll: (q: { type: string }) => Promise<unknown[]> }).findAll({
-      type: 'Link',
-    })
-    expect(links).toEqual([])
+    const links = await (
+      ui as unknown as { findAll: (q: { type: string }) => Promise<{ props?: { href?: string } }[]> }
+    ).findAll({ type: 'Link' })
+    expect(links.map((link) => link.props?.href)).toEqual([
+      'vscode://file/Users/dev/code/laude',
+      'https://github.com/o/r',
+    ])
     await ui.unmount()
+  })
+
+  test('draws the folder and an app with no https as plain text on the desktop', async ($, on) => {
+    setup(on, { surfaces: ['desktop'] })
+    withLines(on)
+    on('fs.read', (() => ({ value: 'APP_URL=http://app.test' })) as never)
+    await $.session.start(sessionStartInput)
+
+    const ui = await mountHint($, 'desktop')
+    const links = await (
+      ui as unknown as { findAll: (q: { type: string }) => Promise<{ props?: { href?: string } }[]> }
+    ).findAll({ type: 'Link' })
+    expect(links.map((link) => link.props?.href)).toEqual(['https://github.com/o/r'])
+    expect((await texts(ui))[0]).toBe('status: code/laude  │  💤 aguardando  │  🌐 app.test')
+    await ui.unmount()
+  })
+
+  test('links the app of a local .env in the terminal', async ($, on) => {
+    setup(on, { surfaces: ['terminal'] })
+    withLines(on)
+    on('fs.read', (() => ({ value: 'APP_URL=http://localhost:8000' })) as never)
+    await $.session.start(sessionStartInput)
+
+    const ui = await mountHint($, 'terminal')
+    const links = await (
+      ui as unknown as { findAll: (q: { type: string }) => Promise<{ props?: { href?: string } }[]> }
+    ).findAll({ type: 'Link' })
+    expect(links.map((link) => link.props?.href)).toContain('http://localhost:8000/')
+    await ui.unmount()
+  })
+
+  test('leaves the folder and the app out of the one status line, and keeps the repository', async ($, on) => {
+    const { statuses } = setup(on, { surfaces: ['vscode'] })
+    withLines(on)
+    on('fs.read', (() => ({ value: 'APP_URL=http://localhost:8000' })) as never)
+    await $.session.start(sessionStartInput)
+
+    expect(statuses.at(-1)).toBe('plano: 5h 10%  │  git: o/r · main')
   })
 
   test('colors each line by what it says', async ($, on) => {
@@ -2467,6 +2586,6 @@ describe('the lines under the prompt', () => {
 
     await $.session.start(sessionStartInput)
 
-    expect(lastStatus()).toBe('plano: 5h 10%  │  git: main')
+    expect(lastStatus()).toBe('plano: 5h 10%  │  git: o/r · main')
   })
 })

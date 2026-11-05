@@ -43,10 +43,19 @@ there, as `💤 aguardando` when nothing has happened yet; `plano:` and
 `git:` are left out when they have nothing to show:
 
 ```
-status: ⠋ trabalhando… 0:42  │  🤖 2/5: Revisar +2
+status: code/laravel-config  │  ⠋ trabalhando… 0:42  │  🤖 2/5: Revisar +2  │  🌐 laravel-config.test
 plano: 5h 16% (renova em 3h09) · semana 31% (renova em 10h29)
-git: feat/status-git · PR #5 · ●3 ↑1 ↓2
+git: datalogix/laravel-config · feat/status-git · PR #5 · ●3 ↑1 ↓2
 ```
+
+The folder is the last two segments of the repository's root, or of the
+working folder outside one, and opens in VS Code (`vscode://`); in a linked
+worktree it is the project and the worktree, as `laravel-config (review)`.
+The address at the end is the `APP_URL` of the `.env` at that root, only when
+it is `localhost`, `127.0.0.1` or a `.test` host, and it shows even with the
+server stopped: nothing else is read from that file. The desktop app opens
+only `https:` and `http://localhost` links, so it draws the folder and a
+`.test` address as plain text.
 
 Each line has its color: `status:` in the Claude color while working,
 green when done, red after a failure and gray while waiting; `plano:` in
@@ -55,9 +64,11 @@ colors, so they follow the user's theme.
 
 Claude Code draws those lines only in the terminal and the desktop app.
 Elsewhere, such as VS Code, the same parts go on one status line, which
-takes no line breaks, separated by `│`.
+takes no line breaks, separated by `│`, without the folder and the app's
+address, and with no links.
 
-The `git:` line has the branch (the short commit when detached), the open
+The `git:` line has the repository, which links to its page, the branch
+(the short commit when detached), the open
 pull request, 3 changed files (an untracked folder counts as one), 1
 commit ahead of the upstream and 2 behind; a count at zero is left out.
 It is read at the session start, when an answer ends and every minute,

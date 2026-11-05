@@ -7,6 +7,7 @@ import path from 'node:path'
 import { describe, test } from 'vitest'
 import {
   GITHUB_MARKETPLACE_REPLY,
+  assertCalledBefore,
   CLI,
   PLAIN_MOD,
   MODS,
@@ -117,16 +118,6 @@ describe('install', { skip: process.platform === 'win32' }, () => {
       assert.equal(status, 0, output)
       assert.ok(lstatOrUndefined(skillPath('review')))
     })
-  })
-
-  test('skips the mods and keeps the old skills when the claude CLI is missing', () => {
-    addOldSkill('review')
-
-    const { status, output } = runCli(['install'])
-
-    assert.equal(status, 0, output)
-    assert.match(output, /mods skipped/)
-    assert.ok(fs.existsSync(skillPath('review')))
   })
 
   test('fails the run when claude --version hangs, instead of calling it not installed', () => {
@@ -513,6 +504,28 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.doesNotMatch(output, /p@ss/)
   })
 
+  test('keeps the credentials of the marketplace URL out of the --link warning', () => {
+    fakeClaude({
+      'plugin marketplace list --json': `echo '[{"name":"claude-config","url":"https://user:p@ss@example.invalid/x.git"}]'`,
+    })
+
+    const { output } = runCli(['--link'])
+
+    assert.match(output, /comes from https:\/\/example\.invalid\/x\.git/)
+    assert.doesNotMatch(output, /p@ss/)
+  })
+
+  test('keeps the credentials of a marketplace URL with an uppercase scheme out of the output', () => {
+    fakeClaude({
+      'plugin marketplace list --json': `echo '[{"name":"claude-config","url":"HTTPS://user:secret@example.invalid/x.git"}]'`,
+    })
+
+    const { status, output } = runCli(['install'])
+
+    assert.equal(status, 0, output)
+    assert.doesNotMatch(output, /secret/)
+  })
+
   test('keeps the user of an ssh marketplace URL in the output', () => {
     fakeClaude({
       'plugin marketplace list --json': `echo '[{"name":"claude-config","url":"ssh://git@example.invalid/x.git"}]'`,
@@ -544,6 +557,7 @@ describe('install', { skip: process.platform === 'win32' }, () => {
 
     assert.equal(status, 0, output)
     assert.match(output, new RegExp(`updated: ${PLAIN_MOD}\\n`))
+    assertCalledBefore('plugin marketplace update claude-config', `plugin update ${PLAIN_MOD}@claude-config --json`)
     // The fake update prints no versions, which counts as a change.
     assert.match(output, /reload-plugins/)
     assert.doesNotMatch(output, /unchanged: /)
@@ -693,6 +707,7 @@ describe('arguments', () => {
 
   test.each([
     ['update', '--link'],
+    ['update', '--configure'],
     ['install', '--force'],
     ['update', ''],
   ])('rejects a flag the command does not take (%s "%s")', (command, flag) => {

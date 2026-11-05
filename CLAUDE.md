@@ -62,7 +62,7 @@ node bin/cli.js --link                    # install from this clone: edits apply
 - Every run updates the marketplace (only when it was already added, and not when every mod was left unselected) and
   the mods already installed (`updateMarketplace`, `updateMod`). It logs `updated: <name>`, and a failed marketplace
   update still updates the mods. A failed update still asks for the mod's options with `--configure`. Without
-  `--link`, the marketplace updates from whatever source it has. Messages show an http(s) source without its credentials
+  `--link`, the marketplace updates from whatever source it has. Messages and failures show a URL without its credentials
   (`withoutCredentials`). With `--link`, one added from elsewhere is only pointed out: neither it nor the mods are
   updated, and an installed mod with nothing to configure logs `unchanged: <name>`, unless its options could not be read
   (`hasReadFailed`), which is already reported. A marketplace with no readable source (no text in its source fields)
@@ -147,10 +147,10 @@ node bin/cli.js --link                    # install from this clone: edits apply
   - `hooks/hooks.json` (only `datalogix` has none) and a `tsconfig.json` that extends
     `./.claude-plugin/types/tsconfig.json`;
   - a `claude plugin test mods/<name>` added to the `test` script (the command fails for a mod without hooks).
-- `mods/status/hooks/register.ts` copies `FENCE`, `QUOTE`, `LIST_ITEM`, `THEMATIC_BREAK`, `TABLE_ROW`, `HTML_COMMENT`,
-  `CODE_MARK`, `INLINE_MAX`, `plainText` and `createCodeBlockTracker` (a block also ends with the list item or the quote
-  that opened it, and an indented fence ends at a line at column 0 only inside a list: outside one, CommonMark keeps it
-  open) from `mods/topics/hooks/parse.ts`, since each mod installs on its own: change both. `tests/mods.test.js`
+- `mods/status/hooks/register.ts` copies `FENCE`, `QUOTE`, `LIST_ITEM`, `TABLE_ROW`, `HTML_COMMENT`, `CHECKBOX`,
+  `CODE_MARK`, `INLINE_MAX`, `isSkippedLine`, `plainText` and `createCodeBlockTracker` (a block also ends with the list
+  item or the quote that opened it, and an indented fence ends at a line at column 0 only inside a list, where its
+  closing fence then opens nothing: outside one, CommonMark keeps it open) from `mods/topics/hooks/parse.ts`, since each mod installs on its own: change both. `tests/mods.test.js`
   compares them, the tracker apart from what it returns.
 - `topics` parses the `## Pendências` format (the last such topic; checkbox/radio items, a stance mark,
   `(recomendo)`, `(não recomendo)` or `(avalie)`, an item's first `ver:` matched to a topic title ignoring case,

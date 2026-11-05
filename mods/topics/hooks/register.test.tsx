@@ -178,6 +178,16 @@ describe('parseAnswer', () => {
     ['the end of a list item ends an indented fence', ['- item', '  ```', '  x', '## A', '## B'], ['A', 'B']],
     ['a fence at column 0 closes an indented one', ['## A', '  ```', '  x', '```', '## B'], ['A', 'B']],
     [
+      'the fence closing a block that a line at column 0 ended opens nothing',
+      ['## A', '- a', '  ```bash', 'curl x', '  ```', '## B', 'text', '## C'],
+      ['A', 'B', 'C'],
+    ],
+    [
+      'a fence with an info string after an ended block still opens',
+      ['- a', '  ```', 'x', '  ```js', '## y', '  ```', '## B'],
+      ['B'],
+    ],
+    [
       'outside a list, a line at column 0 stays in an indented fence',
       ['## A', '  ```', '## x', '  ```', '## B'],
       ['A', 'B'],
@@ -335,6 +345,11 @@ describe('the stance marks', () => {
     ['(recomendo) *A*', '*A*'],
     ['**(recomendo)** A **B**', 'A **B**'],
     ['_(recomendo) `__init__`_', '`__init__`'],
+    ['**(recomendo) usar **x** agora**', 'usar **x** agora'],
+    ['**(recomendo) a** b **c**', 'a b **c**'],
+    ['_**(recomendo) A**_', 'A'],
+    ['_(recomendo) snake_case_', 'snake_case'],
+    ['_(recomendo) a_b c_d e_', 'a_b c_d e'],
     ['(recomendo) ._cache', '._cache'],
   ] as const) {
     test(`"${text}" carries the mark and leaves "${stripped}"`, () => {
@@ -585,6 +600,12 @@ describe('previewOf', () => {
     ['| a | b |\n|---|---|\nFeito', 'Feito'],
     ['<!-- c -->\nFeito', 'Feito'],
     ['- [ ] Feito', 'Feito'],
+    ['![](logo.png) Feito', 'Feito'],
+    ['> ---\nFeito', 'Feito'],
+    ['> | a |\nFeito', 'Feito'],
+    ['- | a |\nFeito', 'Feito'],
+    ['> <!-- c -->\nFeito', 'Feito'],
+    ['- [ ]\nFeito', 'Feito'],
     ['- ( ) Feito', 'Feito'],
   ] as const) {
     test(`${JSON.stringify(body)} is ${JSON.stringify(preview)}`, () => expect(previewOf(body)).toBe(preview))

@@ -1443,6 +1443,24 @@ test(
   },
 )
 
+test('keeps the text after a tab in the notification', { options: { excerpt: true } }, async ($, on) => {
+  const { notifications } = setup(on)
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  await $.turn.complete(turnComplete(60_000, { answer: 'a\t[bcd] e \u009b31mfim' }))
+
+  expect(notifications).toEqual(['✅ Claude terminou em 1min 00s: a [bcd] e fim'])
+})
+
+test('keeps control characters out of the title of the notification', async ($, on) => {
+  const { notificationTitles } = setup(on, { cwd: '/Users/dev/code/la\u001b[31mude' })
+
+  await $.turn.start({ text: 'oi', turnId: 't1' })
+  await $.turn.complete(turnComplete(60_000))
+
+  expect(notificationTitles).toEqual(['laude'])
+})
+
 test('an answer with no line to show leaves the notification as is', { options: { excerpt: true } }, async ($, on) => {
   const { notifications } = setup(on)
 
@@ -1801,6 +1819,7 @@ describe('extractExcerpt', () => {
     ['[x](http://a_b_c) feito', 'x feito'],
     ['\\*a\\* feito', '*a* feito'],
     ['~~riscado~~ feito', 'riscado feito'],
+    ['![](logo.png) feito', 'feito'],
     ['`**x**` e __init__.py', '**x** e __init__.py'],
   ] as const) {
     test(`${JSON.stringify(answer)} is ${JSON.stringify(text)}`, () => expect(extractExcerpt(answer)).toBe(text))

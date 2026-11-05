@@ -57,8 +57,8 @@ export const withoutStanceMark = (t: string) => {
 const PREVIEW_MAX = 90
 
 // A fence of backticks cannot have a backtick in its info string (CommonMark). mods/status/hooks/register.ts keeps a
-// copy of this regex and of createCodeBlockTracker's closing rule (same character, at least as long, nothing after),
-// since each mod installs on its own: change both. tests/mods.test.js compares only the regex, not the closing rule.
+// copy of FENCE, QUOTE, LIST_ITEM, CODE_MARK, INLINE_MAX, plainText and createCodeBlockTracker, since each mod installs
+// on its own: change both. tests/mods.test.js compares them.
 const FENCE = /^\s*(?:(?:[-*+]|\d+[.)])\s+)?(`{3,}(?!.*`)|~{3,})/
 const QUOTE = /^\s*(?:>\s?)+/
 const LIST_ITEM = /^\s*(?:[-*+]|\d+[.)])(?:\s|$)/

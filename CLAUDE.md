@@ -143,9 +143,10 @@ node bin/cli.js --link                    # install from this clone: edits apply
   - `hooks/hooks.json` (only `datalogix` has none) and a `tsconfig.json` that extends
     `./.claude-plugin/types/tsconfig.json`;
   - a `claude plugin test mods/<name>` added to the `test` script (the command fails for a mod without hooks).
-- `mods/status/hooks/register.ts` copies `FENCE`, `QUOTE` and the rules of `createCodeBlockTracker` (a block also ends
-  with the list item or the quote that opened it) from `mods/topics/hooks/parse.ts`, since each mod installs on its
-  own: change both. `tests/mods.test.js` compares only the `FENCE` line.
+- `mods/status/hooks/register.ts` copies `FENCE`, `QUOTE`, `LIST_ITEM`, `CODE_MARK`, `INLINE_MAX`, `plainText` and
+  `createCodeBlockTracker` (a block also ends with the list item or the quote that opened it) from
+  `mods/topics/hooks/parse.ts`, since each mod installs on its own: change both. `tests/mods.test.js` compares them, the
+  tracker apart from what it returns.
 - `topics` parses the `## Pendências` format (the last such topic; checkbox/radio items, a stance mark,
   `(recomendo)`, `(não recomendo)` or `(avalie)`, an item's first `ver:` matched to a topic title ignoring case,
   accents, backticks and bold/italics, the first matching topic winning) in `hooks/parse.ts`. An item the answer writes

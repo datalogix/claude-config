@@ -1714,6 +1714,13 @@ describe('formatWorkflows', () => {
 })
 
 describe('extractExcerpt', () => {
+  test('a line of openers takes no quadratic time', () => {
+    const start = Date.now()
+    extractExcerpt(' ['.repeat(100_000))
+    extractExcerpt(' [a'.repeat(100_000))
+    expect(Date.now() - start).toBeLessThan(1_000)
+  })
+
   for (const [answer, text] of [
     ['\n- Feito: `x` **ok**', 'Feito: x ok'],
     ['Renomeei `my_var` para _snake_case_ e __init__', 'Renomeei my_var para snake_case e init'],
@@ -1726,7 +1733,7 @@ describe('extractExcerpt', () => {
     ['````md\n```\nexemplo\n```\n````\nFeito', 'Feito'],
     ['```\ncode\n``` js\n```\nFeito', 'Feito'],
     ['~~~\n```\n~~~\nFeito', 'Feito'],
-    ['```a`b\nFeito', '`a`b'],
+    ['```a`b\nFeito', 'ab'],
     ['2 * 3 = 6', '2 * 3 = 6'],
     ['Veja [o README](https://x/README.md).', 'Veja o README.'],
     ['- [x] Feito', 'Feito'],
@@ -1760,8 +1767,28 @@ describe('extractExcerpt', () => {
     ['> ```\n> code\n\nFeito', 'Feito'],
     ['- ~~~riscado~~~ texto\nFeito', 'Feito'],
     ['- ```js\n  code\n\nFeito', 'Feito'],
-    ['  ```\n  code\nFeito', 'Feito'],
     ['  ```\n  code\n```\nFeito', 'Feito'],
+    ['  ```bash\ncurl -H "Bearer segredo"\n  ```\nFeito', 'Feito'],
+    ['  ```\ncode\n```\nFeito', 'Feito'],
+    ['- \n  ```\n  code\nFeito', 'Feito'],
+    ['> ---\nFeito', 'Feito'],
+    ['> ***\nFeito', 'Feito'],
+    ['> * * *\nFeito', 'Feito'],
+    ['> | a | b |\nFeito', 'Feito'],
+    ['> <!-- nota -->\nFeito', 'Feito'],
+    ['- | a |\nFeito', 'Feito'],
+    ['**\nFeito', 'Feito'],
+    ['#\nFeito', 'Feito'],
+    ['-\nFeito', 'Feito'],
+    ['1.\nFeito', 'Feito'],
+    ['- [ ]\nFeito', 'Feito'],
+    ['===\nFeito', 'Feito'],
+    ['✅\nFeito', 'Feito'],
+    ['***negrito*** feito', 'negrito feito'],
+    ['[x](http://a_b_c) feito', 'x feito'],
+    ['\\*a\\* feito', '*a* feito'],
+    ['~~riscado~~ feito', 'riscado feito'],
+    ['`**x**` e __init__.py', '**x** e __init__.py'],
   ] as const) {
     test(`${JSON.stringify(answer)} is ${JSON.stringify(text)}`, () => expect(extractExcerpt(answer)).toBe(text))
   }

@@ -127,24 +127,70 @@ const createCodeBlockTracker = () => {
 const THEMATIC_BREAK = /^\s*([-*_]\s*){3,}$/
 const TABLE_ROW = /^\s*\|/
 const HTML_COMMENT = /^\s*(<!--((?!-->).)*-->\s*)+$/
+const CHECKBOX = /^\[[ xX]\](?:\s+|$)/
 
-/** Underscores inside words (snake_case) and a lone * (2 * 3) are kept. */
+/** A rule, a table row, a comment or a line with no letter or digit, also in a quote or a list item. */
+const isSkippedLine = (rawLine: string): boolean => {
+  const unquoted = rawLine.replace(QUOTE, '')
+  const text = unquoted.replace(LIST_ITEM, '').trimStart().replace(CHECKBOX, '')
+  return (
+    THEMATIC_BREAK.test(unquoted) ||
+    THEMATIC_BREAK.test(text) ||
+    TABLE_ROW.test(text) ||
+    HTML_COMMENT.test(text) ||
+    !/[\p{L}\p{N}]/u.test(text)
+  )
+}
+
+/** Stands in for a code span while emphasis comes off; a private use character, so no answer writes it. */
+const CODE_MARK = ''
+/** Emphasis or a code span no longer than this comes off: unbounded, a line of openers took quadratic time. */
+const INLINE_MAX = 1000
+
+/** A copy of plainText in mods/topics/hooks/parse.ts, since each mod installs on its own: change both. */
+const plainText = (t: string) => {
+  const spans: string[] = []
+  return (
+    t
+      .replace(
+        new RegExp(`(?<!\`)(\`+)(?!\`)(.{0,${INLINE_MAX}}?)(?<!\`)\\1(?!\`)`, 'g'),
+        (_, _ticks, code: string) => `${CODE_MARK}${spans.push(code) - 1}${CODE_MARK}`,
+      )
+      .replace(/`/g, '')
+      // An escaped mark is text, so it stays out of the emphasis and link passes, as a code span does.
+      .replace(/\\([\\*_~[\]])/g, (_, mark: string) => `${CODE_MARK}${spans.push(mark) - 1}${CODE_MARK}`)
+      // Before emphasis, which could take the _ of a URL.
+      .replace(new RegExp(`!?\\[([^\\][]{1,${INLINE_MAX}})\\]\\([^)]{0,${INLINE_MAX}}\\)`, 'g'), '$1')
+      .replace(new RegExp(`(?<!~)~~(?=[^\\s~])(.{1,${INLINE_MAX}}?)(?<=[^\\s~])~~(?!~)`, 'g'), '$1')
+      // Emphasis pairs only: a lone * (2 * 3), globs (src/*.ts, *.md), paths (__init__.py) and $_ENV stay. Bold may
+      // start with . or / (**.env**): a glob's ** (**/*.ts) has no pair closing before a space.
+      .replace(
+        new RegExp(
+          `(?<![\\p{L}\\p{N}*/.])(\\*{2,3}(?=[^\\s*])|\\*(?=[^\\s*/.]))(.{1,${INLINE_MAX}}?)(?<=[^\\s*])\\1(?![\\p{L}\\p{N}*/]|\\.[\\p{L}\\p{N}])`,
+          'gu',
+        ),
+        '$2',
+      )
+      .replace(
+        new RegExp(
+          `(?<![\\p{L}\\p{N}_/.])(_{1,3})(?=[^\\s_/.])(.{1,${INLINE_MAX}}?)(?<=[^\\s_])\\1(?![\\p{L}\\p{N}_/]|\\.[\\p{L}\\p{N}])`,
+          'gu',
+        ),
+        '$2',
+      )
+      .replace(new RegExp(`${CODE_MARK}(\\d+)${CODE_MARK}`, 'g'), (_, i: string) => spans[Number(i)]!)
+  )
+}
+
+/** Stops at the first line with text, so the rest of a long answer is not cleaned. */
 export const extractExcerpt = (answer: string | undefined): string | undefined => {
   const isCode = createCodeBlockTracker()
-  const line = answer
-    ?.split('\n')
-    .filter((line) => !isCode(line) && !THEMATIC_BREAK.test(line) && !TABLE_ROW.test(line) && !HTML_COMMENT.test(line))
-    .map((line) =>
-      line
-        .replace(/^\s*(>\s*)*((#+|[-*+]|\d+[.)])\s+)?/, '')
-        .replace(/^\[[ xX]\]\s+/, '')
-        .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
-        .replace(/(\*\*?|`)(\S.*?)\1/g, '$2')
-        .replace(/(?<![\p{L}\p{N}])_+|_+(?![\p{L}\p{N}])/gu, '')
-        .trim(),
-    )
-    .find(Boolean)
-  return line ? truncate(line, EXCERPT_MAX) : undefined
+  for (const line of answer?.split('\n') ?? []) {
+    if (isCode(line) || isSkippedLine(line)) continue
+    const text = plainText(line.replace(/^\s*(>\s*)*((#+|[-*+]|\d+[.)])\s+)?/, '').replace(CHECKBOX, '')).trim()
+    if (text) return truncate(text, EXCERPT_MAX)
+  }
+  return undefined
 }
 
 /** `{}` is replaced by who it was. */
@@ -811,7 +857,7 @@ export const register: Register = (on, options) => {
       if (e.durationMs >= minDurationMs) {
         await sendNotice($, s, `✅ Claude terminou em ${duration}${remainingSuffix}`, {
           timeoutMs: 8000,
-          notificationDetail: extractExcerpt(e.answer),
+          notificationDetail: s.shouldIncludeExcerpt ? extractExcerpt(e.answer) : undefined,
         })
       }
     }

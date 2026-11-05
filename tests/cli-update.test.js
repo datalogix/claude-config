@@ -523,6 +523,20 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     assert.equal(status, 0, output)
   })
 
+  test('keeps the credentials of a URL out of a failure claude reports', () => {
+    fakeClaude({
+      'plugin list --json': installedMods(PLAIN_MOD),
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+      'plugin marketplace update claude-config': "echo 'fatal: https://user:secret@example.invalid/x.git' >&2; exit 1",
+    })
+
+    const { status, output } = runCli(['update'])
+
+    assert.equal(status, 1, output)
+    assert.match(output, /fatal: https:\/\/example\.invalid\/x\.git/)
+    assert.doesNotMatch(output, /secret/)
+  })
+
   test('turns off git credential prompts for claude', () => {
     fakeClaude({ '--version': `echo "$GIT_TERMINAL_PROMPT" > "${path.join(tmpDir, 'prompt')}"` })
 

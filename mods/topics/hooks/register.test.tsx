@@ -178,6 +178,12 @@ describe('parseAnswer', () => {
     ['the end of a list item ends an indented fence', ['- item', '  ```', '  x', '## A', '## B'], ['A', 'B']],
     ['a fence at column 0 closes an indented one', ['## A', '  ```', '  x', '```', '## B'], ['A', 'B']],
     [
+      'outside a list, a line at column 0 stays in an indented fence',
+      ['## A', '  ```', '## x', '  ```', '## B'],
+      ['A', 'B'],
+    ],
+    ['text at column 0 ends the list before a fence', ['- a', 'b', '  ```', '## x', '  ```', '## B'], ['B']],
+    [
       'a quoted fence does not close a block opened outside',
       ['## A', '```', '> ```', '## dentro', '```', '## B'],
       ['A', 'B'],

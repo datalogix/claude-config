@@ -39,6 +39,8 @@ node bin/cli.js --link                    # install from this clone: edits apply
 - Dependabot (`.github/dependabot.yml`), each in one group: GitHub Actions weekly (`ci:` commits), npm monthly
   (`chore:`), ignoring majors of `@types/node`, which stays at the minimum Node (`engines.node`), and of `typescript`,
   since typescript-eslint does not support TS 7.
+- `@clack/prompts`, the only runtime dependency, is pinned exactly to the version CI tests: the lockfile does not reach
+  whoever installs with `npx`, so a range would ship a new 1.x untested. Dependabot still bumps it, through CI.
 
 ## Architecture
 
@@ -60,7 +62,8 @@ node bin/cli.js --link                    # install from this clone: edits apply
 - Every run updates the marketplace (only when it was already added, and not when every mod was left unselected) and
   the mods already installed (`updateMarketplace`, `updateMod`). It logs `updated: <name>`, and a failed marketplace
   update still updates the mods. A failed update still asks for the mod's options with `--configure`. Without
-  `--link`, the marketplace updates from whatever source it has. With `--link`, one added from elsewhere is only pointed out: neither it nor the mods are
+  `--link`, the marketplace updates from whatever source it has. Messages show an http(s) source without its credentials
+  (`withoutCredentials`). With `--link`, one added from elsewhere is only pointed out: neither it nor the mods are
   updated, and an installed mod with nothing to configure logs `unchanged: <name>`, unless its options could not be read
   (`hasReadFailed`), which is already reported. A marketplace with no readable source (no text in its source fields)
   still updates. A mod also loaded from a skills folder (`<name>@skills-dir` in `plugin list`) is pointed out.
@@ -104,7 +107,8 @@ node bin/cli.js --link                    # install from this clone: edits apply
 - Every `claude` call (`runClaude`) has a timeout (`CLAUDE_TIMEOUT_MS`, 120s; tests lower it with
   `DATALOGIX_CLAUDE_TIMEOUT_MS`) that sends SIGTERM, so it can clean up, and SIGKILL 5s later (`spawnClaude`), and runs
   with `GIT_TERMINAL_PROMPT=0`, so a hung network call or a git asking for credentials fails the step instead of
-  freezing the installer. A `claude --version` that times out is such a failure
+  freezing the installer. After `exit`, it waits for `close`, which has all the output, for `CLAUDE_CLOSE_GRACE_MS`
+  (5s), since a child of `claude` may hold the output open. A `claude --version` that times out is such a failure
   (`checkClaudeCli`); any other failure of it means the CLI is not installed, which only warns and skips the mods.
 - `tests/cli-install.test.js` and `tests/cli-update.test.js` run the real CLI without a TTY, with a temporary `HOME`
   and a fake `claude` shell script on `PATH` that logs its arguments; `tests/cli-interactive.test.js` runs the
@@ -143,10 +147,11 @@ node bin/cli.js --link                    # install from this clone: edits apply
   - `hooks/hooks.json` (only `datalogix` has none) and a `tsconfig.json` that extends
     `./.claude-plugin/types/tsconfig.json`;
   - a `claude plugin test mods/<name>` added to the `test` script (the command fails for a mod without hooks).
-- `mods/status/hooks/register.ts` copies `FENCE`, `QUOTE`, `LIST_ITEM`, `CODE_MARK`, `INLINE_MAX`, `plainText` and
-  `createCodeBlockTracker` (a block also ends with the list item or the quote that opened it) from
-  `mods/topics/hooks/parse.ts`, since each mod installs on its own: change both. `tests/mods.test.js` compares them, the
-  tracker apart from what it returns.
+- `mods/status/hooks/register.ts` copies `FENCE`, `QUOTE`, `LIST_ITEM`, `THEMATIC_BREAK`, `TABLE_ROW`, `HTML_COMMENT`,
+  `CODE_MARK`, `INLINE_MAX`, `plainText` and `createCodeBlockTracker` (a block also ends with the list item or the quote
+  that opened it, and an indented fence ends at a line at column 0 only inside a list: outside one, CommonMark keeps it
+  open) from `mods/topics/hooks/parse.ts`, since each mod installs on its own: change both. `tests/mods.test.js`
+  compares them, the tracker apart from what it returns.
 - `topics` parses the `## Pendências` format (the last such topic; checkbox/radio items, a stance mark,
   `(recomendo)`, `(não recomendo)` or `(avalie)`, an item's first `ver:` matched to a topic title ignoring case,
   accents, backticks and bold/italics, the first matching topic winning) in `hooks/parse.ts`. An item the answer writes

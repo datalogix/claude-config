@@ -145,10 +145,11 @@ of issue, pr, commit and ci end with a `## Pendências` list
 (`/datalogix:review` uses it for its reports only when `topics` is
 active, and always for the outdated base and dated branch questions
 and the commit flow), answered in place when the [topics](topics.md)
-mod is installed. Only the items checked when you send the list apply: an item a skill marks
-`(recomendo)` starts checked, so sending as is approves it, while an item
-a preview wrote checked is a suggestion, which `topics` shows unchecked,
-so leaving one alone never removes anything. `tests/skills.test.js`
+mod is installed. Only the items checked when you send the list apply:
+an item a skill marks `(recomendo)` starts checked, so sending as is
+approves it, while an item a preview wrote checked is a suggestion, which
+`topics` shows unchecked, so leaving one alone never removes anything.
+`tests/skills.test.js`
 checks that every item the skills describe parses as one.
 
 Earlier versions copied these skills into `~/.claude/skills/` as
@@ -156,8 +157,9 @@ Earlier versions copied these skills into `~/.claude/skills/` as
 with `--link`). The installer installs `datalogix` and only then
 removes those folders; folders the installer did not create are left
 alone. If `datalogix` could not be installed, they stay
-(`kept: ...`) and running the command again replaces them. With
-`--configure`, unselecting `datalogix` also removes them. If a folder
+(`kept: ...`) and running the command again replaces them. When mods
+are asked (first install or `--configure`), unselecting `datalogix` also
+removes them. If a folder
 cannot be read or removed, the error is reported, the rest of the run
 goes on and it ends with "Finished with errors".
 

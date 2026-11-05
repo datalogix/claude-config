@@ -95,8 +95,8 @@ The installer also cleans up after earlier versions:
   `--configure`, unselecting the new name also removes the old one.
 - Skills copied into `~/.claude/skills/` by earlier versions (`/review`,
   `/issue`) are removed once `datalogix` is installed, or unselected;
-  `datalogix` is installed when such copies exist. Without the
-  `claude` CLI they are left in place. See
+  with other mods installed, `datalogix` is installed when such copies
+  exist. Without the `claude` CLI they are left in place. See
   [datalogix](docs/mods/datalogix.md).
 
 ## Development

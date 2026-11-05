@@ -69,8 +69,10 @@ The branch links to the remote once it is there, tracked and not deleted
 host may not open it). An http(s) remote keeps its scheme and port, even on
 a host with no dot; an ssh remote links over https, without its port. A
 local path or an ssh alias (a host with no dot) as the remote gets no
-link. The pull request links to its own page. A terminal without hyperlink
-support shows the address after the text.
+link. Any user or token in the remote stays out of the link, and a remote
+with `@`, `?` or `#` in its path gets no link. The pull request links to
+its own page. A terminal without hyperlink support shows the address after
+the text.
 
 While Claude Code's own line next to the mode shows the same pull request,
 the `git:` line leaves it out.

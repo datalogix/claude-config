@@ -253,6 +253,39 @@ describe('parseAnswer', () => {
 })
 
 describe('parseActions', () => {
+  test('the list survives an indented fence with no close above it', () => {
+    const { actions } = parseAnswer(['## A', '- item', '  ```', '  x', '## Pendências', '- [ ] B'].join('\n'))
+    expect(actions?.items.map((item) => item.text)).toEqual(['B'])
+  })
+
+  test('the next item ends an indented fence with no close', () => {
+    const { items } = parseActions(['- [ ] A', '  ```', '  x', '- [ ] B'].join('\n'))
+    expect(items.map((item) => item.text)).toEqual(['A', 'B'])
+    expect(items[0]?.details).toEqual(['```\nx'])
+  })
+
+  test('text of only spaces makes no item and no ver:', () => {
+    expect(parseActions('- [ ]  ').items).toEqual([])
+    expect(parseActions('- [ ] A\n  ver: \n').items[0]).toEqual({
+      text: 'A',
+      isSuggested: false,
+      isRadio: false,
+      details: ['ver:'],
+    })
+  })
+
+  for (const [loose, question] of [
+    ['Q\n> ```\n> x\n> ```', undefined],
+    ['Q?\n---', 'Q?'],
+    ['Q?\n\n<!-- c -->', 'Q?'],
+    ['---', undefined],
+    ['> Q?', '> Q?'],
+  ] as const) {
+    test(`the question of ${JSON.stringify(loose)} is ${JSON.stringify(question)}`, () => {
+      expect(questionOf(parseActions(`${loose}\n- ( ) A`).parts[0])).toBe(question)
+    })
+  }
+
   test('a code block under an item is one detail', () => {
     const actions = parseAnswer(
       ['## Pendências', '- [ ] Rodar a migração', '  ```bash', '  php artisan migrate', '  ```', '  ver: Banco'].join(

@@ -57,7 +57,12 @@ const QUOTE = /^\s*(?:>\s?)+/
 const INLINE_MAX = 1000
 
 /** Only tests the line: whether it opens or closes a block is createCodeBlockTracker's job. */
-const isFence = (line: string) => FENCE.test(line)
+const isFence = (line: string) => FENCE.test(line.replace(QUOTE, ''))
+
+// Lines with no text to show, as extractExcerpt in mods/status/hooks/register.ts skips them.
+const THEMATIC_BREAK = /^\s*([-*_]\s*){3,}$/
+const TABLE_ROW = /^\s*\|/
+const HTML_COMMENT = /^\s*(<!--((?!-->).)*-->\s*)+$/
 
 const normalizeTitle = (t: string) =>
   t
@@ -171,7 +176,7 @@ export const parseActions = (body: string): Actions => {
       else lastItem!.details[lastItem!.details.length - 1] += `\n${line.slice(Math.min(indent, detailIndent))}`
       continue
     }
-    const match = /^\s*[-*+]\s+(?:\[([ xX])\]|\(([ xX•●])\))\s+(.+?)\s*$/.exec(line)
+    const match = /^\s*[-*+]\s+(?:\[([ xX])\]|\(([ xX•●])\))\s+(\S.*?)\s*$/.exec(line)
     if (match) {
       closeLooseText()
       parts.push({ itemIndex: items.length })
@@ -180,7 +185,7 @@ export const parseActions = (body: string): Actions => {
     } else if (looseLines.length === 0 && !line.trim()) {
       continue
     } else if (lastItem && looseLines.length === 0 && /^\s+\S/.test(line)) {
-      const explanationMatch = /^\s+ver:\s*(.+?)\s*$/i.exec(line)
+      const explanationMatch = /^\s+ver:\s*(\S.*?)\s*$/i.exec(line)
       // The first ver: wins; a later one stays as a detail.
       if (explanationMatch && lastItem.explanationTitle === undefined) lastItem.explanationTitle = explanationMatch[1]!
       else lastItem.details.push(line.trim())
@@ -270,7 +275,10 @@ export const toggleChecked = (actions: Actions, checked: readonly number[], i: n
 
 export const questionOf = (part: ActionPart | undefined): string | undefined => {
   if (part === undefined || 'itemIndex' in part) return undefined
-  const last = part.text.split('\n').at(-1)
+  const last = part.text
+    .split('\n')
+    .filter((line) => line.trim() && !THEMATIC_BREAK.test(line) && !HTML_COMMENT.test(line))
+    .at(-1)
   return last !== undefined && !isFence(last) ? last : undefined
 }
 

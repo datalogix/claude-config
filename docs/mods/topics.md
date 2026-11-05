@@ -31,8 +31,8 @@ Which database?
 
 - `- [ ]` is an independent action; consecutive `- ( )` items form a group
   of exclusive alternatives, headed by the line of text right before them
-  (the question; without one, or when that line closes a code block,
-  the group shows "escolha uma opção")
+  (the question, skipping a rule or an HTML comment; without one, or when
+  that line closes a code block, the group shows "escolha uma opção")
 - the instruction asks for each item to hold one action and to say on
   its own what will be done ("Fix the order total with a coupon",
   never "Apply #1" or "Do option B"), so the list sent back makes sense

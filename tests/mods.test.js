@@ -83,11 +83,14 @@ describe('status keeps the copies of topics the same', () => {
   const functionOf = (/** @type {string} */ text, /** @type {string} */ name) =>
     new RegExp(`^(?:export )?(const ${name} = [\\s\\S]*?^}$)`, 'm').exec(text)?.[1]
 
-  test.each(['FENCE', 'QUOTE', 'LIST_ITEM', 'CODE_MARK', 'INLINE_MAX'])('%s', (name) => {
-    const line = lineOf(topics, name)
-    assert.ok(line)
-    assert.equal(lineOf(status, name), line)
-  })
+  test.each(['FENCE', 'QUOTE', 'LIST_ITEM', 'THEMATIC_BREAK', 'TABLE_ROW', 'HTML_COMMENT', 'CODE_MARK', 'INLINE_MAX'])(
+    '%s',
+    (name) => {
+      const line = lineOf(topics, name)
+      assert.ok(line)
+      assert.equal(lineOf(status, name), line)
+    },
+  )
 
   test('plainText', () => {
     const code = functionOf(topics, 'plainText')

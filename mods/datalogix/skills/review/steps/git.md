@@ -26,6 +26,22 @@
   ela desfaz (`!.env.example` depois de `.env.*`) e confira que `git
   status --porcelain --ignored` sai igual antes e depois
 
+## .github/CODEOWNERS
+Só garante algo com um ruleset que exige a aprovação dos donos
+(`require_code_owner_review` em `gh api
+repos/{owner}/{repo}/rules/branches/<branch padrão>`); sem ele, só pede
+revisão automaticamente. Quem mantém o projeto sozinho não pode aprovar
+o próprio PR como dono. Com `gh`:
+- exigido e sem o arquivo, ou sem dono para `/.github/`: item
+  "importante" pedindo o `setup` de `datalogix/workflows`
+- não exigido, com mais de uma pessoa no projeto: mantenha o arquivo e
+  aponte como "sugestão" o `protect`, que passa a exigir a aprovação
+- não exigido, e uma pessoa só nos últimos commits: pergunte se o
+  projeto é mantido sozinho antes de sugerir apagar o arquivo; o `setup`
+  pode criá-lo de novo
+- ausente e não exigido: não sugira criar, nem por causa do aviso do
+  `check`, que vale para todo pacote
+
 ## .gitattributes
 - ausente: item "importante" que cria o arquivo com as regras
   abaixo, criado só se eu aprovar

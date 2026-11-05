@@ -72,19 +72,6 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     assert.ok(fs.existsSync(skillPath('review')))
   })
 
-  test('updates a marketplace added from another source', () => {
-    fakeClaude({
-      'plugin list --json': installedMods(PLAIN_MOD),
-      'plugin marketplace list --json': `echo '[{"name":"claude-config","path":"${tmpDir}"}]'`,
-    })
-
-    const { status, output } = runCli(['update'])
-
-    assert.equal(status, 0, output)
-    assert.ok(claudeCalls().includes('plugin marketplace update claude-config'))
-    assert.ok(claudeCalls().includes(`plugin update ${PLAIN_MOD}@claude-config --json`))
-  })
-
   test('says failed when claude fails with nothing on stderr', () => {
     fakeClaude({
       'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
@@ -283,6 +270,31 @@ describe('update', { skip: process.platform === 'win32' }, () => {
   })
 
   // Root writes through the read-only mode below.
+  test.skipIf(process.getuid?.() === 0)('tries every old skill when one cannot be removed', () => {
+    fakeClaude({
+      'plugin list --json': installedMods('datalogix'),
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+    })
+    const lockedFolders = ['review', 'pr'].map((name) => {
+      addOldSkill(name)
+      const locked = path.join(skillPath(name), 'locked')
+      fs.mkdirSync(locked)
+      fs.writeFileSync(path.join(locked, 'SKILL.md'), '')
+      fs.chmodSync(locked, 0o555)
+      return locked
+    })
+
+    try {
+      const { status, output } = runCli(['update'])
+
+      assert.equal(status, 1, output)
+      assert.equal(output.match(/could not remove/g)?.length, 2, output)
+    } finally {
+      for (const locked of lockedFolders) fs.chmodSync(locked, 0o755)
+    }
+  })
+
+  // Root writes through the read-only mode below.
   test.skipIf(process.getuid?.() === 0)('keeps the marker of an old skill removed only halfway', () => {
     fakeClaude({
       'plugin list --json': installedMods('datalogix'),
@@ -317,6 +329,8 @@ describe('update', { skip: process.platform === 'win32' }, () => {
 
       assert.equal(status, 1, output)
       assert.equal(output.match(/could not read ~\/\.claude\/skills/g)?.length, 1, output)
+      assert.ok(claudeCalls().includes('plugin marketplace update claude-config'), output)
+      assert.ok(claudeCalls().includes(`plugin install ${PLAIN_MOD}@claude-config`), output)
     } finally {
       fs.chmodSync(skills, 0o755)
     }
@@ -477,7 +491,7 @@ describe('update', { skip: process.platform === 'win32' }, () => {
 
     assert.equal(status, 1, output)
     assert.match(output, /marketplace: timed out after 3s/)
-    assert.ok(Date.now() - start < 15_000, 'waited for the child past the timeout')
+    assert.ok(Date.now() - start < 7000, 'waited for the child past the timeout')
   })
 
   test('does not wait for a child that a finished claude leaves holding the output', () => {
@@ -489,6 +503,24 @@ describe('update', { skip: process.platform === 'win32' }, () => {
     assert.equal(status, 0, output)
     assert.doesNotMatch(output, /timed out/)
     assert.ok(Date.now() - start < 15_000, 'waited for the child past the grace period')
+  })
+
+  test('does not wait for the grace period when the output closes with claude', () => {
+    fakeClaude({ '--version': 'exit 1' })
+
+    const start = Date.now()
+    const { status, output } = runCli(['update'])
+
+    assert.equal(status, 0, output)
+    assert.ok(Date.now() - start < 4000, 'waited for the grace period')
+  })
+
+  test('keeps what a child of claude writes shortly after claude exits', () => {
+    fakeClaude({ 'plugin list --json': "(/bin/sleep 1; echo '[]') & exit 0" })
+
+    const { status, output } = runCli(['update'])
+
+    assert.equal(status, 0, output)
   })
 
   test('turns off git credential prompts for claude', () => {

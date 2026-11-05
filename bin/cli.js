@@ -20,6 +20,8 @@ const SETTINGS_FILE = path.join(process.env.CLAUDE_CONFIG_DIR || CLAUDE_DIR, 'se
 const CLAUDE_TIMEOUT_MS = Number(process.env.DATALOGIX_CLAUDE_TIMEOUT_MS) || 120_000
 /** How long a timed-out claude has to clean up after SIGTERM, before SIGKILL. */
 const CLAUDE_KILL_GRACE_MS = 5000
+/** How long the output of a finished claude has to close, since a child of it may hold it open. */
+const CLAUDE_CLOSE_GRACE_MS = 5000
 
 /** Written by earlier versions into each copied skill: a copy without it is never removed. */
 const MARKER_FILE = '.claude-config'
@@ -254,6 +256,8 @@ function spawnClaude(command, args, isShell, input) {
     let isTimedOut = false
     /** @type {NodeJS.Timeout | undefined} */
     let killTimer
+    /** @type {NodeJS.Timeout | undefined} */
+    let closeTimer
     const timeoutTimer = setTimeout(() => {
       isTimedOut = true
       child.kill('SIGTERM')
@@ -264,6 +268,7 @@ function spawnClaude(command, args, isShell, input) {
     const finish = (end) => {
       clearTimeout(timeoutTimer)
       clearTimeout(killTimer)
+      clearTimeout(closeTimer)
       // A child that outlives claude could keep these open, and with them this process.
       child.stdout.destroy()
       child.stderr.destroy()
@@ -275,11 +280,11 @@ function spawnClaude(command, args, isShell, input) {
     child.stdin.on('error', () => {})
     child.stdin.end(input)
     child.on('error', (error) => finish({ error }))
-    // Normally on close, which has all the output; a timeout on exit, since a child of claude may hold the output open.
+    // Normally on close, which has all the output; a child of claude may hold it open, so exit starts a deadline.
     child.on('exit', (status) => {
-      if (isTimedOut) {
-        finish({ status })
-      }
+      clearTimeout(timeoutTimer)
+      clearTimeout(killTimer)
+      closeTimer = setTimeout(() => finish({ status }), isTimedOut ? 0 : CLAUDE_CLOSE_GRACE_MS)
     })
     child.on('close', (status) => finish({ status }))
   })

@@ -492,6 +492,13 @@ type NoticeOptions = {
 
 export const projectName = (cwd: string): string => cwd.split(/[\\/]/).filter(Boolean).at(-1) ?? cwd
 
+/** An escape sequence whole, then any other control or text direction character: the body is sent as given. */
+const withoutControlChars = (text: string): string =>
+  text
+    .replace(/\p{Cc}\][^\p{Cc}]*\p{Cc}\\?|\p{Cc}\[[0-?]*[ -/]*[@-~]/gu, '')
+    .replace(/[\p{Cc}‪-‮⁦-⁩]+/gu, ' ')
+    .trim()
+
 /** `notificationDetail` goes only to the notification (the toast sits beside the answer), with excerpt on. */
 async function sendNotice($: EngineInterface, s: State, text: string, options: NoticeOptions) {
   $.ui.toast(text, { timeoutMs: options.timeoutMs })
@@ -499,9 +506,9 @@ async function sendNotice($: EngineInterface, s: State, text: string, options: N
   try {
     s.project ??= projectName(await $.session.cwd())
     const detail = s.shouldIncludeExcerpt ? options.notificationDetail : undefined
-    await $.ui.notify(detail ? `${text}: ${detail}` : text, { title: s.project })
+    await $.ui.notify(withoutControlChars(detail ? `${text}: ${detail}` : text), { title: s.project })
   } catch {
-    // No notification channel: the toast is enough.
+    // A hook denied it or the write failed: the toast already went out.
   }
 }
 

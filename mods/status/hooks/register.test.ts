@@ -1430,6 +1430,19 @@ test('a long answer with no text still sends a notice', async ($, on) => {
   expect(toasts).toEqual(['✅ Claude terminou em 1min 00s'])
 })
 
+test(
+  'keeps control and text direction characters out of the notification',
+  { options: { excerpt: true } },
+  async ($, on) => {
+    const { notifications } = setup(on)
+
+    await $.turn.start({ text: 'oi', turnId: 't1' })
+    await $.turn.complete(turnComplete(60_000, { answer: '\u001b]0;titulo\u0007Fei\u202Eto \u001b[31mfim\u001b[0m' }))
+
+    expect(notifications).toEqual(['✅ Claude terminou em 1min 00s: Fei to fim'])
+  },
+)
+
 test('an answer with no line to show leaves the notification as is', { options: { excerpt: true } }, async ($, on) => {
   const { notifications } = setup(on)
 

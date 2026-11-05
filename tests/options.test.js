@@ -139,6 +139,10 @@ test('leaves out an empty sensitive value', () => {
   assert.deepEqual(currentValues({ secret: '' }, { secret: { type: 'string', sensitive: true } }), {})
 })
 
+test('leaves out an empty value of an option outside the userConfig', () => {
+  assert.deepEqual(currentValues({ gone: '' }, {}), {})
+})
+
 test.each([[null], ['x'], [undefined], [['x']]])('has no current values when the inputs are %j', (inputs) => {
   assert.equal(currentValues(inputs, {}), undefined)
 })

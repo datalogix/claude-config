@@ -54,6 +54,16 @@ vi.mock('@clack/prompts', () => {
       prompts.unexpected.push(`${question.message}: ${String(answer)} was not offered`)
       return Promise.reject(new Error('answer not offered'))
     }
+    // The real text and password stay open while validate rejects; confirm gives a boolean, they give text.
+    const isWrongType =
+      answer !== prompts.CANCEL &&
+      ((question.kind === 'confirm' && typeof answer !== 'boolean') ||
+        ((question.kind === 'text' || question.kind === 'password') && typeof answer !== 'string'))
+    const rejected = isWrongType ? 'wrong type' : answer === prompts.CANCEL ? undefined : question.validate?.(answer)
+    if (rejected) {
+      prompts.unexpected.push(`${question.message}: ${String(answer)} rejected: ${rejected}`)
+      return Promise.reject(new Error('answer rejected'))
+    }
     return Promise.resolve(answer)
   }
   const askAs = (/** @type {string} */ kind) => (/** @type {Record<string, any>} */ question) =>
@@ -365,6 +375,67 @@ describe('prompts', { skip: process.platform === 'win32' }, () => {
     assert.equal(status, 0, output)
     assert.deepEqual(prompts.questions, [])
     for (const name of MODS) assert.ok(claudeCalls().includes(`plugin install ${name}@claude-config`), name)
+  })
+
+  test('starts a boolean question from true only when its value is true', async () => {
+    statusOptions = {
+      unset: { type: 'boolean' },
+      off: { type: 'boolean', default: false },
+      notBoolean: { type: 'boolean', default: 'yes' },
+      configuredOff: { type: 'boolean', default: true },
+      on: { type: 'boolean', default: true },
+    }
+    fakeClaude({
+      'plugin list --json': installedMods('status'),
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+      [READ_STATUS_OPTIONS]: `echo '{"inputs":{"unset":false,"off":false,"notBoolean":"yes","configuredOff":false,"on":true},"configured":["configuredOff"]}'`,
+    })
+
+    const { status, output } = await runInteractive([['status'], false, false, false, false, true])
+
+    assert.equal(status, 0, output)
+    assert.deepEqual(
+      prompts.questions.slice(1).map((question) => question.initialValue),
+      [false, false, false, false, true],
+    )
+  })
+
+  test('starts a configured empty free text empty, not from the default', async () => {
+    statusOptions = { label: { type: 'string', default: 'x' } }
+    fakeClaude({
+      'plugin list --json': installedMods('status'),
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+      [READ_STATUS_OPTIONS]: `echo '{"inputs":{"label":""},"configured":["label"]}'`,
+    })
+
+    const { status, output } = await runInteractive([['status'], ''])
+
+    assert.equal(status, 0, output)
+    assert.equal(prompts.questions[1].initialValue, '')
+  })
+
+  test('with --configure, does not read the options of an installed mod that has none', async () => {
+    fakeClaude({
+      'plugin list --json': installedMods('steps'),
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+    })
+
+    const { status, output } = await runInteractive([['steps']])
+
+    assert.equal(status, 0, output)
+    assert.ok(!claudeCalls().some((call) => call.startsWith('plugin configure')))
+    assert.doesNotMatch(output, /could not read its options/)
+  })
+
+  test('asks a boolean with choices as a yes or no question', async () => {
+    statusOptions = { flag: { type: 'boolean', options: ['true', 'false'] } }
+    fakeClaude({ 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
+
+    const { status, output } = await runInteractive([['status'], false])
+
+    assert.equal(status, 0, output)
+    assert.equal(prompts.questions[1].kind, 'confirm')
+    assert.ok(!claudeCalls().some((call) => call.endsWith('--values-stdin')))
   })
 
   test('starts a select holding a value that is not one of its choices from the default in this checkout', async () => {

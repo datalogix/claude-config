@@ -469,6 +469,14 @@ function textOrUndefined(value) {
 }
 
 /**
+ * @param {string} source
+ * @returns {string}
+ */
+function withoutCredentials(source) {
+  return source.replace(/^(https?:\/\/)[^/]*@/i, '$1')
+}
+
+/**
  * Real paths: macOS's /var is a symlink to /private/var.
  *
  * @param {string} a
@@ -501,7 +509,8 @@ async function ensureMarketplace(shouldLink) {
   if (current) {
     const listedPath = textOrUndefined(current.path)
     const textSource = textOrUndefined(current.source)
-    const currentSource = textOrUndefined(current.repo) ?? listedPath ?? textOrUndefined(current.url) ?? textSource
+    const listedSource = textOrUndefined(current.repo) ?? listedPath ?? textOrUndefined(current.url) ?? textSource
+    const currentSource = listedSource && withoutCredentials(listedSource)
     const localPath = listedPath ?? textSource
     const isOtherSource = shouldLink && (localPath === undefined || !isSamePath(localPath, ROOT))
     if (currentSource && isOtherSource) {

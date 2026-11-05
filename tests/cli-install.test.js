@@ -501,6 +501,29 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.match(output, /already added from/)
   })
 
+  test('keeps the credentials of the marketplace URL out of the output', () => {
+    fakeClaude({
+      'plugin marketplace list --json': `echo '[{"name":"claude-config","url":"https://user:p@ss@example.invalid/x.git"}]'`,
+    })
+
+    const { status, output } = runCli(['install'])
+
+    assert.equal(status, 0, output)
+    assert.match(output, /already added from https:\/\/example\.invalid\/x\.git/)
+    assert.doesNotMatch(output, /p@ss/)
+  })
+
+  test('keeps the user of an ssh marketplace URL in the output', () => {
+    fakeClaude({
+      'plugin marketplace list --json': `echo '[{"name":"claude-config","url":"ssh://git@example.invalid/x.git"}]'`,
+    })
+
+    const { status, output } = runCli(['install'])
+
+    assert.equal(status, 0, output)
+    assert.match(output, /already added from ssh:\/\/git@example\.invalid\/x\.git/)
+  })
+
   test('notes the marketplace already added from the requested source', () => {
     fakeClaude({ 'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY })
 

@@ -81,14 +81,25 @@ const EXCERPT_MAX = 80
 // copy of this regex and of createCodeBlockTracker's closing rule (same character, at least as long, nothing after),
 // since each mod installs on its own: change both. tests/mods.test.js compares only the regex, not the closing rule.
 const FENCE = /^\s*(?:(?:[-*+]|\d+[.)])\s+)?(`{3,}(?!.*`)|~{3,})/
+const QUOTE = /^\s*(?:>\s?)+/
 
 /** Called with each line in order: true for a fence or a line inside a code block. */
 const createCodeBlockTracker = () => {
   let openFence = ''
-  return (line: string): boolean => {
+  // Where the list item that opened the block has its text, and whether a quote opened it: the block ends with them.
+  let itemColumn = 0
+  let isInQuote = false
+  return (rawLine: string): boolean => {
+    const isQuoteLine = QUOTE.test(rawLine)
+    if (isInQuote && !isQuoteLine) openFence = ''
+    // A > inside a block opened outside a quote is code.
+    const line = !openFence || isInQuote ? rawLine.replace(QUOTE, '') : rawLine
+    if (itemColumn && line.trim() && line.search(/\S/) < itemColumn) openFence = ''
     const fence = FENCE.exec(line)?.[1]
     if (fence && !openFence) {
       openFence = fence
+      itemColumn = line.trimStart().startsWith(fence) ? 0 : line.indexOf(fence)
+      isInQuote = isQuoteLine
       return true
     }
     if (
@@ -113,13 +124,7 @@ export const extractExcerpt = (answer: string | undefined): string | undefined =
   const isCode = createCodeBlockTracker()
   const line = answer
     ?.split('\n')
-    .filter(
-      (line) =>
-        !isCode(line.replace(/^\s*(?:>\s*)+/, '')) &&
-        !THEMATIC_BREAK.test(line) &&
-        !TABLE_ROW.test(line) &&
-        !HTML_COMMENT.test(line),
-    )
+    .filter((line) => !isCode(line) && !THEMATIC_BREAK.test(line) && !TABLE_ROW.test(line) && !HTML_COMMENT.test(line))
     .map((line) =>
       line
         .replace(/^\s*(>\s*)*((#+|[-*+]|\d+[.)])\s+)?/, '')

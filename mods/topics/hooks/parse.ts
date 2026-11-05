@@ -23,7 +23,7 @@ const STANCE_WORDS = 'recomendo|recomendad[oa]|n[ãa]o recomendo|avalie'
 /** The instruction asks for it at the start of the item; "(recomendado)" and the end are how older answers wrote it. */
 export const STANCE_MARK = new RegExp(
   // A separator only with a space after it: in "(recomendo) .env" or "(avalie) --force" it is the item's own text.
-  `^\\s*\\**\\((${STANCE_WORDS})\\)\\**\\s*(?:[:.!–—-](?:\\*+|(?=\\s|$)))?\\s*|\\s*\\**\\((${STANCE_WORDS})\\)\\**[.!]?\\**\\s*$`,
+  `^\\s*[*_]*\\((${STANCE_WORDS})\\)[*_]*\\s*(?:[:.!–—-](?:\\*+|_+(?=\\s|$)|(?=\\s|$)))?\\s*|\\s*[*_]*\\((${STANCE_WORDS})\\)[*_]*[.!]?[*_]*\\s*$`,
   'i',
 )
 
@@ -34,16 +34,24 @@ export const stanceOf = (t: string): Stance | undefined => {
   return word.startsWith('n') ? 'notRecommended' : word === 'avalie' ? 'evaluate' : 'recommended'
 }
 
-/** Also drops the `**` left unpaired when the mark took one of a bold's: `**(recomendo) cache local**`. */
+/** Also drops the emphasis left unpaired when the mark took one side of it: `**(recomendo) cache local**`. */
 export const withoutStanceMark = (t: string) => {
   const match = STANCE_MARK.exec(t)
   const mark = match?.[0] ?? ''
   const text = t.replace(STANCE_MARK, ' ').trim()
+  const before = mark.slice(0, mark.indexOf('(')).replace(/[^*_]/g, '')
+  const after = mark.slice(mark.indexOf(')') + 1).replace(/[^*_]/g, '')
+  const run = before.length > after.length ? before.slice(after.length) : after.slice(before.length)
+  if (!run) return text
   // Code spans are blanked out (same length) so a ** in code (`**kwargs`) is not counted.
-  const outsideCode = text.replace(/(`+).*?(?<!`)\1(?!`)/g, (span) => ' '.repeat(span.length))
-  if (!mark.includes('**') || outsideCode.split('**').length % 2 !== 0) return text
-  const unpaired = match?.index === 0 ? outsideCode.indexOf('**') : outsideCode.lastIndexOf('**')
-  return `${text.slice(0, unpaired)}${text.slice(unpaired + 2)}`.replace(/\s{2,}/g, ' ').trim()
+  const outsideCode = text.replace(/(?<!`)(`+)(?!`).*?(?<!`)\1(?!`)/g, (span) => ' '.repeat(span.length))
+  const delimiter = `\\${run[0]}`
+  const runs = [
+    ...outsideCode.matchAll(new RegExp(`(?<!${delimiter})${delimiter}{${run.length}}(?!${delimiter})`, 'g')),
+  ]
+  if (runs.length % 2 === 0) return text
+  const unpaired = (match?.index === 0 ? runs[0] : runs.at(-1))!.index
+  return `${text.slice(0, unpaired)}${text.slice(unpaired + run.length)}`.replace(/\s{2,}/g, ' ').trim()
 }
 
 const PREVIEW_MAX = 90
@@ -83,10 +91,15 @@ export const plainText = (t: string) => {
   return (
     t
       .replace(
-        new RegExp(`(\`+)(.{0,${INLINE_MAX}}?)(?<!\`)\\1(?!\`)`, 'g'),
+        new RegExp(`(?<!\`)(\`+)(?!\`)(.{0,${INLINE_MAX}}?)(?<!\`)\\1(?!\`)`, 'g'),
         (_, _ticks, code: string) => `${CODE_MARK}${spans.push(code) - 1}${CODE_MARK}`,
       )
       .replace(/`/g, '')
+      // An escaped mark is text, so it stays out of the emphasis and link passes, as a code span does.
+      .replace(/\\([\\*_~[\]])/g, (_, mark: string) => `${CODE_MARK}${spans.push(mark) - 1}${CODE_MARK}`)
+      // Before emphasis, which could take the _ of a URL.
+      .replace(new RegExp(`!?\\[([^\\]]{1,${INLINE_MAX}})\\]\\([^)]{0,${INLINE_MAX}}\\)`, 'g'), '$1')
+      .replace(new RegExp(`(?<!~)~~(?=[^\\s~])(.{1,${INLINE_MAX}}?)(?<=[^\\s~])~~(?!~)`, 'g'), '$1')
       // Emphasis pairs only: a lone * (2 * 3), globs (src/*.ts, *.md), paths (__init__.py) and $_ENV stay. Bold may
       // start with . or / (**.env**): a glob's ** (**/*.ts) has no pair closing before a space.
       .replace(
@@ -227,8 +240,13 @@ export const parseAnswer = (text: string): ParsedAnswer => {
 
 export const previewOf = (body: string): string => {
   const trackCodeLine = createCodeBlockTracker()
-  const line = body.split('\n').find((l) => !trackCodeLine(l) && l.trim()) ?? ''
-  const clean = plainText(line.replace(/^\s*(>\s*)*((#+|[-*+]|\d+[.)])\s+)?/, '')).trim()
+  const line =
+    body
+      .split('\n')
+      .find(
+        (l) => !trackCodeLine(l) && l.trim() && !THEMATIC_BREAK.test(l) && !TABLE_ROW.test(l) && !HTML_COMMENT.test(l),
+      ) ?? ''
+  const clean = plainText(line.replace(/^\s*(>\s*)*((#+|[-*+]|\d+[.)])\s+([[(][ xX•●][\])]\s+)?)?/, '')).trim()
   // By code point, so an emoji is not cut in half.
   const chars = [...clean]
   return chars.length > PREVIEW_MAX ? `${chars.slice(0, PREVIEW_MAX - 1).join('')}…` : clean

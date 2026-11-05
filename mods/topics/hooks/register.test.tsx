@@ -318,6 +318,32 @@ describe('parseActions', () => {
 })
 
 describe('the stance marks', () => {
+  for (const [text, stripped] of [
+    ['*(recomendo) A*', 'A'],
+    ['***(recomendo) A***', 'A'],
+    ['*A (recomendo)*', 'A'],
+    ['***A (recomendo)***', 'A'],
+    ['_(recomendo) A_', 'A'],
+    ['__(recomendo) A__', 'A'],
+    ['*(recomendo)* A', 'A'],
+    ['(recomendo) *A*', '*A*'],
+    ['**(recomendo)** A **B**', 'A **B**'],
+    ['_(recomendo) `__init__`_', '`__init__`'],
+    ['(recomendo) ._cache', '._cache'],
+  ] as const) {
+    test(`"${text}" carries the mark and leaves "${stripped}"`, () => {
+      expect(stanceOf(text)).toBe('recommended')
+      expect(withoutStanceMark(text)).toBe(stripped)
+    })
+  }
+
+  test('a long run of backticks takes no quadratic time', () => {
+    const start = Date.now()
+    withoutStanceMark(`**(recomendo) ${'`'.repeat(100_000)}**`)
+    plainText('`'.repeat(100_000))
+    expect(Date.now() - start).toBeLessThan(1_000)
+  })
+
   test('each mark reads as its stance, at the start or at the end', () => {
     expect(stanceOf('(recomendo) A')).toBe('recommended')
     expect(stanceOf('(não recomendo) A')).toBe('notRecommended')
@@ -533,7 +559,31 @@ describe('the Pendências list', () => {
   })
 })
 
+describe('plainText', () => {
+  for (const [text, plain] of [
+    ['[docs](http://x.y/a_b_c)', 'docs'],
+    ['![logo](a.png) e **b**', 'logo e b'],
+    ['~~old~~ new', 'old new'],
+    ['\\*not\\* e \\[a\\](b)', '*not* e [a](b)'],
+    ['`[a](b)` e `~~c~~`', '[a](b) e ~~c~~'],
+    ['`a` e ``b`c``', 'a e b`c'],
+    ['a ~ b ~~ c', 'a ~ b ~~ c'],
+  ] as const) {
+    test(`${JSON.stringify(text)} is ${JSON.stringify(plain)}`, () => expect(plainText(text)).toBe(plain))
+  }
+})
+
 describe('previewOf', () => {
+  for (const [body, preview] of [
+    ['---\nFeito', 'Feito'],
+    ['| a | b |\n|---|---|\nFeito', 'Feito'],
+    ['<!-- c -->\nFeito', 'Feito'],
+    ['- [ ] Feito', 'Feito'],
+    ['- ( ) Feito', 'Feito'],
+  ] as const) {
+    test(`${JSON.stringify(body)} is ${JSON.stringify(preview)}`, () => expect(previewOf(body)).toBe(preview))
+  }
+
   test('takes well under the quadratic time on a huge first line', () => {
     const start = Date.now()
     expect(previewOf('*a '.repeat(40_000)).endsWith('…')).toBe(true)

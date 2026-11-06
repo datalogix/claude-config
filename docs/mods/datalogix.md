@@ -30,7 +30,7 @@ check its skills.
   each step, they must all be made first. The closing step, and the
   end of a single step or a focus mode, ask whether to run
   `/code-review` on the changes, and `/security-review` too, already
-  suggested, when the changes touch sensitive areas (auth, validation,
+  checked, when the changes touch sensitive areas (auth, validation,
   raw queries, uploads, session, headers, secrets, dependencies) and
   there are commits `origin/HEAD` does not have yet, since it only
   reviews those. The checked ones run in the same session: their
@@ -58,7 +58,7 @@ check its skills.
   organization's in `<owner>/.github`. It fixes the description's
   spelling and keeps every piece of information, copying errors,
   logs, code and names as they are. The preview lets you pick labels
-  (suggested ones are marked as suggestions; missing ones you pick
+  (suggested ones come checked; missing ones you pick
   are created, `claude`, `claude-plan` and `rollback` with the
   `datalogix/workflows` colors and descriptions) and optionally
   add `claude` or `claude-plan` to trigger the `datalogix/workflows`
@@ -78,7 +78,7 @@ check its skills.
   `Closes #<number>`), _Plano de Testes_ and _Observações_ (titles
   follow the project's language), or the project's pull request
   template. It finds the issue from the argument or the branch name (a
-  number taken from the branch is always confirmed: suggested when the
+  number taken from the branch is always confirmed: checked when the
   commits match the issue's title, unchecked with a warning otherwise),
   checks the diff against its acceptance criteria and asks what was tested
   (offering to run the project's test and lint scripts, never ones

@@ -67,13 +67,13 @@ PARE até a resposta:
   nesses alvos: sem nenhum commit da revisão, rode-o sem alvo (o diff
   atual); com commits e algo sem commit, avise o que fica de fora. Sem
   nenhuma mudança, pule esta seção;
-- `- [x] Rodar o /security-review sobre as mudanças da revisão`, só
-  se as mudanças da revisão tocam áreas sensíveis: autenticação,
-  autorização (policies, gates, middleware), validação de entrada,
-  queries cruas, uploads, sessão, cookies, CORS, headers de
-  segurança, criptografia, segredos ou dependências. Escrita marcada,
-  como sugestão: só vale se eu marcar. Abaixo dela, recuado, os
-  arquivos sensíveis que mudaram. Sem nenhum, não a mostre.
+- `- [ ] (recomendo) Rodar o /security-review sobre as mudanças da
+  revisão`, só se as mudanças da revisão tocam áreas sensíveis:
+  autenticação, autorização (policies, gates, middleware), validação
+  de entrada, queries cruas, uploads, sessão, cookies, CORS, headers
+  de segurança, criptografia, segredos ou dependências. Com
+  `(recomendo)`, ela já vem marcada; desmarco se não quiser. Abaixo
+  dela, recuado, os arquivos sensíveis que mudaram. Sem nenhum, não a mostre.
   Ela revisa só os commits que `origin/HEAD` ainda não tem (`git diff
   origin/HEAD...`), inclusive na branch padrão, e não vê o que está
   sem commit. Confira com `git log --oneline origin/HEAD..`: sem

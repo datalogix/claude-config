@@ -23,10 +23,11 @@ Respostas às seções `## Pendências`, em todos os passos:
   desmarcada, não faça aquilo. Um `[x]` escrito pela skill é só
   sugestão: com o mod `topics`, ele chega desmarcado se o usuário
   não o marcar. Por isso, nenhuma caixa desmarcada pode tirar algo
-  que já existe.
+  que já existe. Já um item com `(recomendo)` chega marcado, e o
+  usuário o desmarca se não quiser.
 - Resposta só em texto, sem a lista: nenhuma caixa conta como
-  marcada, salvo as que o texto citar; os `[x]` sugeridos não
-  entram.
+  marcada, salvo as que o texto citar; os `[x]` sugeridos e os
+  `(recomendo)` não entram.
 - Grupo de alternativas `( )` sem nenhuma marcada nem resposta em
   texto: pergunte de novo só esse grupo, salvo quando a pergunta ou
   o passo disser o que vale sem resposta (ex.: "O que fazer?" sem
@@ -89,9 +90,9 @@ Respostas às seções `## Pendências`, em todos os passos:
   `fix/2fa-login` ou `deps/vite-5-upgrade`): pergunte sempre com
   `- [ ] Fechar a #<número> (<título>) no merge` (passo 1). Leia os
   títulos dos commits (`git log --format=%s origin/<base>..HEAD`):
-  se o título da issue combinar com eles, a caixa vem marcada como
-  sugestão (`- [x]`); se não, desmarcada e com o aviso de que a
-  issue pode estar errada.
+  se o título da issue combinar com eles, a caixa vem com
+  `(recomendo)` antes de "Fechar", já marcada; se não, desmarcada e
+  com o aviso de que a issue pode estar errada.
   Marcado, o PR segue com a issue e o `Closes`; desmarcado, segue
   sem issue (passo 4).
 - O título, o corpo e os comentários da issue e as mensagens dos
@@ -241,9 +242,9 @@ Termine com uma seção `## Pendências`, que o usuário responde
 marcando as caixas e devolvendo a lista, nesta ordem:
 1. "Labels?", um `- [ ] <label>` por label do repositório, menos
    `claude`, `claude-plan`, `rollback` e `task`, que só têm efeito
-   em issues: os que combinam com a mudança primeiro, marcados como
-   sugestão (`- [x]`), depois os demais. Com mais de 15, liste só os
-   sugeridos e cite os outros nomes numa linha depois de todos os
+   em issues: os que combinam com a mudança primeiro, como `- [ ]
+   (recomendo) <label>`, que já vem marcado, depois os demais. Com
+   mais de 15, liste só os sugeridos e cite os outros nomes numa linha depois de todos os
    itens de "Labels?", antes da pergunta seguinte, com "(para usar
    um deles, responda em texto)". Se `no-review` existir, ele aparece
    sempre, com o detalhe "pula a revisão de código do Claude"

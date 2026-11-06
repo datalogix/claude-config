@@ -63,8 +63,11 @@ linha em "Recomendações gerais" como melhoria de
   PHPStan
 - `pint: false` ou `phpstan: false` só com motivo (a versão do Pint é
   da etapa `composer`)
-- `phpunit.xml` gerando relatório Clover se `coverage` estiver ligado:
+- `phpunit.xml` gerando relatório Clover se `coverage` estiver ligado
+  ou `min-coverage` não for 0 (o padrão é 100):
   `<clover outputFile="clover.xml"/>`
+- `min-coverage` abaixo de 100 só com motivo registrado; sem motivo, é
+  item "importante" (a meta é 100%, ver o modo `tests`)
 - ruleset exigindo `pipeline / tests / all-checks`: o `check`
   confere; sem ele, `gh api
   repos/<owner>/<repo>/rules/branches/<branch-padrão>` lista as

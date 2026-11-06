@@ -1,6 +1,6 @@
 ---
 name: review
-description: Revisão de pacotes e aplicações Laravel, libs JS/TS e aplicações JS/TS (Nuxt, Next, Vue, React, Node), um passo por vez (git, CI, dependências, código, recursos, front-end, produção, docs, instalação), com progresso fora do projeto e testes 100%. Use para revisar ou auditar um projeto inteiro, uma etapa, uma pasta ou um aspecto (docs, naming, tests, deps).
+description: Revisão de pacotes e aplicações Laravel, libs JS/TS e aplicações JS/TS (Nuxt, Next, Vue, React, Node), um passo por vez (git, CI, dependências, código, recursos, front-end, produção, docs, instalação), com progresso fora do projeto, testes passando e cobertura 100%. Use para revisar ou auditar um projeto inteiro, uma etapa, uma pasta ou um aspecto (docs, naming, tests, deps).
 argument-hint: "[help [<argumento>] | status | report [<modo>] | reset [<modo>] | <modo> [<pasta>] | <etapa> | <pasta>]"
 disable-model-invocation: true
 ---

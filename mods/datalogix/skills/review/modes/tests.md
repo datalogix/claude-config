@@ -9,6 +9,13 @@ cópia temporária fora do projeto (`mktemp -d`), apagada ao fim do
 passo; nunca na árvore do projeto. Diga no item o que alterou e o
 resultado.
 
+Meta: cobertura de 100% de instruções, métodos e condicionais somados
+(os `elements` do relatório Clover), a mesma que o `min-coverage` dos
+workflows de `datalogix/workflows` exige no CI. Cada arquivo abaixo
+de 100% vira item, ordenado por risco, com os testes que faltam; um
+trecho que não deve contar (código gerado, bootstrap) sai do `source`
+ou `include` da cobertura, nunca baixa a meta.
+
 Passos, um por vez:
 1. Visão geral.
 2. Pastas de `tests/`, uma por vez (ex.: `tests/Unit`, `tests/Feature`).
@@ -16,18 +23,23 @@ Passos, um por vez:
 
 Nos tipos JS, os passos 1 e 2 tratam só dos testes JS/TS e o passo 3
 não existe. No passo 1 valem "o que não tem teste" (seção 1) e a
-cobertura com `npx --no-install vitest run --coverage`, só se o
-provider
-(`@vitest/coverage-v8` ou `-istanbul`) já estiver instalado; sem ele,
-não instale nada: leia os testes e o código e mapeie os módulos sem
-teste correspondente. No passo 2, as pastas que têm testes, inclusive
+cobertura com `npx --no-install vitest run --coverage`, se o provider
+(`@vitest/coverage-v8` ou `-istanbul`) estiver instalado. Sem ele,
+proponha instalá-lo (`@vitest/coverage-v8` em `devDependencies`) como
+item, e só instale se eu aprovar; enquanto isso, leia os testes e o
+código e mapeie os módulos sem teste correspondente. No passo 2, as pastas que têm testes, inclusive
 `*.test.*` ao lado do código, com as regras da seção 2 ajustadas pela
 seção 3.
 
 ## 1. Visão geral
 - cobertura, se houver driver (`pcov` ou `xdebug`): `--coverage` (Pest)
-  ou `--coverage-text` (PHPUnit). Sem driver, não instale nada: mapeie
-  classes sem teste correspondente
+  ou `--coverage-text` (PHPUnit), com a meta de 100%. Sem driver,
+  proponha instalar o `pcov` como item e só instale se eu aprovar;
+  enquanto isso, mapeie as classes sem teste correspondente
+- relatório Clover configurado (`<clover outputFile="clover.xml"/>`
+  no `phpunit.xml`; `reporter: ['text', 'clover']` no Vitest;
+  `coverageReporters` no Jest), que o `min-coverage` do CI lê; sem
+  ele, item "importante"
 - o que não tem teste, ordenado por risco: segurança e autorização,
   regra de negócio, comandos, jobs, eventos
 - `phpunit.xml`: suítes, `source` incluindo o código certo, ambiente de

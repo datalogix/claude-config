@@ -33,7 +33,8 @@ repos/{owner}/{repo}/rules/branches/<branch padrão>`); sem ele, só pede
 revisão automaticamente. Quem mantém o projeto sozinho não pode aprovar
 o próprio PR como dono. Com `gh`:
 - exigido e sem o arquivo, ou sem dono para `/.github/`: item
-  "importante" pedindo o `setup` de `datalogix/workflows`
+  "importante" pedindo o `setup` de `datalogix/workflows`, com o
+  comando e o `check` depois como em `ci.md`
 - não exigido, com mais de uma pessoa no projeto: mantenha o arquivo e
   aponte como "sugestão" o `protect`, que passa a exigir a aprovação
 - não exigido, e uma pessoa só nos últimos commits: pergunte se o

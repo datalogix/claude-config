@@ -25,9 +25,12 @@ linha em "Recomendações gerais" como melhoria de
   na raiz do projeto: só lê; precisa do Node 22.12+ e do `gh` logado.
   Se faltar algum deles, ou se o comando falhar, anote e siga com as
   conferências abaixo. Cada "error" é item "importante" e cada "warn"
-  é "sugestão"; a correção é `npx --allow-git=root
-  github:datalogix/workflows#<versão> setup` (interativo: eu rodo) ou
-  `protect` para o ruleset
+  é "sugestão"; a correção é o `setup` (interativo) ou o `protect`
+  (ruleset) de `datalogix/workflows`, que eu rodo. No item, escreva o
+  comando com o prefixo `!`, que o roda nesta sessão com a saída na
+  conversa (ex.: `! npx --allow-git=root
+  github:datalogix/workflows#<versão> setup`). Depois que eu rodar,
+  rode o `check` de novo e só dê o item por resolvido se o aviso sumiu
 - sem o `datalogix.yml`, ou com ele chamando outra major: item
   "importante" pedindo o `setup`; chamando outro ref (branch, SHA): a
   severidade do `check` ou, se ele não rodou, "importante"

@@ -205,8 +205,9 @@ node bin/cli.js --link                    # install from this clone: edits apply
   that every file review names exists and that the bare names in `steps/` are files of that folder.
 - `/datalogix:issue`, `/datalogix:pr` and `/datalogix:commit` take the language of issues, pull requests and commits
   from a `- Issues and pull requests: <language>` line in the target project's `CLAUDE.md` (pr and commit by
-  following the "Idioma" item of the issue skill's step 2). Without it they detect the language from the default
-  branch's latest commit titles (at least 5, more than three quarters in one language). Only when in doubt do they
+  following the "Idioma" item of the issue skill's step 2). Without it they take the `language` input the project's
+  workflows pass to `datalogix/workflows` (`claude.yml` without it means `pt-BR`), when every call agrees, and only then
+  detect the language from the default branch's latest commit titles (at least 5, more than three quarters in one language). Only when in doubt do they
   ask (Portuguese suggested) and, only if the user checks it, append that line to the local `CLAUDE.md`, the one write
   they make there. `/datalogix:review` follows the same item for the commit messages it suggests and records the
   result in the progress file ("Decisões do projeto"); it never falls back to a language silently.
@@ -232,10 +233,11 @@ node bin/cli.js --link                    # install from this clone: edits apply
     `cli/kinds/project/state.js`, the `task` label (`docs/task-manager.md`; its color and description are the skill's
     own), and the issue forms (`examples/issue-templates/`);
   - `/datalogix:issue`, `/datalogix:pr` and `/datalogix:commit`: Portuguese as the suggested language, with the
-    Conventional Commits type in English (`plugins/laravel/skills/conventions/SKILL.md`);
+    Conventional Commits type in English (`plugins/core/skills/conventions/SKILL.md`), and the `language` input of
+    `.github/workflows/claude.yml` and `release-pr.yml`;
   - `/datalogix:ci`: the checks it fixes and leaves alone follow `plugins/laravel/commands/fix-ci.md` and
     `.github/workflows/claude-fix-ci.yml`, plus the `build` script, which those do not run (for JS projects' own CI);
-  - `/datalogix:pr`: the pull request sections and title rules of `plugins/laravel/skills/conventions/SKILL.md`, and
+  - `/datalogix:pr`: the pull request sections and title rules of `plugins/core/skills/conventions/SKILL.md`, and
     the `no-review` label (`cli/kinds/project/state.js`, `.github/workflows/claude-review.yml`).
 - Review progress lives in `~/.claude/reviews/`, outside the repo, one file per repository, shared by its worktrees.
 

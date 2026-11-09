@@ -69,7 +69,20 @@ qualquer ordem." Não faça perguntas antes de receber o texto.
   arquivos, exceto pela linha de idioma (abaixo).
 - Idioma: procure no `CLAUDE.md` do destino uma regra sobre o
   idioma de issues e pull requests (ex.: `- Issues and pull
-  requests: Portuguese`). Sem ela, ou sem `CLAUDE.md`, detecte pelos
+  requests: Portuguese`). Sem ela, ou sem `CLAUDE.md`, procure nos
+  `.github/workflows/*.yml` e `*.yaml` do destino (remoto: `gh api
+  repos/<owner/repo>/contents/.github/workflows` e cada arquivo
+  como acima) os jobs que chamam um workflow do
+  `datalogix/workflows` com o input `language` (`uses:
+  datalogix/workflows/.github/workflows/<nome>.yml@<versão>` e
+  `language:` no `with:`), como `claude.yml` e `release-pr.yml`: é
+  o idioma em que o Claude da CI escreve. `pt-BR` (ou outro `pt`)
+  é português e `en` (ou outro `en`), inglês. Uma chamada de
+  `claude.yml` sem `language` vale `pt-BR`, o padrão dele. Se as
+  chamadas concordarem, use esse idioma sem perguntar e diga na
+  prévia "Idioma: <idioma>, do `language` de
+  `.github/workflows/<arquivo>`". Se discordarem, ou sem nenhuma
+  chamada, detecte pelos
   últimos títulos de commit da branch padrão do destino (`git log
   origin/<branch> -20 --no-merges --format='%an: %s'`, ou `git log
   <branch> ...` sem remoto, ou, se o destino não for o diretório
@@ -254,7 +267,8 @@ O que corrigir e onde.
 ## 6. Prévia
 Mostre, nesta ordem:
 - repositório de destino, tipo e template usado (ou "padrão");
-- o idioma, se foi detectado pelos commits (passo 2);
+- o idioma, se foi detectado pelos workflows ou pelos commits
+  (passo 2);
 - se o destino for um fork (`isFork`), um aviso de que a issue fica
   no fork, com o comando `-R` para abri-la no original;
 - se o destino for público (`visibility` `PUBLIC`), um aviso de que

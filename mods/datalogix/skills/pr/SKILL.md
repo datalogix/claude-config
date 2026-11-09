@@ -228,8 +228,8 @@ Mostre, nesta ordem:
 - repositório, base ← branch, issue (com link) e template usado (ou
   "padrão"); sem issue, "sem issue: o merge não fecha nenhuma issue
   nem tarefa do gerenciador";
-- o idioma, se foi detectado pelos commits (passo 3), e o aviso de
-  fork (passo 1), se for o caso;
+- o idioma, se foi detectado pelos workflows ou pelos commits
+  (passo 3), e o aviso de fork (passo 1), se for o caso;
 - se o repositório for público (`visibility` `PUBLIC`), um aviso de
   que o PR ficará visível para qualquer pessoa, citando os trechos
   que parecem sensíveis (dados de cliente, URLs internas, tokens,

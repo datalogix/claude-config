@@ -316,17 +316,25 @@ vez de abrir outro. Os passos 1 a 7 valem com estas diferenças:
 - Perguntas (passo 4): só a do Plano de Testes, com os scripts.
 - Redação (passo 5): refaça "Resumo" e "Plano de Testes" a partir
   do diff inteiro contra a base. "Motivação" e "Observações" ficam
-  como estão, salvo pedido em texto ou um `Closes` novo; uma falha
-  de script rodado agora entra em "Observações". Qualquer outro
+  como estão, salvo pedido em texto, um `Closes` novo ou a caixa de
+  reescrita (abaixo); uma falha de script rodado agora entra em
+  "Observações". Compare as duas com o diff e os commits: um trecho
+  que espera algo que o diff já faz, cita algo já resolvido (ex.:
+  "até a #<número> ser resolvida", com ela fechada) ou diz que algo não
+  foi testado e agora foi está desatualizado. Escreva o texto novo
+  só dessa seção, mudando só esses trechos. Qualquer outro
   texto do corpo (seções do template, imagens, links, caixas já
   marcadas) fica igual e no mesmo lugar. Proponha um título novo só
   se o atual não descrever mais a mudança.
 - Prévia (passo 6): o link do PR, o corpo novo inteiro e uma lista
   curta do que mudou em relação ao atual, mais os critérios de
   aceite, se houver issue. Pendências, nesta ordem: com título novo,
-  `- [ ] Trocar o título para '<título novo>'`, desmarcado; depois
-  "O que fazer?", com `- ( ) Confirmar e atualizar o PR` e `- ( )
-  Cancelar`. Sem "Labels?" nem "Rascunho?": labels e rascunho
+  `- [ ] Trocar o título para '<título novo>'`, desmarcado; para
+  cada seção desatualizada, `- [ ] (recomendo) Reescrever
+  "<seção>", que <o que ficou velho>`, com o texto novo indentado
+  logo abaixo (o corpo da prévia mostra a seção atual; marcada,
+  o envio usa a nova); depois "O que fazer?", com `- ( ) Confirmar
+  e atualizar o PR` e `- ( ) Cancelar`. Sem "Labels?" nem "Rascunho?": labels e rascunho
   ficam como estão.
 - Envio (passo 7): push marcado, `git push` (nunca `--force`); se
   falhar, mostre o erro e pare. Antes de enviar, leia de novo o

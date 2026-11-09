@@ -71,7 +71,11 @@ check its skills.
   you check to remove, and warns when the current repository is a
   fork, since a bare `#123` points at the fork's issue. `-R
   <owner/repo>` opens the issue in another repository, and a link to
-  an issue works like `#123`. Run `/datalogix:issue help` for details.
+  an issue works like `#123`. In the current repository, the preview
+  can also create the issue's branch (`feat/<number>-<slug>`, or
+  `fix/` for a bug) from the default branch, without upstream, so
+  `/datalogix:pr` finds the issue and offers the push. Run
+  `/datalogix:issue help` for details.
 - `pr/` — `/datalogix:pr`: opens the current branch's pull request in
   the format of Claude's pull requests in `datalogix/workflows`: a
   Conventional Commits title and _Resumo_, _Motivação_ (with
@@ -87,7 +91,11 @@ check its skills.
   `/datalogix:issue`. Only after confirmation does it push the
   branch, if you checked that, never with `--force`, and create the
   pull request with `gh`. `--base <branch>` targets another branch and
-  `--draft` opens a draft. Run `/datalogix:pr help` for details.
+  `--draft` opens a draft. When the branch already has an open pull
+  request, it rewrites that one's _Resumo_ and _Plano de Testes_ from
+  the whole diff instead, keeping the rest of the description, the
+  labels and the draft state, and runs `gh pr edit` only after
+  confirmation. Run `/datalogix:pr help` for details.
 - `commit/` — `/datalogix:commit`: commits the staged changes with a
   Conventional Commits message, following the project's recent
   commits (e.g. whether it uses a scope). With nothing staged, it

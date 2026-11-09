@@ -167,10 +167,13 @@ node bin/cli.js --link                    # install from this clone: edits apply
 - `/datalogix:issue` (`issue/SKILL.md`) is a single prompt-only file in Portuguese. It reads the target project's
   `CLAUDE.md`/`README.md` only as context, previews the issue and runs `gh issue create --body-file` after confirmation.
   With `#<number>` it rewrites that issue instead, with `gh issue edit --body-file`. It creates missing labels the user
-  picked (`gh label create`), never on its own.
+  picked (`gh label create`), never on its own. Only if checked, after creating an issue in the current repository, it
+  creates its branch with `git switch -c <type>/<number>-<slug> --no-track origin/<default>`: without upstream,
+  `/datalogix:pr` offers the push. The pr skill's issue creation skips that question.
 - `/datalogix:pr` (`pr/SKILL.md`) is a single prompt-only file in Portuguese. It runs test/lint scripts only when the
   user picks them. Only after confirmation does it push the branch (if the user checked it, never with `--force`)
-  and run `gh pr create --body-file`. Without an issue it can create one by reading and following
+  and run `gh pr create --body-file`. With an open pull request for the branch it follows its section 9 instead,
+  rewriting _Resumo_ and _Plano de Testes_ and keeping the rest, with `gh pr edit --body-file`. Without an issue it can create one by reading and following
   `../issue/SKILL.md` from its step 2 (the issue skill has `disable-model-invocation`, so it cannot be invoked as a
   skill): renumbering the issue skill's steps breaks that reference.
 - `/datalogix:commit` (`commit/SKILL.md`) is a single prompt-only file in Portuguese. It commits what is staged;

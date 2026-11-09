@@ -340,6 +340,32 @@ describe('install', { skip: process.platform === 'win32' }, () => {
     assert.match(output, new RegExp(`${PLAIN_MOD} is also loaded from a skills folder`))
   })
 
+  test('warns about core also installed from datalogix/workflows, in any scope', () => {
+    fakeClaude({
+      'plugin list --json': `echo '[{"id":"core@claude-config","scope":"user"},{"id":"core@datalogix","scope":"project"}]'`,
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+    })
+
+    const { status, output } = runCli(['install'])
+
+    assert.equal(status, 0, output)
+    assert.match(output, /core is also installed as core@datalogix/)
+    assert.ok(!claudeCalls().some((call) => call.includes('core@datalogix')))
+  })
+
+  test('installs core from this marketplace, not from datalogix/workflows', () => {
+    fakeClaude({
+      'plugin list --json': installedMods(PLAIN_MOD),
+      'plugin marketplace list --json': GITHUB_MARKETPLACE_REPLY,
+    })
+
+    const { status, output } = runCli(['install', '--configure'])
+
+    assert.equal(status, 0, output)
+    assert.ok(claudeCalls().includes('plugin install core@claude-config'))
+    assert.doesNotMatch(output, /core is also installed/)
+  })
+
   test('does not warn about a mod in a skills folder that failed to install', () => {
     fakeClaude({
       'plugin list --json': installedMods(`${PLAIN_MOD}@skills-dir`),

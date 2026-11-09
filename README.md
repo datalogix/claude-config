@@ -19,6 +19,10 @@ Each mod is selected during install; its options can be changed with
   a `## Pendências` list to answer in place
 - [worktree](docs/mods/worktree.md) — asks whether to create a git
   worktree before changing files
+- [core](https://github.com/datalogix/workflows/blob/main/docs/claude.md)
+  — the conventions Claude follows in `datalogix/workflows`' CI
+  (language, scope, validation, review rounds, pull requests), from that
+  repository; see [Workflows plugins](#workflows-plugins)
 
 ## Install
 
@@ -104,22 +108,24 @@ The installer also cleans up after earlier versions:
 [`datalogix/workflows`](https://github.com/datalogix/workflows) has its
 own plugins, which its Claude workflows load in CI: `core` (conventions
 for every project) and one per stack, `laravel` or `js` (its practices
-and commands such as `/laravel:plan` and `/laravel:fix-ci`). The
-installer does not install them:
+and commands such as `/laravel:plan` and `/laravel:fix-ci`).
 
-- they are written for CI, where Claude works alone: `core` tells it to
-  push the branch and open the pull request when implementing an issue,
-  which the skills here only do after you confirm;
-- installed in the user scope, a stack plugin would load in every
-  project, including those of the other stack.
+`core` is a mod here (`core@claude-config`), taken from the default
+branch of `datalogix/workflows`, so each install or update gets its
+latest commit. Its steps that push and open pull requests live in a
+`core:ci` skill that only CI loads, so locally Claude still asks first.
+If you installed it before as `core@datalogix`, the installer warns:
+uninstall that one, or `core` loads twice.
 
-To use them in one project, add them in its project scope, which
-writes `.claude/settings.json` (commit it to share them with the
-team), from the project's root:
+The installer leaves the stack plugins out: installed in the user
+scope, one would load in every project, including those of the other
+stack, and `/laravel:fix-ci` commits and pushes on its own, as CI does.
+To use one in a project, add it in its project scope, which writes
+`.claude/settings.json` (commit it to share it with the team), from the
+project's root:
 
 ```bash
 claude plugin marketplace add datalogix/workflows --scope project
-claude plugin install core@datalogix --scope project
 claude plugin install laravel@datalogix --scope project  # or js@datalogix
 ```
 

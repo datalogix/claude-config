@@ -7,6 +7,11 @@
     { "name": "steps", "source": "./mods/steps" },
     { "name": "status", "source": "./mods/status" },
     { "name": "topics", "source": "./mods/topics" },
-    { "name": "worktree", "source": "./mods/worktree" }
+    { "name": "worktree", "source": "./mods/worktree" },
+    {
+      "name": "core",
+      "source": { "source": "git-subdir", "url": "https://github.com/datalogix/workflows.git", "path": "plugins/core" },
+      "description": "Convenções da datalogix para todo projeto (idioma, escopo, validação, rodadas de review e pull requests), as mesmas que o Claude segue no CI do datalogix/workflows"
+    }
   ]
 }

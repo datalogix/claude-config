@@ -99,6 +99,30 @@ The installer also cleans up after earlier versions:
   exist. Without the `claude` CLI they are left in place. See
   [datalogix](docs/mods/datalogix.md).
 
+## Workflows plugins
+
+[`datalogix/workflows`](https://github.com/datalogix/workflows) has its
+own plugins, which its Claude workflows load in CI: `core` (conventions
+for every project) and one per stack, `laravel` or `js` (its practices
+and commands such as `/laravel:plan` and `/laravel:fix-ci`). The
+installer does not install them:
+
+- they are written for CI, where Claude works alone: `core` tells it to
+  push the branch and open the pull request when implementing an issue,
+  which the skills here only do after you confirm;
+- installed in the user scope, a stack plugin would load in every
+  project, including those of the other stack.
+
+To use them in one project, add them in its project scope, which
+writes `.claude/settings.json` (commit it to share them with the
+team), from the project's root:
+
+```bash
+claude plugin marketplace add datalogix/workflows --scope project
+claude plugin install core@datalogix --scope project
+claude plugin install laravel@datalogix --scope project  # or js@datalogix
+```
+
 ## Development
 
 The repository layout, working on a clone, running the tests and adding

@@ -94,8 +94,9 @@ check its skills.
   `--draft` opens a draft. When the branch already has an open pull
   request, it rewrites that one's _Resumo_ and _Plano de Testes_ from
   the whole diff instead, keeping the rest of the description, the
-  labels and the draft state, and runs `gh pr edit` only after
-  confirmation. Run `/datalogix:pr help` for details.
+  labels and the draft state, offers to rewrite a _Motivação_ or
+  _Observações_ the diff made outdated, and runs `gh pr edit` only
+  after confirmation. Run `/datalogix:pr help` for details.
 - `commit/` — `/datalogix:commit`: commits the staged changes with a
   Conventional Commits message, following the project's recent
   commits (e.g. whether it uses a scope). With nothing staged, it

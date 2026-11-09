@@ -125,8 +125,9 @@ skills ou tags novas, descubra e registre:
 - **Ferramentas de qualidade**: nos tipos Laravel, Pint,
   PHPStan/Larastan, Rector (em `vendor/bin` e no composer.json, com a
   versão do Pint). Use só as que existirem; não instale.
-  Pint (tipos Laravel), e ESLint + Prettier se houver JS/TS próprio,
-  são obrigatórios: registre no perfil os que faltam (viram item nas
+  Pint (tipos Laravel), PHPStan/Larastan (pacote Laravel) e ESLint +
+  Prettier se houver JS/TS próprio, são obrigatórios: registre no
+  perfil os que faltam (viram item nas
   etapas `composer` e `npm`, ou `frontend` se houver JS/TS sem
   `package.json`).
 - **Pastas**: nos tipos Laravel, código (`src/` ou `app/`); recursos

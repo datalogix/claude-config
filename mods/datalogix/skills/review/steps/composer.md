@@ -67,8 +67,20 @@ Rode, quando disponíveis: `composer validate --strict`,
   com erro e cita os pacotes que faltam. Isso não é falha de formatação:
   mostre os pacotes e instale-os só se eu aprovar, pelo gerenciador do
   projeto, como dependência de desenvolvimento.
-- **Ferramentas ausentes**: se faltar PHPStan/Larastan ou Rector,
-  sugira (severidade "sugestão") com o motivo, sem instalar.
+- **Análise estática**: PHPStan/Larastan é obrigatório num pacote (o
+  `package.yml` o roda quando o `composer.json` o exige). Se faltar,
+  item "importante" que oferece `composer require --dev
+  larastan/larastan` (ou `phpstan/phpstan` sem Laravel) e um
+  `phpstan.neon`, aplicados só se eu aprovar. Numa aplicação, se
+  faltar, item "sugestão" com o motivo, sem instalar.
+- **PHPStan instalado**: nível rebaixado, `ignoreErrors` amplos
+  (mensagem genérica, sem `path`, ou cobrindo uma pasta inteira) ou
+  baseline que cresceu sem motivo registrado são item "importante";
+  nunca baixe o nível nem acrescente ignores para passar.
+- **Rector**: nunca obrigatório. Se faltar, sugira (severidade
+  "sugestão") só com motivo concreto: upgrade de PHP ou Laravel (modo
+  `deps`) ou padrões antigos recorrentes no código; sem motivo, não
+  crie item. Nunca instale.
 
 ## Pacote
 - restrições de versão: nem amplas demais (`*`, `>=`) nem travadas numa

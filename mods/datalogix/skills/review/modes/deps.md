@@ -21,7 +21,10 @@ Passos, um por vez:
   upgrade; busque na web se precisar), o que afeta no código e se exige
   mudar a restrição no composer.json/package.json
 - upgrade de major do próprio Laravel, Nuxt ou Next: item separado,
-  com o guia de upgrade oficial, e só com aprovação
+  com o guia de upgrade oficial, e só com aprovação. No Laravel, ou
+  ao subir a versão mínima do PHP, sem Rector no projeto: item
+  "sugestão" de usá-lo no upgrade (`driftingly/rector-laravel`), sem
+  instalar
 - vulnerabilidades (`audit`) com prioridade, separando runtime de dev
 - pacote ou lib JS/TS: não suba versão mínima de PHP, Laravel, Node,
   `peerDependencies` ou dependências de runtime (`require`,

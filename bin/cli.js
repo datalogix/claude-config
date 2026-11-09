@@ -128,9 +128,17 @@ function modId(name) {
   return `${name}@${marketplace.name}`
 }
 
-/** @returns {Mod[]} */
+/**
+ * A mod from another repository (`core`, from datalogix/workflows) has no folder here: its description comes
+ * from the marketplace entry, and it has no options to ask.
+ *
+ * @returns {Mod[]}
+ */
 function listMods() {
-  return marketplace.plugins.map((/** @type {{ name: string, source: string }} */ plugin) => {
+  return marketplace.plugins.map((/** @type {{ name: string, source: unknown, description?: string }} */ plugin) => {
+    if (typeof plugin.source !== 'string') {
+      return { name: plugin.name, id: modId(plugin.name), description: plugin.description ?? '', userConfig: {} }
+    }
     const manifest = readJson(path.join(ROOT, plugin.source, '.claude-plugin/plugin.json'))
     return {
       name: plugin.name,
@@ -642,7 +650,16 @@ function warnSkillsFolderCopy(name, installedIds) {
   if (installedIds.has(`${name}@skills-dir`)) {
     p.log.warn(`${name} is also loaded from a skills folder (${name}@skills-dir); remove one of them.`)
   }
+  const otherId = OTHER_MARKETPLACE_IDS[name]
+  if (otherId && installedIds.has(otherId)) {
+    p.log.warn(
+      `${name} is also installed as ${otherId}, from datalogix/workflows; uninstall that one ("claude plugin uninstall ${otherId}", with --scope for a project's).`,
+    )
+  }
 }
+
+/** The same plugin installed from its own marketplace, as datalogix/workflows' docs suggest. */
+const OTHER_MARKETPLACE_IDS = /** @type {Record<string, string>} */ ({ core: 'core@datalogix' })
 
 /**
  * @param {Mod} mod

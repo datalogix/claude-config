@@ -67,11 +67,24 @@ test('the windows job names only test files that exist', () => {
   assert.ok(files.includes('tests/quote-cmd.test.js'))
 })
 
+/** @typedef {{ name: string, source: unknown, description?: string, version?: string }} Entry */
+const localEntries = marketplace.plugins.filter((/** @type {Entry} */ plugin) => typeof plugin.source === 'string')
+const otherEntries = marketplace.plugins.filter((/** @type {Entry} */ plugin) => typeof plugin.source !== 'string')
+
 test('the marketplace lists only mods that exist', () => {
-  assert.deepEqual(
-    marketplace.plugins.map((/** @type {{ name: string }} */ plugin) => plugin.name).sort(),
-    [...modNames].sort(),
-  )
+  assert.deepEqual(localEntries.map((/** @type {Entry} */ plugin) => plugin.name).sort(), [...modNames].sort())
+})
+
+// The installer reads a local mod's description from its plugin.json, and another repository's from its entry.
+test('the marketplace takes from datalogix/workflows only its core plugin, from the default branch', () => {
+  assert.deepEqual(otherEntries, [
+    {
+      name: 'core',
+      source: { source: 'git-subdir', url: 'https://github.com/datalogix/workflows.git', path: 'plugins/core' },
+      description: otherEntries[0]?.description,
+    },
+  ])
+  assert.ok(otherEntries[0].description)
 })
 
 describe('status keeps the copies of topics the same', () => {

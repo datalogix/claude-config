@@ -595,6 +595,20 @@ describe('prompts', { skip: process.platform === 'win32' }, () => {
     assert.equal(options.find((/** @type {{ value: string }} */ option) => option.value === 'status').hint, description)
   })
 
+  test('offers a mod from another repository with the description of its marketplace entry', async () => {
+    fakeClaude()
+
+    await runInteractive([[]])
+
+    const marketplace = JSON.parse(fs.readFileSync(path.join(ROOT, '.claude-plugin/marketplace.json'), 'utf8'))
+    const entry = marketplace.plugins.find((/** @type {{ name: string }} */ plugin) => plugin.name === 'core')
+    const { options } = prompts.questions[0]
+    assert.equal(
+      options.find((/** @type {{ value: string }} */ option) => option.value === 'core').hint,
+      entry.description,
+    )
+  })
+
   test.each([
     ['its title', { type: 'string', title: 'Label' }, 'status · Label'],
     ['its key, without a title', { type: 'string' }, 'status · label'],

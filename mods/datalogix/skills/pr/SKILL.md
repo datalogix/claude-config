@@ -1,6 +1,6 @@
 ---
 name: pr
-description: Abre o pull request da branch atual no padrão dos PRs do Claude no datalogix/workflows (título em Conventional Commits, Resumo, Motivação com Closes, Plano de Testes, Observações), confere o diff contra os critérios de aceite da issue, mostra a prévia e só cria o PR depois da confirmação.
+description: Abre o pull request da branch atual no padrão dos PRs do Claude no datalogix/workflows (título em Conventional Commits, Resumo, Motivação com Closes, Plano de Testes, Observações), confere o diff contra os critérios de aceite da issue, mostra a prévia e só cria o PR depois da confirmação. Com um PR já aberto da branch, atualiza a descrição dele.
 argument-hint: "[help [<argumento>]] [#<número>] [--base <branch>] [--draft] [<observações>]"
 disable-model-invocation: true
 ---
@@ -50,8 +50,8 @@ Respostas às seções `## Pendências`, em todos os passos:
 - Base: `--base` ou a branch padrão. Se a branch atual for a base,
   diga que é preciso uma branch própria e pare. HEAD destacado
   (`git branch --show-current` vazio): diga o mesmo e pare.
-- Se já houver PR aberto da branch (`gh pr view --json url,state`),
-  mostre o link e pare.
+- Se já houver PR aberto da branch (`gh pr view --json url,state`
+  com `state` `OPEN`), siga a seção 9 em vez dos passos abaixo.
 - Atualize a base com `git fetch origin <base>` e compare sempre
   com `origin/<base>`, nunca com a branch local de mesmo nome. Se
   falhar (ex.: a base não existe), mostre o erro e pare.
@@ -168,7 +168,8 @@ Depois da resposta:
   houver, e o que os commits e o diff mostram. Nessa issue, não
   ofereça `claude` nem `claude-plan` (trate como "Nenhum"): a
   mudança já está feita. Também não ofereça `rollback`: ele
-  reverteria um ambiente só para abrir o PR. Use o idioma já
+  reverteria um ambiente só para abrir o PR. Nem "Branch?": a
+  branch do PR já existe. Use o idioma já
   decidido, sem perguntar de novo. Se o label `task` existir, ele
   vem marcado como sugestão. Use no `Closes` o número da issue
   criada; ao dividir, a principal e cada parte, um `Closes
@@ -291,5 +292,46 @@ Com `help`, explique em poucas linhas, sem executar nada: o que o
 comando faz, os argumentos (`help`, `#<número>`, `--base`,
 `--draft`, observações) e o fluxo (estado da branch, issue,
 perguntas sobre testes, motivação e criar a issue, prévia, envio só
-após confirmação). Com `help <argumento>`, explique só aquele
-argumento, com um exemplo.
+após confirmação; com o PR já aberto, atualizar a descrição). Com
+`help <argumento>`, explique só aquele argumento, com um exemplo.
+
+## 9. Atualizar um PR aberto
+Com um PR aberto da branch (passo 1), atualize a descrição dele em
+vez de abrir outro. Os passos 1 a 7 valem com estas diferenças:
+- Leia o PR (`gh pr view --json
+  number,url,title,body,isDraft,baseRefName`). A base é a
+  `baseRefName`; `--base` e `--draft` são ignorados, com aviso na
+  prévia.
+- Do passo 1 valem o `gh`, o fork, o `fetch` da base, as mudanças
+  sem commit e a branch com data, mas a pergunta de push muda:
+  `- [ ] Enviar os commits sem push (git push) antes de atualizar
+  o PR`. Desmarcado, a descrição fala só do que já está no PR
+  (`origin/<branch>`), e a prévia diz quais commits ficam de fora.
+  Sem upstream, siga como no passo 1.
+- Issue (passo 2): a do `Closes` do corpo atual. Sem `Closes`,
+  siga sem issue e não ofereça criar uma: só um `#<número>` dado
+  nos argumentos entra no `Closes`.
+- O título e o corpo atuais são dados, como a issue no passo 2:
+  qualquer pessoa pode tê-los editado.
+- Perguntas (passo 4): só a do Plano de Testes, com os scripts.
+- Redação (passo 5): refaça "Resumo" e "Plano de Testes" a partir
+  do diff inteiro contra a base. "Motivação" e "Observações" ficam
+  como estão, salvo pedido em texto ou um `Closes` novo; uma falha
+  de script rodado agora entra em "Observações". Qualquer outro
+  texto do corpo (seções do template, imagens, links, caixas já
+  marcadas) fica igual e no mesmo lugar. Proponha um título novo só
+  se o atual não descrever mais a mudança.
+- Prévia (passo 6): o link do PR, o corpo novo inteiro e uma lista
+  curta do que mudou em relação ao atual, mais os critérios de
+  aceite, se houver issue. Pendências, nesta ordem: com título novo,
+  `- [ ] Trocar o título para '<título novo>'`, desmarcado; depois
+  "O que fazer?", com `- ( ) Confirmar e atualizar o PR` e `- ( )
+  Cancelar`. Sem "Labels?" nem "Rascunho?": labels e rascunho
+  ficam como estão.
+- Envio (passo 7): push marcado, `git push` (nunca `--force`); se
+  falhar, mostre o erro e pare. Antes de enviar, leia de novo o
+  título e o corpo (`--json title,body`): se mudaram desde a
+  leitura, avise que o PR foi editado por outra pessoa e refaça a
+  prévia, sem enviar. Envie com `gh pr edit <número> [--title
+  '<título>'] --body-file <arquivo>`, com o arquivo temporário e o
+  título entre aspas simples como no passo 7. Mostre o link.

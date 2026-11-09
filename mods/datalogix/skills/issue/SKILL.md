@@ -290,7 +290,18 @@ marcando as caixas e devolvendo a lista, nesta ordem:
    ambiente assim que a issue for criada, só com `env:production`
    ou `env:staging` marcado; sem eles, não faz nada" indentado logo
    abaixo.
-3. "O que fazer?", uma alternativa exclusiva por linha: confirmar
+3. "Branch?", seguido de `- [ ] Criar a branch <tipo>/<número>-<slug>
+   a partir de <branch padrão>`, desmarcado, só quando o destino é
+   o repositório do diretório atual (sem `-R` nem link, ou apontando
+   para o mesmo `nameWithOwner` do `origin`) e a issue não é
+   dividida. `<tipo>` é `fix` para bug e `feat` para tarefa;
+   `<slug>` é o título em minúsculas, sem acentos, com hífens no
+   lugar do resto e no máximo cinco palavras (ex.:
+   `feat/<número>-login-com-google`). O número só existe depois da
+   criação: a prévia mostra `<número>`. Se houver mudanças sem
+   commit (`git status --porcelain`), avise no detalhe que elas vão
+   junto para a branch.
+4. "O que fazer?", uma alternativa exclusiva por linha: confirmar
    e enviar, comentar na issue parecida, como `- ( ) comentar na
    #<número> (<título>)` (uma linha por parecida), e cancelar.
 
@@ -369,12 +380,19 @@ a reabre.
 - Mostre o link de cada issue criada ou comentário feito. Se o `gh`
   falhar, mostre o erro, diga o que já foi criado e mantenha o texto
   na conversa para tentar de novo, sem repetir o que deu certo.
+- Branch marcada (passo 6), só depois de criar a issue: rode `git
+  fetch origin <branch padrão>` e `git switch -c
+  <tipo>/<número>-<slug> --no-track origin/<branch padrão>`. O
+  `--no-track` deixa a branch sem upstream, para o
+  `/datalogix:pr` oferecer o push. Se algum dos dois falhar (ex.: a
+  branch já existe), mostre o erro e diga que a issue foi criada
+  mesmo assim. Não faça push.
 
 ## 8. Help
 Com `help`, explique em poucas linhas, sem executar nada: o que o
 comando faz, os argumentos (`help`, `-R <owner/repo>`, `#<número>`
 ou o link da issue, descrição) e o fluxo (descrição, contexto,
-prévia, envio só após confirmação). Com `help <argumento>`, explique
+prévia, envio só após confirmação, branch da issue se marcada). Com `help <argumento>`, explique
 só aquele argumento, com um exemplo.
 
 ## 9. Reescrever uma issue existente

@@ -42,7 +42,8 @@ as duas.
 
 ## Etapas, nesta ordem
 1. `git` — .gitignore, .gitattributes e .editorconfig
-2. `ci` — integração contínua (workflows do próprio projeto)
+2. `ci` — integração contínua (`datalogix.yml` com `stack: js`; Node:
+   workflow do próprio projeto)
 3. `npm` — dependências e scripts
 4. `code` — código sem interface (`steps/code-js.md`), uma pasta por
    vez:

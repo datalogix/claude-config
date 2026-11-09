@@ -86,6 +86,29 @@ React com Vite, Node).
   sitemap, se fizer sentido para o projeto
 - passos de deploy documentados (variáveis, build, start)
 
+## Deploy pelo `datalogix/workflows` (Vercel)
+Com `deploy: vercel` no `datalogix.yml` (Nuxt, Next, Vue ou React), o
+deploy, a verificação de saúde e o rollback são dos workflows. O
+`check` da etapa `ci` já confere os ambientes (`VERCEL_TOKEN`,
+`VERCEL_PROJECT`, `HEALTH_URL`), a rota de health e, com `monitoring:
+sentry`, o SDK do Sentry: não repita esses itens. Confira só:
+- `vercel.json` com os deploys próprios da Vercel desligados nas
+  branches que os workflows publicam (`git.deploymentEnabled`); sem
+  isso, cada push vai ao ar antes dos testes. O `setup` grava o
+  arquivo
+- SPA com roteador: `rewrites` de todo caminho para o `index.html` no
+  `vercel.json` (o `setup` grava, salvo se já houver `rewrites` ou
+  `routes`)
+- rota de health (`/api/health`, ou `/health.json` na SPA) que
+  responde 200 sem depender de login nem de serviço externo lento: uma
+  falha dela reverte o deploy
+- "passos de deploy documentados" (acima) vira apontar, no README, que
+  o deploy é pelos workflows, com as variáveis que a aplicação precisa
+  na Vercel
+- sem `deploy:` no `datalogix.yml` e com deploy pela própria Vercel:
+  item "sugestão" de passar ao `deploy: vercel` pelo `setup`, que
+  ganha o deploy só depois dos testes e o rollback automático
+
 ## Logs e erros
 - erros do servidor registrados com contexto útil, sem senhas, tokens
   ou dados pessoais

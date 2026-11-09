@@ -26,7 +26,7 @@ git (`private: true`, com `npx github:...`, com ou sem
 
 ## Etapas, nesta ordem
 1. `git` — .gitignore, .gitattributes e .editorconfig
-2. `ci` — integração contínua (workflows do próprio projeto)
+2. `ci` — integração contínua (`datalogix.yml` com `stack: js`)
 3. `npm` — dependências, scripts e campos de publicação
 4. `code` — código JS/TS de `src/` (ou da pasta que o `exports`, o
    `bin` ou o build indicam, e as demais pastas com código próprio,

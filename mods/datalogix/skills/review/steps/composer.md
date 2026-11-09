@@ -71,8 +71,24 @@ Rode, quando disponíveis: `composer validate --strict`,
   `package.yml` o roda quando o `composer.json` o exige). Se faltar,
   item "importante" que oferece `composer require --dev
   larastan/larastan` (ou `phpstan/phpstan` sem Laravel) e um
-  `phpstan.neon`, aplicados só se eu aprovar. Numa aplicação, se
+  `phpstan.neon.dist`, aplicados só se eu aprovar. Numa aplicação, se
   faltar, item "sugestão" com o motivo, sem instalar.
+- **Arquivos do PHPStan** (pacote e aplicação): a configuração
+  versionada é `phpstan.neon.dist`; `phpstan.neon` é só local,
+  ignorado pelo git, e começa com `includes: [phpstan.neon.dist]`.
+  O PHPStan lê o `phpstan.neon` primeiro e, se ele existir, ignora o
+  `.dist`. A baseline, se houver, é `phpstan-baseline.neon`, incluída
+  pelo `.dist`.
+  - os dois versionados: item "importante" que junta o conteúdo no
+    `.dist`, tira o `phpstan.neon` do git e o põe no `.gitignore`
+  - só `phpstan.neon` versionado: item "sugestão" de renomeá-lo com
+    `git mv phpstan.neon phpstan.neon.dist`
+  - baseline com outro nome: item "sugestão" de renomear, ajustando
+    o `includes`
+  - ao criar, use sempre esses nomes
+  - todo item que cria ou renomeia esses arquivos ajusta, no mesmo
+    item, o `.gitignore` (`phpstan.neon`) e, num pacote, o
+    `export-ignore` do `.gitattributes` (etapa `git`)
 - **PHPStan instalado**: nível rebaixado, `ignoreErrors` amplos
   (mensagem genérica, sem `path`, ou cobrindo uma pasta inteira) ou
   baseline que cresceu sem motivo registrado são item "importante";

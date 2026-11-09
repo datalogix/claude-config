@@ -3,7 +3,8 @@
 ## .gitignore
 - entradas faltando: `vendor/`, `node_modules/`, `.env`,
   `.phpunit.cache`, `.phpunit.result.cache`, `build/`, `coverage/`,
-  `clover.xml` (pacote com cobertura, etapa `ci`), arquivos de IDE e
+  `clover.xml` (pacote com cobertura, etapa `ci`), `phpstan.neon`
+  (local; o versionado é o `.dist`, etapa `composer`), arquivos de IDE e
   SO; nos tipos JS, só os que se aplicam, mais `dist/` (saída do build
   da lib, da SPA ou do Node), `.nuxt/`, `.output/`, `.data/` (Nuxt),
   `.next/`, `out/` e
@@ -49,7 +50,8 @@ o próprio PR como dono. Com `gh`:
 - `* text=auto eol=lf` e regras de binários
 - pacote: `export-ignore` para o que não deve ir no download do Composer:
   `/tests`, `/.github`, `/docs`, `/workbench`, `phpunit.xml*`,
-  `phpstan.neon*`, `pint.json`, `rector.php`, `.editorconfig`,
+  `phpstan.neon*`, `phpstan-baseline.neon`, `pint.json`, `rector.php`,
+  `.editorconfig`,
   `.gitattributes`, `.gitignore`, `CHANGELOG.md`, `CONTRIBUTING.md`,
   `testbench.yaml`, `.git-blame-ignore-revs`, `eslint.config.*`,
   `.prettierrc*`, `.prettierignore`, `/.claude`, `/.ai`, `CLAUDE.md`

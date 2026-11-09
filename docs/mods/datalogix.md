@@ -143,8 +143,10 @@ check its skills.
 repository. `/datalogix:issue`, `/datalogix:commit` and
 `/datalogix:pr` write in the language set in the project's
 `CLAUDE.md` (e.g. `- Issues and pull requests: Portuguese`), which is
-also the commits' language; without it, they detect it from the
-default branch's latest commit titles and, only when in doubt (little
+also the commits' language; without it, they use the `language`
+input the project's workflows pass to `datalogix/workflows` (as in
+`claude.yml`, whose default is `pt-BR`), then the default branch's
+latest commit titles and, only when in doubt (little
 history or mixed languages), ask, suggesting Portuguese, and offer to
 add that line to `CLAUDE.md`. `/datalogix:review` does the same for
 the commits it suggests and keeps the result in the progress file.

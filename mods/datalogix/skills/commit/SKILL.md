@@ -175,7 +175,8 @@ Depois da resposta:
 ## 4. Prévia
 Mostre, nesta ordem:
 - branch, com os avisos de branch padrão e de HEAD destacado do
-  passo 1, se for o caso, e o idioma, se foi detectado pelos commits;
+  passo 1, se for o caso, e o idioma, se foi detectado pelos
+  workflows ou pelos commits;
 - os arquivos do commit (em stage, `git diff --cached --stat`) e,
   se houver, o aviso das mudanças que ficam fora do commit;
 - trechos que parecem sensíveis no diff (tokens, senhas, chaves,

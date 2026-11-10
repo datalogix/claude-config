@@ -17,8 +17,7 @@ Rode, quando disponíveis: `composer validate --strict`,
   `interface_exists` que deveriam estar lá, com descrição útil; entradas
   que não fazem mais sentido.
 - **Metadados**: `description`, `keywords`, `license`, `autoload`,
-  `autoload-dev`, `config.sort-packages`,
-  `minimum-stability`/`prefer-stable`.
+  `autoload-dev`, `config.sort-packages`.
 - **Scripts** (convenção de `datalogix/workflows`: o CI roda
   `composer test`, então CI, máquina local e Claude testam do mesmo
   jeito; `lint` e `format` são locais: o CI roda o Pint direto e o
@@ -102,6 +101,22 @@ Rode, quando disponíveis: `composer validate --strict`,
 - restrições de versão: nem amplas demais (`*`, `>=`) nem travadas numa
   minor; coerência entre `php`, `illuminate/*` e a matriz do CI
 - prefira `illuminate/*` específicos a `laravel/framework` em `require`
+- `config` e estabilidade: o `composer.json` termina com o bloco
+  abaixo, igual em todos os pacotes (o `allow-plugins` do Pest vai
+  mesmo em pacote com PHPUnit). O que faltar ou divergir é item
+  "importante", com o JSON pronto; chaves a mais em `config` e em
+  `allow-plugins` ficam como estão.
+
+    ```json
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+    ```
 - `extra.laravel` (providers, aliases) correto
 - `orchestra/testbench` em `require-dev` cobrindo todas as versões do
   Laravel suportadas

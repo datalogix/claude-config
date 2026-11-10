@@ -228,14 +228,14 @@ node bin/cli.js --link                    # install from this clone: edits apply
     where they differ). The JS types reuse the shared steps, which have sections for them, and use `code-js`; `js-app`
     adds `production-js` and `js-library` adds `pack`. Their `ci` step reviews the `datalogix.yml` with `stack: js`
     (`project.yml` for apps, `package.yml` for libraries); only a Node app without a UI, which that stack does not
-    cover, keeps its own CI workflow. `production-js` checks only what the `check` leaves out of a `deploy: vercel`.
+    cover, keeps its own CI workflow. `production-js` checks only what the `check` leaves out of a `deploy: vercel` or `deploy: netlify`.
   - `steps/` has one checklist per step; `http` and `jobs` are extra checklists that the `code` step applies.
   - `modes/` holds the focus modes and the `report` mode.
   - `templates/LICENSE` must stay identical to the root `LICENSE`, which `tests/license.test.js` enforces.
 - Several rules follow the latest version of `datalogix/workflows`: its highest `v<N>` branch or tag, not the default
   branch or the latest release, which can be older. Check it before changing them:
   - `/datalogix:review`: the reusable workflows for CI, scripts, Pint/ESLint/Prettier, Pest/Vitest and Testbench, the
-    JS stack (`node-app-tests.yml`, `node-package-tests.yml`, `docs/js/`) and the Vercel deploy (`docs/deploy.md`);
+    JS stack (`node-app-tests.yml`, `node-package-tests.yml`, `docs/js/`) and the Vercel and Netlify deploys (`docs/deploy.md`);
   - `/datalogix:issue`: the `claude`/`claude-plan` labels (inputs of `.github/workflows/claude.yml`) and the `rollback`
     label (`.github/workflows/project.yml` and `deploy.yml`), created with the colors and descriptions of
     `cli/kinds/project/state.js`, the `task` label (`docs/task-manager.md`; its color and description are the skill's

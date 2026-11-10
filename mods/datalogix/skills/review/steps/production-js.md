@@ -109,6 +109,30 @@ sentry`, o SDK do Sentry: não repita esses itens. Confira só:
   item "sugestão" de passar ao `deploy: vercel` pelo `setup`, que
   ganha o deploy só depois dos testes e o rollback automático
 
+## Deploy pelo `datalogix/workflows` (Netlify)
+Com `deploy: netlify` no `datalogix.yml` (Nuxt, Next, Vue ou React),
+o deploy, a verificação de saúde e o rollback são dos workflows, com
+um site do Netlify por ambiente. O `check` da etapa `ci` já confere
+os ambientes (`NETLIFY_TOKEN`, `NETLIFY_SITE_ID`, `HEALTH_URL`), a
+rota de health, o preset do Nitro no Nuxt e, com `monitoring:
+sentry`, o SDK do Sentry: não repita esses itens. Confira só:
+- `nitro.preset` ou `output` do Next fixados para outro destino
+  (ex.: `node-server`, `standalone`) quebram o build no Netlify
+- SPA com roteador: `[[redirects]]` de `/*` para `/index.html` com
+  `status = 200` no `netlify.toml`, ou em `public/_redirects` (o
+  `setup` grava, salvo se já houver redirects)
+- rota de health (`/api/health`, ou `/health.json` na SPA) que
+  responde 200 sem depender de login nem de serviço externo lento: uma
+  falha dela reverte o deploy. Site com a proteção por senha do
+  Netlify responde 401 aos health checks e todo deploy é revertido
+- "passos de deploy documentados" (acima) vira apontar, no README, que
+  o deploy é pelos workflows, com as variáveis que a aplicação precisa
+  em cada site do Netlify
+- sem `deploy:` no `datalogix.yml` e com deploy pelo próprio Netlify:
+  item "sugestão" de passar ao `deploy: netlify` pelo `setup`, que
+  trava a publicação automática dos sites e ganha o deploy só depois
+  dos testes e o rollback automático
+
 ## Logs e erros
 - erros do servidor registrados com contexto útil, sem senhas, tokens
   ou dados pessoais

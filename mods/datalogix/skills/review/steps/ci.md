@@ -105,7 +105,7 @@ como melhoria de `datalogix/workflows`, não como item do projeto.
 - ruleset exigindo `pipeline / tests / tests` (e `pipeline / security
   / security` e `pipeline / gate / gate` com essas camadas ligadas):
   o `check` confere; a correção é o `protect`
-- deploy e monitoramento (`deploy: vercel`, `monitoring: sentry`) são
+- deploy e monitoramento (`deploy: vercel` ou `netlify`, `monitoring: sentry`) são
   da etapa `production`
 
 ## Lib JS

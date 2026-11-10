@@ -23,10 +23,10 @@ as duas.
   `ssr`, `routeRules`; Next: `export const dynamic`/`revalidate`,
   `output: 'export'`).
 - **Deploy**: destino (Nuxt: preset do Nitro; Next: `output:
-  'standalone'`, Vercel, Node; Vue ou React: hospedagem estática ou
-  CDN; Node: container, gerenciador de processos ou serverless), e se
-  consome uma API própria (ex.: um back-end Laravel em outro
-  repositório).
+  'standalone'`, Vercel, Netlify, Node; Vue ou React: hospedagem
+  estática ou CDN; Node: container, gerenciador de processos ou
+  serverless), e se consome uma API própria (ex.: um back-end Laravel
+  em outro repositório).
 - **Estágio**: procure no `CLAUDE.md` ou nas "Decisões do projeto". Se
   não estiver registrado, pergunte uma vez e registre:
   - **não lançada**: ainda não está em produção

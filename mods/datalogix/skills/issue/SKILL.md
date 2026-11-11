@@ -82,24 +82,15 @@ qualquer ordem." Não faça perguntas antes de receber o texto.
   chamadas concordarem, use esse idioma sem perguntar e diga na
   prévia "Idioma: <idioma>, do `language` de
   `.github/workflows/<arquivo>`". Se discordarem, ou sem nenhuma
-  chamada, detecte pelos
-  últimos títulos de commit da branch padrão do destino (`git log
-  origin/<branch> -20 --no-merges --format='%an: %s'`, ou `git log
-  <branch> ...` sem remoto, ou, se o destino não for o diretório
-  atual, `gh api "repos/<owner/repo>/commits?per_page=20" --jq
-  '.[].commit | .author.name + ": " + (.message | split("\n")[0])'`),
-  ignorando o tipo do
-  Conventional Commits, merges e commits de bots (ex.: Dependabot).
-  Com pelo menos 5 títulos e mais de três quartos deles num idioma,
-  use-o sem perguntar e diga na prévia "Idioma: <idioma>, detectado
-  pelos commits". Sem histórico suficiente ou com idiomas misturados,
-  pergunte antes da prévia, junto com as perguntas do passo 4, se houver:
-  "Idioma das issues e pull requests?", com `- ( ) (recomendo)
-  Português` e `- ( ) English` (outro, em texto). Se o destino
-  for o diretório atual e tiver `CLAUDE.md`, inclua depois
-  `- [ ] Gravar no CLAUDE.md`, com o detalhe indentado "acrescenta
-  a linha do idioma escolhido". Não escreva o idioma no detalhe: ele
-  ainda não foi escolhido.
+  chamada, o idioma não está definido: não o deduza dos commits nem
+  de outros textos do projeto. Pergunte antes da prévia, junto com
+  as perguntas do passo 4, se houver: "Idioma das issues e pull
+  requests?", com `- ( ) (recomendo) Português` e `- ( ) English`
+  (outro, em texto). Se o destino for o diretório atual e tiver
+  `CLAUDE.md`, inclua depois `- [ ] (recomendo) Gravar no
+  CLAUDE.md`, com o detalhe indentado "acrescenta a linha do idioma
+  escolhido, para não perguntar de novo". Não escreva o idioma no
+  detalhe: ele ainda não foi escolhido.
   - Marcado: acrescente `- Issues and pull requests: <idioma>`, com
     o idioma da resposta (em inglês, ex.: `Portuguese`, `English`),
     só essa linha no fim do `CLAUDE.md` da raiz (o lido acima), sem
@@ -267,8 +258,7 @@ O que corrigir e onde.
 ## 6. Prévia
 Mostre, nesta ordem:
 - repositório de destino, tipo e template usado (ou "padrão");
-- o idioma, se foi detectado pelos workflows ou pelos commits
-  (passo 2);
+- o idioma, se veio dos workflows (passo 2);
 - se o destino for um fork (`isFork`), um aviso de que a issue fica
   no fork, com o comando `-R` para abri-la no original;
 - se o destino for público (`visibility` `PUBLIC`), um aviso de que

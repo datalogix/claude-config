@@ -178,10 +178,10 @@ skills ou tags novas, descubra e registre:
 - **Idioma de issues, pull requests e commits**: a linha do `CLAUDE.md`
   ou o registrado em "Decisões do projeto". Sem nenhum dos dois, leia o
   item "Idioma" do passo 2 de `${CLAUDE_SKILL_DIR}/../issue/SKILL.md` e
-  siga-o, com o diretório atual como destino: detecte pelos commits e,
-  se ficar em dúvida, pergunte junto com o perfil e espere a resposta.
+  siga-o, com o diretório atual como destino: sem `language` nos
+  workflows, pergunte junto com o perfil e espere a resposta.
   Com `report`, não pergunte nem registre: não há commits; mostre
-  "em dúvida" no perfil. Nos outros casos, mostre o idioma no perfil
+  "não definido" no perfil. Nos outros casos, mostre o idioma no perfil
   e registre-o em "Decisões do projeto".
 - **Sem `CLAUDE.md` na raiz** (o Claude não foi iniciado no projeto):
   PARE e pergunte se quero rodar `/init` antes de seguir; ele dá
@@ -569,7 +569,7 @@ Pergunte NA HORA e espere apenas quando não der para seguir: base
 desatualizada e branch com data (seção 4), linha de base falhando,
 `CLAUDE.md` ausente,
 tipo do projeto em dúvida (seção 2), estágio não registrado (arquivo
-do tipo), idioma dos commits em dúvida (seção 2), requisito de testes
+do tipo), idioma dos commits não definido (seção 2), requisito de testes
 ausente (arquivo do tipo), skill sem etapa clara, teste existente que
 parece errado, checagem de git falhando, caches do Laravel já em
 `bootstrap/cache` (etapa `production`), ou ação irreversível ou não

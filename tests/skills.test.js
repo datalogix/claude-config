@@ -97,8 +97,11 @@ test('the issue skill still writes the language line the skills look for', () =>
   assert.ok(flat('issue/SKILL.md').includes('`- Issues and pull requests: <idioma>`'))
 })
 
-test('the language item still starts from the commit titles', () => {
-  assert.ok(flat('issue/SKILL.md').includes('detecte pelos últimos títulos de commit'))
+test('the language item asks instead of guessing from the commits, and records the answer by default', () => {
+  const skill = flat('issue/SKILL.md')
+  assert.ok(skill.includes('não o deduza dos commits'))
+  assert.ok(skill.includes('`- [ ] (recomendo) Gravar no CLAUDE.md`'))
+  assert.doesNotMatch(skill, /títulos de commit/)
 })
 
 test('the review skill keeps no language fallback of its own', () => {

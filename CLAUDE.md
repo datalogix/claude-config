@@ -206,9 +206,9 @@ node bin/cli.js --link                    # install from this clone: edits apply
   `tests/skills.test.js` runs every item written in a code span in the skills' Markdown files through `parseActions`,
   refuses one outside a span or cut short by a backtick inside it and requires each `SKILL.md` to have items and the
   `## Pendências` title. It also pins what one skill relies on in another (the issue skill's step 2 and "Idioma" item;
-  the commit skill's steps 1 and 2, "Branch com data", `grupos:` and "Com grupos marcados"), compares the text the
-  skills keep in copies, since each is read alone, and checks that every step in review's type files has its checklist,
-  that every file review names exists and that the bare names in `steps/` are files of that folder.
+  the commit skill's steps 1 and 2, "Branch com data", "Formato", `grupos:` and "Com grupos marcados"), compares the
+  text the skills keep in copies, since each is read alone, and checks that every step in review's type files has its
+  checklist, that every file review names exists and that the bare names in `steps/` are files of that folder.
 - `/datalogix:issue`, `/datalogix:pr` and `/datalogix:commit` take the language of issues, pull requests and commits
   from a `- Issues and pull requests: <language>` line in the target project's `CLAUDE.md` (pr and commit by
   following the "Idioma" item of the issue skill's step 2). Without it they take the `language` input the project's
@@ -218,6 +218,14 @@ node bin/cli.js --link                    # install from this clone: edits apply
   `CLAUDE.md`, the one write they make there. `/datalogix:review` follows the same item for the commit messages it
   suggests and records the result in the progress file ("Decisões do projeto"); it never falls back to a language
   silently.
+- The commit format (`Conventional Commits` or `no type prefix`) comes from a `- Commits: <format>` line in the
+  target project's `CLAUDE.md`, which `core:conventions` in `datalogix/workflows` also follows. The "Formato" item of
+  the commit skill's step 1 handles it; pr (for the pull request title) and review follow it. Without the line it is
+  undefined, never guessed from the history: they ask, with the title in each format, replacing the language question
+  with four options when the language is undefined too, recommending no type in apps and Conventional Commits in
+  packages (`package.yml` of `datalogix/workflows`, a `library` composer.json or a publishable package.json), and
+  append the lines only if the checked (`(recomendo)`) "Gravar no CLAUDE.md" stays checked. Updating an open pull
+  request never asks: a new title follows the line or, without it, the current title.
 - `/datalogix:review` is a prompt-only skill, written in Portuguese.
   - `SKILL.md` fetches the default branch at the start of a session. A branch behind it gets a `git pull --ff-only`
     offer when it is the default branch with a clean tree (outside `report`), and only a warning otherwise.
@@ -242,7 +250,8 @@ node bin/cli.js --link                    # install from this clone: edits apply
     `cli/kinds/project/state.js`, the `task` label (`docs/task-manager.md`; its color and description are the skill's
     own), and the issue forms (`examples/issue-templates/`);
   - `/datalogix:issue`, `/datalogix:pr` and `/datalogix:commit`: Portuguese as the suggested language, with the
-    Conventional Commits type in English (`plugins/core/skills/conventions/SKILL.md`), and the `language` input of
+    Conventional Commits type in English and the `- Commits:` line that overrides it
+    (`plugins/core/skills/conventions/SKILL.md`), and the `language` input of
     `.github/workflows/claude.yml` and `release-pr.yml`;
   - `/datalogix:ci`: the checks it fixes and leaves alone follow `plugins/laravel/commands/fix-ci.md` and
     `.github/workflows/claude-fix-ci.yml`, plus the `build` script, which those do not run (for JS projects' own CI);

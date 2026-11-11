@@ -1,6 +1,6 @@
 ---
 name: commit
-description: Cria o commit das mudanças em stage no padrão do datalogix/workflows (Conventional Commits, tipo em inglês e descrição no idioma do time), mostra a prévia e só faz o commit depois da confirmação. Sem nada em stage, sugere commits por funcionalidade ou correção, separando trechos de um mesmo arquivo, ou deixa escolher os arquivos.
+description: Cria o commit das mudanças em stage no padrão do datalogix/workflows (Conventional Commits ou sem tipo, como o projeto definir, e descrição no idioma do time), mostra a prévia e só faz o commit depois da confirmação. Sem nada em stage, sugere commits por funcionalidade ou correção, separando trechos de um mesmo arquivo, ou deixa escolher os arquivos.
 argument-hint: "[help [<argumento>]] [<observações> | grupos: <título> (<arquivos>); ...]"
 disable-model-invocation: true
 ---
@@ -83,9 +83,9 @@ Respostas às seções `## Pendências`, em todos os passos:
     arquivos do grupo (novos com "(novo)", apagados com "(apagado)") e,
     se um arquivo for dividido entre grupos, o trecho que fica neste
     (função ou linhas). Os títulos são provisórios: escreva-os no
-    idioma do item "Idioma" abaixo ou, se ele ainda vai perguntar,
-    no idioma sugerido, e diga acima da lista que a mensagem final
-    sai na prévia.
+    idioma e no formato dos itens "Idioma" e "Formato" abaixo ou, se
+    eles ainda vão perguntar, no idioma e no formato recomendados, e
+    diga acima da lista que a mensagem final sai na prévia.
   - Depois dos grupos, `- [ ] Fazer tudo em um commit só` e `- [ ]
     Escolher os arquivos um a um`, cada uma com o detalhe indentado
     "ignora os grupos". Com a segunda marcada, pergunte "Quais arquivos
@@ -97,6 +97,36 @@ Respostas às seções `## Pendências`, em todos os passos:
   atual como destino. O idioma de issues e pull requests é também o
   da descrição do commit. A pergunta, se houver, vai junto com a dos
   arquivos.
+- Formato: procure no `CLAUDE.md` da raiz a linha `- Commits:
+  <formato>`: `Conventional Commits` (tipo em inglês e descrição,
+  ex.: `feat: adiciona exportação de pedidos`) ou `no type prefix`
+  (só a descrição, com inicial maiúscula, ex.: `Adiciona exportação
+  de pedidos`). Com ela, use-a sem perguntar. Sem ela, o formato não
+  está definido: não o deduza dos commits. Pergunte "Formato das
+  mensagens de commit?", junto com as outras perguntas deste passo,
+  com um `- ( ) <título>` por opção, cada um com o título do commit
+  nesse formato e idioma (com grupos, o do primeiro; sem título
+  ainda, `adiciona exportação de pedidos` como exemplo) e o detalhe
+  indentado com o formato e o idioma (ex.: "sem tipo, português").
+  - Se o item "Idioma" também vai perguntar, esta pergunta substitui
+    a dele e define os dois: quatro opções, Conventional Commits e
+    sem tipo em português, depois em inglês (outro idioma, em
+    texto). Com o idioma definido, só as duas desse idioma.
+  - Recomendação (`(recomendo)`, na primeira opção): sem tipo num
+    app e Conventional Commits num pacote. É pacote o projeto cujo
+    `.github/workflows/*.yml` chama
+    `datalogix/workflows/.github/workflows/package.yml` ou, sem
+    chamada de `package.yml` nem de `project.yml`, com `composer.json`
+    de `"type": "library"` ou `package.json` sem `"private": true` e
+    com `main`, `exports` ou `files`. O resto é app.
+  - Se tiver `CLAUDE.md`, inclua depois, no lugar do "Gravar no
+    CLAUDE.md" do item "Idioma", `- [ ] (recomendo) Gravar no
+    CLAUDE.md`, com o detalhe indentado "acrescenta as linhas do que
+    foi escolhido, para não perguntar de novo". Marcado: acrescente
+    `- Commits: Conventional Commits` ou `- Commits: no type prefix`
+    e, se o idioma foi perguntado, a linha do item "Idioma", como ele
+    diz. Sem `CLAUDE.md`, sugira rodar `/init` e acrescentá-las
+    depois.
 - As perguntas deste passo vão numa única mensagem, que termina com
   uma seção `## Pendências`, e espera a resposta. Sem perguntas,
   siga direto para o passo 2.
@@ -104,9 +134,9 @@ Respostas às seções `## Pendências`, em todos os passos:
 Depois da resposta:
 - Se havia a pergunta dos grupos ou a dos arquivos e nada foi
   marcado nem citado no texto, pare.
-- Grave a linha de idioma, se marcada, antes do `git add`. Ela fica
-  fora destes commits, a menos que o `CLAUDE.md` tenha sido
-  marcado; avise isso.
+- Grave as linhas de formato e de idioma, se marcado, antes do `git
+  add`. Elas ficam fora destes commits, a menos que o `CLAUDE.md`
+  tenha sido marcado; avise isso.
 - Com arquivos marcados, rode `git add -- <arquivo> ...` só com
   eles. Com "Fazer tudo em um commit só", rode `git add --` com os
   arquivos da leitura que gerou a pergunta, não de um status novo;
@@ -124,7 +154,7 @@ Depois da resposta:
   que elas ficam fora do commit. Não as adicione.
 - Leia o `CLAUDE.md` da raiz SÓ como contexto: vocabulário, módulos
   e convenções de commit (ex.: escopos usados). Não o altere,
-  exceto pela linha de idioma (passo 1).
+  exceto pelas linhas de formato e de idioma (passo 1).
 - Leia os últimos títulos de commit (`git log -20 --format=%s`),
   se houver commits, para seguir o estilo do projeto, como o uso de
   escopo.
@@ -133,16 +163,20 @@ Depois da resposta:
   fluxo), não faça e avise na prévia.
 
 ## 3. Redação
-- Título em Conventional Commits: tipo em inglês (`feat`, `fix`,
-  `refactor`, `docs`, `test`, `chore`, `perf`, `build`, `ci`,
-  `style`) e a descrição no idioma do passo 1, curta, no imperativo
-  ou presente, sem ponto final e sem data. O título inteiro, com o
-  tipo, tem até 72 caracteres (ex.:
-  `feat: adiciona exportação de pedidos em CSV`). Use escopo
-  (`fix(api): ...`) só se o projeto já usa.
-- O tipo vem da mudança principal. Mudança que quebra
-  compatibilidade leva `!` depois do tipo e um rodapé
-  `BREAKING CHANGE: <o que quebra>`.
+- Título no formato e no idioma do passo 1, com a descrição curta,
+  no imperativo ou presente, sem ponto final e sem data, e o título
+  inteiro com até 72 caracteres:
+  - Conventional Commits: tipo em inglês (`feat`, `fix`,
+    `refactor`, `docs`, `test`, `chore`, `perf`, `build`, `ci`,
+    `style`) e a descrição (ex.:
+    `feat: adiciona exportação de pedidos em CSV`). Use escopo
+    (`fix(api): ...`) só se o projeto já usa. O tipo vem da mudança
+    principal.
+  - Sem tipo: só a descrição, com inicial maiúscula (ex.:
+    `Adiciona exportação de pedidos em CSV`).
+- Mudança que quebra compatibilidade leva um rodapé
+  `BREAKING CHANGE: <o que quebra>` e, em Conventional Commits,
+  `!` depois do tipo.
 - Corpo: só quando o título não basta, com o porquê da mudança em
   poucas linhas, quebradas em cerca de 72 colunas. Descreva
   comportamento, não a lista de arquivos.
@@ -279,7 +313,7 @@ Na divisão:
 Com `help`, explique em poucas linhas, sem executar nada: o que o
 comando faz, os argumentos (`help`, observações, `grupos:`) e o
 fluxo (sem nada em stage, commits sugeridos por funcionalidade ou
-correção ou escolha dos arquivos, idioma, divisão por arquivo ou
+correção ou escolha dos arquivos, idioma e formato, divisão por arquivo ou
 por trecho, prévia de todos os commits, confirmação de todos ou de
 um por vez, sem push).
 Com `help <argumento>`, explique só aquele argumento, com um

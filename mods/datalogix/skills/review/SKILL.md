@@ -183,6 +183,14 @@ skills ou tags novas, descubra e registre:
   Com `report`, não pergunte nem registre: não há commits; mostre
   "não definido" no perfil. Nos outros casos, mostre o idioma no perfil
   e registre-o em "Decisões do projeto".
+- **Formato dos commits**: a linha `- Commits:` do `CLAUDE.md` ou o
+  registrado em "Decisões do projeto". Sem nenhum dos dois, leia o
+  item "Formato" do passo 1 de `${CLAUDE_SKILL_DIR}/../commit/SKILL.md`
+  e siga-o, com o exemplo dele como título: a pergunta substitui a do
+  idioma como ele diz e vai junto com o perfil. Com `report`, não
+  pergunte nem registre; mostre "não definido" no perfil. Nos outros
+  casos, mostre o formato no perfil e registre-o em "Decisões do
+  projeto".
 - **Sem `CLAUDE.md` na raiz** (o Claude não foi iniciado no projeto):
   PARE e pergunte se quero rodar `/init` antes de seguir; ele dá
   contexto à revisão e aos workflows de `datalogix/workflows`. Se eu
@@ -191,7 +199,7 @@ skills ou tags novas, descubra e registre:
 
 Ao gerar ou regenerar o perfil, mostre-o em poucas linhas, incluindo
 tipo e estágio, e atualize o commit dele. Regenerar não repete o que
-já está em "Decisões do projeto" (estágio, idioma, `/init`).
+já está em "Decisões do projeto" (estágio, idioma, formato, `/init`).
 
 ## 3. Progresso (fora do projeto)
 - Arquivo: `~/.claude/reviews/<id>/progress.md`, onde `<id>` é:
@@ -569,7 +577,7 @@ Pergunte NA HORA e espere apenas quando não der para seguir: base
 desatualizada e branch com data (seção 4), linha de base falhando,
 `CLAUDE.md` ausente,
 tipo do projeto em dúvida (seção 2), estágio não registrado (arquivo
-do tipo), idioma dos commits não definido (seção 2), requisito de testes
+do tipo), idioma ou formato dos commits não definido (seção 2), requisito de testes
 ausente (arquivo do tipo), skill sem etapa clara, teste existente que
 parece errado, checagem de git falhando, caches do Laravel já em
 `bootstrap/cache` (etapa `production`), ou ação irreversível ou não
@@ -630,12 +638,12 @@ Resuma só o que está escrito nos arquivos; não invente comportamento.
 - Tudo que for escrito no projeto: inglês — código, nomes, comentários,
   docblocks, testes, mensagens de exceção e de log, README, /docs,
   CHANGELOG, UPGRADE, skills e guidelines.
-- Mensagens de commit sugeridas: tipo do Conventional Commits em
-  inglês e descrição no idioma da linha `- Issues and pull requests:
+- Mensagens de commit sugeridas: no formato da linha `- Commits:` e
+  com a descrição no idioma da linha `- Issues and pull requests:
   <idioma>` do `CLAUDE.md` do projeto, como no `/datalogix:commit`;
-  sem essa linha, no registrado em "Decisões do projeto"; sem nenhum
-  dos dois (progresso de antes dessa regra), defina-o como na seção 2
-  antes de sugerir o primeiro commit.
+  sem essas linhas, no registrado em "Decisões do projeto"; sem
+  nenhum dos dois (progresso de antes dessa regra), defina-os como na
+  seção 2 antes de sugerir o primeiro commit.
 - Textos para o usuário final ficam nos arquivos de tradução (`lang/`)
   se o projeto usa tradução; nesse caso, nunca fixos no código.
 - Se o projeto tiver código ou documentação em outro idioma, aponte como

@@ -106,7 +106,7 @@ test('the language item asks instead of guessing from the commits, and records t
 
 test('the review skill keeps no language fallback of its own', () => {
   assert.doesNotMatch(flat('review/SKILL.md'), /sem essa linha[^.]*portugu[êe]s/i)
-  assert.ok(flat('review/SKILL.md').includes('defina-o como na seção 2 antes de sugerir o primeiro commit'))
+  assert.ok(flat('review/SKILL.md').includes('defina-os como na seção 2 antes de sugerir o primeiro commit'))
 })
 
 test('the skills that follow the commit skill dated branch item still find it', () => {
@@ -121,6 +121,30 @@ test('the skills that follow the commit skill dated branch item still find it', 
       ),
     )
   }
+})
+
+test('the skills that follow the commit skill format item still find it', () => {
+  const step1 = /^## 1\. .*\n([\s\S]*?)^## 2\. /m.exec(read('commit/SKILL.md'))
+  assert.ok(step1, 'commit/SKILL.md has no step 1 followed by step 2')
+  assert.match(step1[1], /^- Formato:/m)
+
+  for (const skill of ['pr', 'review']) {
+    assert.ok(
+      flat(`${skill}/SKILL.md`).includes('item "Formato" do passo 1 de `${CLAUDE_SKILL_DIR}/../commit/SKILL.md`'),
+    )
+  }
+})
+
+test('the format item asks instead of guessing from the commits, and records the answer by default', () => {
+  const skill = flat('commit/SKILL.md')
+  for (const line of [
+    '`- Commits: Conventional Commits`',
+    '`- Commits: no type prefix`',
+    '`- [ ] (recomendo) Gravar no CLAUDE.md`',
+  ]) {
+    assert.ok(skill.includes(line), line)
+  }
+  assert.ok(skill.includes('não o deduza dos commits'))
 })
 
 test('the pr skill still follows the issue skill from its step 2', () => {

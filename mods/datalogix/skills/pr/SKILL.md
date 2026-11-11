@@ -1,6 +1,6 @@
 ---
 name: pr
-description: Abre o pull request da branch atual no padrão dos PRs do Claude no datalogix/workflows (título em Conventional Commits, Resumo, Motivação com Closes, Plano de Testes, Observações), confere o diff contra os critérios de aceite da issue, mostra a prévia e só cria o PR depois da confirmação. Com um PR já aberto da branch, atualiza a descrição dele.
+description: Abre o pull request da branch atual no padrão dos PRs do Claude no datalogix/workflows (título no formato dos commits do projeto, Resumo, Motivação com Closes, Plano de Testes, Observações), confere o diff contra os critérios de aceite da issue, mostra a prévia e só cria o PR depois da confirmação. Com um PR já aberto da branch, atualiza a descrição dele.
 argument-hint: "[help [<argumento>]] [#<número>] [--base <branch>] [--draft] [<observações>]"
 disable-model-invocation: true
 ---
@@ -109,12 +109,17 @@ Respostas às seções `## Pendências`, em todos os passos:
   `--stat` e só os arquivos que importam para o resumo.
 - Leia o `CLAUDE.md` e o `README.md` da raiz SÓ como contexto:
   vocabulário, módulos, comandos e convenções. Não altere esses
-  arquivos, exceto pela linha de idioma (abaixo).
+  arquivos, exceto pelas linhas de idioma e de formato (abaixo).
 - Idioma: leia o item "Idioma" do passo 2 de
   `${CLAUDE_SKILL_DIR}/../issue/SKILL.md` e siga-o, com o diretório
   atual como destino. A pergunta, se houver, vai nas Pendências do
   passo 4; ao gravar a linha, avise também que ela fica fora deste
   PR.
+- Formato do título: leia o item "Formato" do passo 1 de
+  `${CLAUDE_SKILL_DIR}/../commit/SKILL.md` e siga-o, com o título do
+  PR no lugar do título do commit. A pergunta, se houver, substitui
+  a do idioma como ele diz e vai nas Pendências do passo 4; as
+  linhas gravadas também ficam fora deste PR.
 - Template de PR: `pull_request_template.md`, com qualquer caixa
   (ex.: `PULL_REQUEST_TEMPLATE.md`), em `.github/`, na raiz ou em
   `docs/`, ou a pasta `.github/PULL_REQUEST_TEMPLATE/` do
@@ -148,7 +153,8 @@ pergunta aberta fica como texto na seção, para responder em texto:
     issue antes com /datalogix:issue`, para o PR fechá-la com
     `Closes` e, com o label `task`, ligá-la ao gerenciador de
     tarefas.
-- Se o item "Idioma" do passo 3 deixou uma pergunta: ela.
+- Se os itens "Idioma" e "Formato do título" do passo 3
+  deixaram uma pergunta: ela.
 
 Depois da resposta:
 - Se a resposta não diz o que foi rodado e nenhum script foi
@@ -188,11 +194,15 @@ Depois da resposta:
 - Escreva no idioma dos passos 3 e 4, inclusive os títulos da
   estrutura abaixo e os textos fixos ("Não informado", "Não
   informada", "(com mudanças sem commit, fora do PR)").
-- Título em Conventional Commits: tipo em inglês (`feat`, `fix`,
-  `refactor`, `docs`, `test`, `chore`, `perf`, `build`, `ci`,
-  `style`) e a descrição nesse idioma, curta e no imperativo ou
-  presente (ex.: `feat: adiciona exportação de pedidos em CSV`). O
-  tipo vem da mudança principal, não do primeiro commit.
+- Título no formato do passo 3, com a descrição nesse idioma,
+  curta e no imperativo ou presente:
+  - Conventional Commits: tipo em inglês (`feat`, `fix`,
+    `refactor`, `docs`, `test`, `chore`, `perf`, `build`, `ci`,
+    `style`) e a descrição (ex.:
+    `feat: adiciona exportação de pedidos em CSV`). O tipo vem da
+    mudança principal, não do primeiro commit.
+  - Sem tipo: só a descrição, com inicial maiúscula (ex.:
+    `Adiciona exportação de pedidos em CSV`).
 - Com template, siga os títulos e a ordem dele e ponha o
   `Closes #<número>` no lugar que ele indicar ou, sem lugar, no fim.
   Sem template, use:
@@ -324,7 +334,9 @@ vez de abrir outro. Os passos 1 a 7 valem com estas diferenças:
   só dessa seção, mudando só esses trechos. Qualquer outro
   texto do corpo (seções do template, imagens, links, caixas já
   marcadas) fica igual e no mesmo lugar. Proponha um título novo só
-  se o atual não descrever mais a mudança.
+  se o atual não descrever mais a mudança, no formato da linha
+  `- Commits:` do `CLAUDE.md` ou, sem ela, no do título atual, sem
+  perguntar.
 - Prévia (passo 6): o link do PR, o corpo novo inteiro e uma lista
   curta do que mudou em relação ao atual, mais os critérios de
   aceite, se houver issue. Pendências, nesta ordem: com título novo,

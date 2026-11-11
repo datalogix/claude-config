@@ -78,7 +78,7 @@ check its skills.
   `/datalogix:issue help` for details.
 - `pr/` — `/datalogix:pr`: opens the current branch's pull request in
   the format of Claude's pull requests in `datalogix/workflows`: a
-  Conventional Commits title and _Resumo_, _Motivação_ (with
+  title in the project's commit format and _Resumo_, _Motivação_ (with
   `Closes #<number>`), _Plano de Testes_ and _Observações_ (titles
   follow the project's language), or the project's pull request
   template. It finds the issue from the argument or the branch name (a
@@ -98,7 +98,7 @@ check its skills.
   _Observações_ the diff made outdated, and runs `gh pr edit` only
   after confirmation. Run `/datalogix:pr help` for details.
 - `commit/` — `/datalogix:commit`: commits the staged changes with a
-  Conventional Commits message, following the project's recent
+  message in the project's commit format, following the project's recent
   commits (e.g. whether it uses a scope). With nothing staged, it
   suggests one commit per feature or fix, unchecked, and makes only
   the ones you check, all shown in one preview and confirmed at once
@@ -151,6 +151,14 @@ Portuguese, with adding that line to `CLAUDE.md` checked, so the
 question comes once per project. They never guess the language from
 the commit history. `/datalogix:review` does the same for
 the commits it suggests and keeps the result in the progress file.
+The commit format, which pull request titles follow too, comes from
+a `- Commits: Conventional Commits` or `- Commits: no type prefix`
+line in `CLAUDE.md`, the same line the `core` mod's conventions
+follow; without it, `/datalogix:commit`, `/datalogix:pr` and
+`/datalogix:review` ask, showing the title in each format (and, when
+the language is undefined too, in each language, four options in
+one question), recommend no type in apps and Conventional Commits in
+packages, and offer to add the lines to `CLAUDE.md`, checked.
 Conventional Commits types stay in English. The previews and questions
 of issue, pr, commit and ci end with a `## Pendências` list
 (`/datalogix:review` uses it for its reports only when `topics` is

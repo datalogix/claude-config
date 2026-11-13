@@ -43,9 +43,8 @@ seção 3.
 - o que não tem teste, ordenado por risco: segurança e autorização,
   regra de negócio, comandos, jobs, eventos
 - `phpunit.xml`: suítes, `source` incluindo o código certo, ambiente de
-  teste, `failOnRisky`; `failOnWarning` só sem relatório de cobertura
-  no `phpunit.xml` ou com pcov/xdebug registrado no perfil (com o
-  Clover e sem driver, o warning derruba o `composer test` local)
+  teste, `failOnRisky` e `failOnWarning` (modelo e pré-requisito do
+  `pcov` na etapa `ci`)
 - pacote: `TestCase` do Testbench (providers, config de teste,
   migrations, banco em memória)
 - aplicação: `RefreshDatabase` (ou equivalente), banco de teste separado,

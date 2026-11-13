@@ -57,6 +57,14 @@ como melhoria de `datalogix/workflows`, não como item do projeto.
 - `.php-version` (ou `config.platform.php`) se a aplicação não roda
   na última versão do PHP, e `.nvmrc`/`.node-version` se não roda no
   Node LTS: o CI lê esses arquivos, não o `engines`
+- `phpunit.xml` com `failOnRisky="true"` e `failOnWarning="true"` no
+  `<phpunit>`, as suítes `Unit` e `Feature`, o `<source>` incluindo
+  `./app`, o ambiente de teste no `<php>` (banco separado, ver o tipo)
+  e, se `min-coverage` não for 0, o relatório
+  `<clover outputFile="clover.xml"/>` (o CI instala o `pcov`). O que
+  faltar ou divergir é item "importante", com o XML sugerido pronto.
+  Com o Clover no XML, o `pcov` (ou `xdebug`) é pré-requisito local,
+  como no pacote
 
 ## Pacote Laravel
 - `datalogix.yml` com o job `pipeline` chamando
@@ -76,9 +84,44 @@ como melhoria de `datalogix/workflows`, não como item do projeto.
   PHPStan
 - `pint: false` ou `phpstan: false` só com motivo (a versão do Pint é
   da etapa `composer`)
-- `phpunit.xml` gerando relatório Clover se `coverage` estiver ligado
-  ou `min-coverage` não for 0 (o padrão é 100):
-  `<clover outputFile="clover.xml"/>`
+- `phpunit.xml.dist` (ou `phpunit.xml`) com `failOnRisky="true"` e
+  `failOnWarning="true"` no `<phpunit>`, a suíte em `./tests`, o
+  `<source>` incluindo `./src` e, se `coverage` estiver ligado ou
+  `min-coverage` não for 0 (o padrão é 100), o relatório
+  `<clover outputFile="clover.xml"/>`. O que faltar ou divergir é
+  item "importante", com o XML sugerido pronto. Com o Clover no XML e
+  sem driver de cobertura, o warning do PHPUnit derruba a suíte: o CI
+  passa `--no-coverage` nas combinações sem driver, e localmente o
+  `pcov` (ou `xdebug`) é pré-requisito, que o README deve citar onde
+  explica como rodar os testes (etapa `docs`). Referência:
+
+  ```xml
+  <?xml version="1.0" encoding="UTF-8"?>
+  <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:noNamespaceSchemaLocation="./vendor/phpunit/phpunit/phpunit.xsd"
+           bootstrap="vendor/autoload.php"
+           colors="true"
+           failOnRisky="true"
+           failOnWarning="true"
+  >
+      <testsuites>
+          <testsuite name="Laravel Package Test Suite">
+              <directory suffix="Test.php">./tests</directory>
+          </testsuite>
+      </testsuites>
+      <coverage>
+          <report>
+              <clover outputFile="clover.xml"/>
+              <text outputFile="php://stdout"/>
+          </report>
+      </coverage>
+      <source>
+          <include>
+              <directory suffix=".php">./src</directory>
+          </include>
+      </source>
+  </phpunit>
+  ```
 - `min-coverage` abaixo de 100 só com motivo registrado; sem motivo, é
   item "importante" (a meta é 100%, ver o modo `tests`)
 - ruleset exigindo `pipeline / tests / all-checks`: o `check`

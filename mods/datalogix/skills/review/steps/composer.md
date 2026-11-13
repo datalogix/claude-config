@@ -66,12 +66,12 @@ Rode, quando disponíveis: `composer validate --strict`,
   com erro e cita os pacotes que faltam. Isso não é falha de formatação:
   mostre os pacotes e instale-os só se eu aprovar, pelo gerenciador do
   projeto, como dependência de desenvolvimento.
-- **Análise estática**: PHPStan/Larastan é obrigatório num pacote (o
-  `package.yml` o roda quando o `composer.json` o exige). Se faltar,
-  item "importante" que oferece `composer require --dev
-  larastan/larastan` (ou `phpstan/phpstan` sem Laravel) e um
-  `phpstan.neon.dist`, aplicados só se eu aprovar. Numa aplicação, se
-  faltar, item "sugestão" com o motivo, sem instalar.
+- **Análise estática**: PHPStan/Larastan nunca é obrigatório (o
+  `package.yml` só o roda quando o `composer.json` o exige). Se
+  faltar, em pacote ou aplicação, item "sugestão" que oferece
+  `composer require --dev larastan/larastan` (ou `phpstan/phpstan`
+  sem Laravel), um `phpstan.neon.dist` e o `phpstan analyse` no
+  script `lint`, aplicados só se eu aprovar.
 - **Arquivos do PHPStan** (pacote e aplicação): a configuração
   versionada é `phpstan.neon.dist`; `phpstan.neon` é só local,
   ignorado pelo git, e começa com `includes: [phpstan.neon.dist]`.
@@ -92,10 +92,14 @@ Rode, quando disponíveis: `composer validate --strict`,
   (mensagem genérica, sem `path`, ou cobrindo uma pasta inteira) ou
   baseline que cresceu sem motivo registrado são item "importante";
   nunca baixe o nível nem acrescente ignores para passar.
-- **Rector**: nunca obrigatório. Se faltar, sugira (severidade
-  "sugestão") só com motivo concreto: upgrade de PHP ou Laravel (modo
-  `deps`) ou padrões antigos recorrentes no código; sem motivo, não
-  crie item. Nunca instale.
+- **Rector**: nunca obrigatório. Se faltar, item "sugestão" que
+  oferece `composer require --dev rector/rector` (com
+  `driftingly/rector-laravel` se houver Laravel), um `rector.php` com
+  as pastas de código e testes e o `rector --dry-run` no script
+  `lint`, aplicados só se eu aprovar. Num pacote, o `rector.php` entra
+  no `export-ignore` do `.gitattributes` (etapa `git`). Rodar o Rector
+  com mudanças (sem `--dry-run`) é um item à parte, também só com
+  aprovação.
 
 ## Pacote
 - restrições de versão: nem amplas demais (`*`, `>=`) nem travadas numa

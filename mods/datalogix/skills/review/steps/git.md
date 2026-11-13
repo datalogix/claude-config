@@ -14,9 +14,14 @@
 - `composer.lock`:
   - pacote: normalmente NÃO versionado
   - aplicação: SEMPRE versionado
-  Aponte se estiver invertido. O mesmo vale para o lockfile do npm numa
-  aplicação (sempre versionado). Lib JS/TS: lockfile versionado
-  (reproduz o ambiente de desenvolvimento e o CI; o npm não o publica).
+  Aponte se estiver invertido.
+- lockfile JS (`package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`,
+  `bun.lock`), em todo tipo com `package.json`, inclusive pacote
+  Laravel: o do gerenciador do projeto é SEMPRE versionado e nunca
+  entra no `.gitignore` (reproduz o ambiente de desenvolvimento e o CI;
+  sem ele, o `setup-js` de `datalogix/workflows` roda `npm install` sem
+  versões fixas); os dos outros gerenciadores podem ser ignorados, para
+  não entrar um segundo lockfile por engano
 - aplicação: `.env` ignorado e `.env.example` versionado; `storage/` e
   `bootstrap/cache/` com seus `.gitignore` internos; `public/build`,
   `public/hot` e `public/storage` ignorados
@@ -48,13 +53,18 @@ o próprio PR como dono. Com `gh`:
 - ausente: item "importante" que cria o arquivo com as regras
   abaixo, criado só se eu aprovar
 - `* text=auto eol=lf` e regras de binários
+- lockfiles versionados (`composer.lock`, lockfile JS) com
+  `linguist-generated=true`, que os recolhe no diff dos PRs e os tira
+  das estatísticas de linguagem
 - pacote: `export-ignore` para o que não deve ir no download do Composer:
   `/tests`, `/.github`, `/docs`, `/workbench`, `phpunit.xml*`,
   `phpstan.neon*`, `phpstan-baseline.neon`, `pint.json`, `rector.php`,
   `.editorconfig`,
   `.gitattributes`, `.gitignore`, `CHANGELOG.md`, `CONTRIBUTING.md`,
   `testbench.yaml`, `.git-blame-ignore-revs`, `eslint.config.*`,
-  `.prettierrc*`, `.prettierignore`, `/.claude`, `/.ai`, `CLAUDE.md`
+  `.prettierrc*`, `.prettierignore`, `/.claude`, `/.ai`, `CLAUDE.md`,
+  o lockfile JS e, quando o JS só serve ao desenvolvimento ou a um
+  build versionado, `package.json` e `vite.config.*`
   (mas não `resources/boost/`, que é distribuído)
   - confira que nada necessário em produção é excluído (`config/`,
     `resources/`, `database/`, `stubs/`, `routes/`, `lang/`, `LICENSE`)

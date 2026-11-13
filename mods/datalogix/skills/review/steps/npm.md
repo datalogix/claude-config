@@ -1,7 +1,8 @@
 # Etapa: npm (dependências do package.json)
 
 Só se existir `package.json`. Use o gerenciador do projeto (pelo
-lockfile: npm, pnpm, yarn ou bun). O CI de `datalogix/workflows` só
+lockfile: npm, pnpm, yarn ou bun; com mais de um, ou sem nenhum, o da
+prioridade de "Lockfile" abaixo). O CI de `datalogix/workflows` só
 conhece npm, pnpm e yarn: com o lockfile do bun, ele roda
 `npm install` sem lockfile, então numa aplicação Laravel isso é item
 "importante". Rode, quando disponíveis: `outdated` e `audit` (ex.:
@@ -31,8 +32,17 @@ Analise:
 - **Versões**: restrições amplas demais (`*`, `latest`), majors muito
   atrasadas, conflitos de `peerDependencies`, coerência entre Vite,
   plugins do Laravel e Tailwind.
-- **Lockfile**: existe, versionado, coerente com o gerenciador; mais de
-  um lockfile no projeto é problema.
+- **Lockfile**: existe, versionado, coerente com o gerenciador. A
+  prioridade entre gerenciadores é `package-lock.json` (npm),
+  `pnpm-lock.yaml` (pnpm) e `yarn.lock` (yarn), nesta ordem:
+  - sem lockfile: item "importante" que o gera com o npm
+  - mais de um: item "importante" que mantém o primeiro dessa ordem e
+    remove os outros (sem pô-los no `.gitignore`, etapa `git`), com o
+    `packageManager` do package.json, os scripts e a documentação
+    acompanhando. Até lá, o `setup-js` de `datalogix/workflows` instala
+    pelo primeiro de outra ordem (pnpm, yarn, npm): diga qual lockfile
+    o CI está usando
+  - um só lockfile: não sugira trocar de gerenciador
 - **Metadados**: `private: true` se não é publicado no npm (sempre nas
   aplicações JS/TS), `type: "module"` coerente com os configs,
   `engines` se o projeto depende de uma versão do Node.

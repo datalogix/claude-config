@@ -1097,7 +1097,8 @@ describe('sending the items', () => {
   // the press would.
   const interceptPress = (on: On) => {
     const between: { run?: () => Promise<unknown> } = {}
-    on('ui.press', async (_$, e, next) => {
+    // The press carries topics' name, so a test hook reaches it only with the wildcard.
+    on('ui.press', { plugin: '*' }, async (_$, e, next) => {
       await between.run?.()
       return next(e)
     })

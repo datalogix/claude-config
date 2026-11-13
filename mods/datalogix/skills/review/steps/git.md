@@ -21,7 +21,8 @@
   entra no `.gitignore` (reproduz o ambiente de desenvolvimento e o CI;
   sem ele, o `setup-js` de `datalogix/workflows` roda `npm install` sem
   versões fixas); os dos outros gerenciadores podem ser ignorados, para
-  não entrar um segundo lockfile por engano
+  não entrar um segundo lockfile por engano. O `bun.lock` também é
+  versionado, mas o CI não o usa (etapa `npm`)
 - aplicação: `.env` ignorado e `.env.example` versionado; `storage/` e
   `bootstrap/cache/` com seus `.gitignore` internos; `public/build`,
   `public/hot` e `public/storage` ignorados
@@ -64,10 +65,12 @@ o próprio PR como dono. Com `gh`:
   `testbench.yaml`, `.git-blame-ignore-revs`, `eslint.config.*`,
   `.prettierrc*`, `.prettierignore`, `/.claude`, `/.ai`, `CLAUDE.md`,
   o lockfile JS e, quando o JS só serve ao desenvolvimento ou a um
-  build versionado, `package.json` e `vite.config.*`
+  build versionado e nada instala o pacote pelo npm (ex.: `file:`
+  apontando para `vendor/`), `package.json` e `vite.config.*`
   (mas não `resources/boost/`, que é distribuído)
   - confira que nada necessário em produção é excluído (`config/`,
-    `resources/`, `database/`, `stubs/`, `routes/`, `lang/`, `LICENSE`)
+    `resources/`, `database/`, `stubs/`, `routes/`, `lang/`, `LICENSE`,
+    e o `package.json` quando a app instala o pacote pelo npm)
   - confira com `git archive --worktree-attributes HEAD | tar -t` o que
     de fato vai no pacote (com o `.gitattributes` ainda não commitado)
 - aplicação e tipos JS: `export-ignore` não importa (o npm publica

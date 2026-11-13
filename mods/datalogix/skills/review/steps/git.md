@@ -11,18 +11,19 @@
   `next-env.d.ts` (Next), `.env*` exceto o `.env.example`, `*.tgz`
   (`npm pack`)
 - entradas obsoletas ou que ignoram algo que deveria ser versionado
-- `composer.lock`:
-  - pacote: normalmente NÃO versionado
-  - aplicação: SEMPRE versionado
-  Aponte se estiver invertido.
-- lockfile JS (`package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`,
-  `bun.lock`), em todo tipo com `package.json`, inclusive pacote
-  Laravel: o do gerenciador do projeto é SEMPRE versionado e nunca
-  entra no `.gitignore` (reproduz o ambiente de desenvolvimento e o CI;
-  sem ele, o `setup-js` de `datalogix/workflows` roda `npm install` sem
-  versões fixas); os dos outros gerenciadores podem ser ignorados, para
-  não entrar um segundo lockfile por engano. O `bun.lock` também é
-  versionado, mas o CI não o usa (etapa `npm`)
+- lockfiles nunca entram no `.gitignore`, nem os de outro gerenciador
+  (`composer.lock`, `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`,
+  `bun.lock`); um segundo lockfile no projeto é item da etapa `npm`.
+  Entrada existente: item "importante" que a tira e versiona o lockfile
+  gerado pelo gerenciador do projeto
+- `composer.lock`: SEMPRE versionado, em aplicação e em pacote (o
+  Composer ignora o lockfile de uma dependência; no pacote, ele fixa o
+  ambiente de desenvolvimento e sai do download pelo `export-ignore`)
+- lockfile JS, em todo tipo com `package.json`, inclusive pacote
+  Laravel: o do gerenciador do projeto é SEMPRE versionado (reproduz o
+  ambiente de desenvolvimento e o CI; sem ele, o `setup-js` de
+  `datalogix/workflows` roda `npm install` sem versões fixas). O
+  `bun.lock` também é versionado, mas o CI não o usa (etapa `npm`)
 - aplicação: `.env` ignorado e `.env.example` versionado; `storage/` e
   `bootstrap/cache/` com seus `.gitignore` internos; `public/build`,
   `public/hot` e `public/storage` ignorados
@@ -56,7 +57,9 @@ o próprio PR como dono. Com `gh`:
 - `* text=auto eol=lf` e regras de binários
 - lockfiles versionados (`composer.lock`, lockfile JS) com
   `linguist-generated=true`, que os recolhe no diff dos PRs e os tira
-  das estatísticas de linguagem
+  das estatísticas de linguagem; nunca como binário nem com `-diff`,
+  que escondem as mudanças. Regra de um lockfile que o projeto não tem
+  é obsoleta
 - pacote: `export-ignore` para o que não deve ir no download do Composer:
   `/tests`, `/.github`, `/docs`, `/workbench`, `phpunit.xml*`,
   `phpstan.neon*`, `phpstan-baseline.neon`, `pint.json`, `rector.php`,
@@ -64,7 +67,7 @@ o próprio PR como dono. Com `gh`:
   `.gitattributes`, `.gitignore`, `CHANGELOG.md`, `CONTRIBUTING.md`,
   `testbench.yaml`, `.git-blame-ignore-revs`, `eslint.config.*`,
   `.prettierrc*`, `.prettierignore`, `/.claude`, `/.ai`, `CLAUDE.md`,
-  o lockfile JS e, quando o JS só serve ao desenvolvimento ou a um
+  `composer.lock`, o lockfile JS e, quando o JS só serve ao desenvolvimento ou a um
   build versionado e nada instala o pacote pelo npm (ex.: `file:`
   apontando para `vendor/`), `package.json` e `vite.config.*`
   (mas não `resources/boost/`, que é distribuído)

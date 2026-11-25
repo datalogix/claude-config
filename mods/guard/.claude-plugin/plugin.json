@@ -1,0 +1,6 @@
+{
+  "name": "guard",
+  "description": "Bloqueia comandos Bash que leem arquivos secretos (.env, chaves, tokens), apagam o banco com o artisan ou forçam ou apagam branches no git push",
+  "author": { "name": "datalogix" },
+  "license": "MIT"
+}

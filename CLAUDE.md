@@ -146,6 +146,12 @@ node bin/cli.js --link                    # install from this clone: edits apply
 - `worktree` only adds an instruction to the system prompt (`prompt.compose`), so Claude asks before the first file
   change of a task and calls `EnterWorktree`, after a `git fetch origin`, since a worktree starts from the remote's
   default branch. Its tests check that the text is there, not that Claude follows it.
+- `guard` is a real block: a `tool.call` hook on `Bash` returns `{ deny }` (Portuguese, pointing to `!`) for a command
+  that reads a secret file, runs a destructive artisan command or force-pushes/deletes remote branches. Its `.catch`
+  refuses when the hook throws, since a failed guard would let the command run. `hooks/shell.ts` splits the command
+  into simple commands (quotes, operators, `$( )`, backticks, heredocs skipped); `hooks/guard.ts` holds the rules,
+  matched per simple command after unwrapping `sudo`/`env`/assignments, recursing into `bash -c` and `eval`. Copying
+  secret files (`cp`, `mv`, `ln`) stays allowed: `.worktreeinclude` copies `.env`. Keep `docs/mods/guard.md` in sync.
 - A new mod needs (`tests/mods.test.js` checks these, plus `name` equal to its folder, no `version` and, with a `types`
   field, that its file exists):
   - `"license": "MIT"` and `"author": { "name": "datalogix" }` in its `plugin.json`;

@@ -5,7 +5,7 @@
   "description": "Installs datalogix's Claude Code mods",
   "type": "module",
   "scripts": {
-    "test": "vitest run && claude plugin test mods/steps && claude plugin test mods/status && claude plugin test mods/topics && claude plugin test mods/worktree",
+    "test": "vitest run && claude plugin test mods/steps && claude plugin test mods/status && claude plugin test mods/topics && claude plugin test mods/worktree && claude plugin test mods/guard",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write . && eslint . --fix"
   },

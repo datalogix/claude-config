@@ -202,6 +202,14 @@ node bin/cli.js --link                    # install from this clone: edits apply
   (the run of the current or pull request head commit, else the branch's latest failed run), applies only the
   fixes the user checks, and only if checked reproduces a failure locally or reruns the failed jobs
   (`gh run rerun --failed`); it never commits, pushes or comments.
+- `/datalogix:release` (`release/SKILL.md`) is a single prompt-only file in Portuguese. On the default branch, clean
+  and in sync with `origin` (offering `git pull --ff-only` only when just behind), it takes the highest `X.Y.Z` or
+  `vX.Y.Z` tag, keeping its prefix, and recommends the next version from the Conventional Commits since it, with the
+  rules of `datalogix/workflows`' `package-release` (before 1.0.0, a breaking change and `feat` are minor); the
+  first release asks between `v0.1.0` and `v1.0.0`. It writes the notes in the team language (the issue skill's
+  "Idioma" item) and, only after confirmation, runs `gh release create --target <SHA> --notes-file`, which creates
+  the tag on GitHub. It never pushes commits, moves or deletes tags, or edits `composer.json`/`package.json`, and
+  stops when a workflow calls `package-release.yml`, whose release pull request does it instead.
 - These skills end their previews and questions with a `## Pendências` list in the format `topics` parses
   (`mods/topics/hooks/parse.ts`), and `/datalogix:review` uses the same format for its reports when `topics` is active
   (its `SKILL.md` section 7) and always for the outdated base and dated branch questions and the commit flow; keep them
@@ -214,7 +222,7 @@ node bin/cli.js --link                    # install from this clone: edits apply
   checklist, that every file review names exists and that the bare names in `steps/` are files of that folder.
 - `/datalogix:issue`, `/datalogix:pr` and `/datalogix:commit` take the language of issues, pull requests and commits
   from a `- Issues and pull requests: <language>` line in the target project's `CLAUDE.md` (pr and commit by
-  following the "Idioma" item of the issue skill's step 2). Without it they take the `language` input the project's
+  following the "Idioma" item of the issue skill's step 2, as `/datalogix:release` does for its notes). Without it they take the `language` input the project's
   workflows pass to `datalogix/workflows` (`claude.yml` without it means `pt-BR`), when every call agrees. Otherwise
   the language is undefined, never guessed from the commit history: they ask (Portuguese suggested) and, only if the
   user leaves it checked (`(recomendo)`, so the question comes once per project), append that line to the local
@@ -267,7 +275,9 @@ node bin/cli.js --link                    # install from this clone: edits apply
   - `/datalogix:ci`: the checks it fixes and leaves alone follow `plugins/laravel/commands/fix-ci.md` and
     `.github/workflows/claude-fix-ci.yml`, plus the `build` script, which those do not run (for JS projects' own CI);
   - `/datalogix:pr`: the pull request sections and title rules of `plugins/core/skills/conventions/SKILL.md`, and
-    the `no-review` label (`cli/kinds/project/state.js`, `.github/workflows/claude-review.yml`).
+    the `no-review` label (`cli/kinds/project/state.js`, `.github/workflows/claude-review.yml`);
+  - `/datalogix:release`: the version rules and the notes' groups of `.github/actions/package-release/release.sh`
+    (`docs/releases.md`), and the `package-release.yml` call it stops on.
 - Review progress lives in `~/.claude/reviews/`, outside the repo, one file per repository, shared by its worktrees.
 
 ## Conventions

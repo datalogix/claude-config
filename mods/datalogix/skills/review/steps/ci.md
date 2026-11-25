@@ -84,6 +84,12 @@ como melhoria de `datalogix/workflows`, não como item do projeto.
   PHPStan
 - `pint: false` ou `phpstan: false` só com motivo (a versão do Pint é
   da etapa `composer`)
+- `api-check: true`, que roda o `roave/backward-compatibility-check`
+  contra a branch base nos pull requests e falha numa quebra da API
+  pública que o pull request não declara (`feat!:` ou `BREAKING
+  CHANGE:`). Sem ele, é "sugestão" (o `setup` o sugere ligado em
+  pacote novo).
+  `api-check-version` só para fixar uma versão que quebrou, com motivo
 - `phpunit.xml.dist` (ou `phpunit.xml`) com `failOnRisky="true"` e
   `failOnWarning="true"` no `<phpunit>`, a suíte em `./tests`, o
   `<source>` incluindo `./src` e, se `coverage` estiver ligado ou
@@ -165,9 +171,13 @@ como melhoria de `datalogix/workflows`, não como item do projeto.
   `test` (ex.: o reporter `clover` do Vitest, em `coverage/`); sem
   ele, o job falha. Abaixo de 100 só com motivo registrado; sem
   motivo, é item "importante" (a meta é 100%, ver o modo `tests`)
-- `lint-command` com o que confere o pacote publicado (ex.: `npx
-  publint && npx attw --pack .`), se a etapa `pack` não achar outro
-  lugar para isso
+- `api-check: true`, que roda o `publint` e o
+  `@arethetypeswrong/cli` depois do build e confere o pacote publicado
+  (`exports`, `files`, `main`, `types`). Sem ele, é "sugestão" (o
+  `setup` pergunta); um `lint-command` que roda os mesmos
+  (`npx publint && npx attw --pack .`) duplica o `api-check` e sai
+  quando ele estiver ligado. `publint-version` e `attw-version` só
+  para fixar uma versão que quebrou, com motivo
 - os inputs de Laravel (`php`, `laravel`, `pint`, `phpstan`,
   `coverage`) não fazem nada e saem
 - ruleset exigindo `pipeline / tests / all-checks`: o `check`

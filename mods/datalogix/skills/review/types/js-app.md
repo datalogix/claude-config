@@ -31,7 +31,7 @@ as duas.
   não estiver registrado, pergunte uma vez e registre:
   - **não lançada**: ainda não está em produção
   - **em produção**: já tem usuários e dados reais
-- **Testes**: o runner de JS/TS da seção 2 do `SKILL.md`. No Nuxt,
+- **Testes**: o runner de JS/TS de `profile.md`. No Nuxt,
   componentes e composables que dependem do Nuxt usam
   `@nuxt/test-utils` com o Vitest; no Vue, componentes com
   `@vue/test-utils`; no Next e no React, com

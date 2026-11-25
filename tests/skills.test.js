@@ -88,7 +88,7 @@ test('the skills that follow the issue skill language item still find it', () =>
   assert.ok(step2, 'issue/SKILL.md has no step 2 followed by step 3')
   assert.match(step2[1], /^- Idioma:/m)
 
-  for (const skill of ['pr', 'commit', 'review', 'sweep']) {
+  for (const skill of ['pr', 'commit', 'review', 'release', 'sweep']) {
     assert.ok(flat(`${skill}/SKILL.md`).includes('item "Idioma" do passo 2 de `${CLAUDE_SKILL_DIR}/../issue/SKILL.md`'))
   }
 })

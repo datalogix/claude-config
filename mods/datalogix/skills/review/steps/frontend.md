@@ -114,7 +114,7 @@ componentes".
   `$this->blade()`, `Blade::render`, `Livewire::test`), cobrindo estados
   (vazio, erro, com dados) e escape
 - JS/TS: testes unitários com o runner em uso (Vitest, ou Jest se o
-  projeto já usa; regras na seção 2 do `SKILL.md`)
+  projeto já usa; regras em `../profile.md`)
 - componentes Vue/React: testes com `@vue/test-utils` (ou
   `@nuxt/test-utils` quando dependem do Nuxt) e
   `@testing-library/react`, cobrindo estados (carregando, vazio, erro,

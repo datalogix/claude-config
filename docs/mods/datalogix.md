@@ -138,6 +138,25 @@ check its skills.
   commits, pushes or comments; on `claude/` branches,
   `datalogix/workflows`' `claude-fix-ci` already fixes failures on its
   own. Run `/datalogix:ci help` for details.
+- `release/` — `/datalogix:release`: publishes a version of a
+  package (Packagist reads git tags) as a tag and a GitHub release.
+  It needs the default branch, with a clean tree and in sync with
+  `origin` (it offers `git pull --ff-only` when only behind). From the
+  highest `X.Y.Z` or `vX.Y.Z` tag, keeping its prefix, it recommends
+  the next version from the Conventional Commits since it, with the
+  rules of `datalogix/workflows`' `package-release`: a breaking
+  change is major, `feat` minor and the rest patch; before 1.0.0, a
+  breaking change and `feat` are minor. Without types it asks,
+  recommending patch; the first release asks between `v0.1.0` and
+  `v1.0.0`. The notes, in the team language, group the commits into
+  breaking changes, features, fixes and other changes, each with its
+  pull request or commit, plus a compare link. Only after
+  confirmation does it run `gh release create --target <SHA>`
+  (optionally as a draft), which creates the tag on GitHub. It never
+  pushes commits, moves or deletes tags, edits `composer.json` or
+  `package.json`, or publishes to npm, and it stops when the project's
+  workflows call `package-release.yml`, whose release pull request
+  releases instead. Run `/datalogix:release help` for details.
 
 - `sweep/` — `/datalogix:sweep`: applies one described change (a
   `phpunit.xml` attribute, a `composer.json` block, a CI input) to
@@ -159,8 +178,8 @@ check its skills.
   description; it never force-pushes or merges. Run
   `/datalogix:sweep help` for details.
 
-`/datalogix:issue`, `/datalogix:pr`, `/datalogix:ci` and
-`/datalogix:sweep` need the
+`/datalogix:issue`, `/datalogix:pr`, `/datalogix:ci`,
+`/datalogix:release` and `/datalogix:sweep` need the
 [`gh`](https://cli.github.com) CLI, logged in with access to the
 repository. `/datalogix:issue`, `/datalogix:commit` and
 `/datalogix:pr` write in the language set in the project's
@@ -170,8 +189,9 @@ input the project's workflows pass to `datalogix/workflows` (as in
 `claude.yml`, whose default is `pt-BR`), and otherwise ask, suggesting
 Portuguese, with adding that line to `CLAUDE.md` checked, so the
 question comes once per project. They never guess the language from
-the commit history. `/datalogix:review` does the same for
-the commits it suggests and keeps the result in the progress file.
+the commit history. `/datalogix:release` does the same for its
+notes, and `/datalogix:review` for the commits it suggests, keeping
+the result in the progress file.
 The commit format, which pull request titles follow too, comes from
 a `- Commits: Conventional Commits` or `- Commits: no type prefix`
 line in `CLAUDE.md`, the same line the `core` mod's conventions
@@ -181,7 +201,7 @@ the language is undefined too, in each language, four options in
 one question), recommend no type in apps and Conventional Commits in
 packages, and offer to add the lines to `CLAUDE.md`, checked.
 Conventional Commits types stay in English. The previews and questions
-of issue, pr, commit, ci and sweep end with a `## Pendências` list
+of issue, pr, commit, ci, release and sweep end with a `## Pendências` list
 (`/datalogix:review` uses it for its reports only when `topics` is
 active, and always for the outdated base and dated branch questions
 and the commit flow), answered in place when the [topics](topics.md)

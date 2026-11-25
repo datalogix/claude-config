@@ -26,6 +26,19 @@ const WORKTREE_INSTRUCTION = [
   'Depois de criar o worktree, avise se `.claude/worktrees/` não estiver ignorado pelo git no checkout principal, onde',
   'a pasta fica: `git -C <raiz> check-ignore -q .claude/worktrees/`, sendo <raiz> a primeira linha `worktree` de',
   '`git worktree list --porcelain`.',
+  'Logo depois de um EnterWorktree bem-sucedido, veja o que falta no worktree novo e ofereça, numa só pergunta ao fim',
+  'da resposta, em `## Pendências` com um item `- [ ] (recomendo)` por ação, só os passos que se aplicam, nesta ordem:',
+  '`composer install`, se houver `composer.json` e não houver `vendor/`;',
+  'instalar as dependências JS com o gerenciador do lockfile (`npm ci` para package-lock.json,',
+  '`pnpm install --frozen-lockfile` para pnpm-lock.yaml, `yarn install --frozen-lockfile` para yarn.lock, ou',
+  '`--immutable` no Yarn 2+, `bun install --frozen-lockfile` para bun.lock ou bun.lockb), se houver lockfile e não',
+  'houver `node_modules/`;',
+  'copiar o `.env` da <raiz> com `cp`, sem nunca mostrar o conteúdo, se o worktree não tiver `.env` e a <raiz> tiver',
+  '(um `.worktreeinclude` que já o copiou faz o passo não se aplicar);',
+  '`php artisan key:generate`, se houver `artisan` e o `.env` que o worktree terá depois disso tiver `APP_KEY=` vazio,',
+  "conferido sem mostrar os outros valores (ex.: `grep -q '^APP_KEY=$' .env`).",
+  'Se nada se aplicar, não ofereça. Nunca rode sem o usuário marcar; rode os marcados nessa ordem e, se algum falhar,',
+  'avise, sem tentar de novo em loop.',
 ].join(' ')
 
 export const register: Register = (on) => {

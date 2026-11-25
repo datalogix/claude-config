@@ -240,6 +240,14 @@ node bin/cli.js --link                    # install from this clone: edits apply
     cover, keeps its own CI workflow. `production-js` checks only what the `check` leaves out of a `deploy: vercel` or `deploy: netlify`.
   - `steps/` has one checklist per step; `http` and `jobs` are extra checklists that the `code` step applies.
   - `modes/` holds the focus modes and the `report` mode.
+  - `profile.md` holds what the project profile records (type, versions, test runners, tools, folders, skills,
+    community files, release notes), read only when section 2 of `SKILL.md` (re)generates the profile or a step
+    cites its test rules; the language, commit format and `/init` items stay in `SKILL.md`, since
+    `tests/skills.test.js` pins their references to the issue and commit skills. `help.md` is read only for `help`.
+    Section numbers in `SKILL.md` stay as they are: other files cite them.
+  - Each step's analysis runs in the `datalogix:reviewer` agent (`mods/datalogix/agents/reviewer.md`: Read, Grep,
+    Glob and Bash, no edit tools), falling back to a general subagent; the `git status` check after it stays, since
+    Bash can still write.
   - `templates/LICENSE` must stay identical to the root `LICENSE`, which `tests/license.test.js` enforces.
 - Several rules follow the latest version of `datalogix/workflows`: its highest `v<N>` branch or tag, not the default
   branch or the latest release, which can be older. Check it before changing them:

@@ -152,3 +152,70 @@ export const checkCommand = (source: string): string | undefined => {
   }
   return undefined
 }
+
+/**
+ * Where one `git push` goes: the `-C` folder, the refspecs after the remote, whether it pushes every branch or only
+ * tags, and whether a `cd` came before it.
+ */
+export type Push = { dir?: string; refspecs: string[]; all: boolean; tags: boolean; moved: boolean }
+
+/** The `git push` commands of a Bash command line, for the check that asks before a push to main or master. */
+export const pushesOf = (source: string): Push[] => {
+  const pushes: Push[] = []
+  let moved = false
+  for (const { words: all } of parseShell(source)) {
+    const words = unwrap(all)
+    const name = basename(words[0] ?? '')
+    if (name === 'cd' || name === 'pushd') moved = true
+    if (name !== 'git') continue
+    let dir: string | undefined
+    let i = 1
+    for (let word = words[1]; word?.startsWith('-'); word = words[i]) {
+      if (word === '-C') dir = words[i + 1]
+      i += GIT_VALUED.has(word) ? 2 : 1
+    }
+    if (words[i] !== 'push') continue
+    const positional: string[] = []
+    let everything = false
+    let tags = false
+    for (let j = i + 1, word = words[j]; word !== undefined; word = words[++j]) {
+      if (word === '--all' || word === '--mirror') everything = true
+      else if (word === '--tags') tags = true
+      else if (PUSH_VALUED.has(word)) j++
+      else if (!word.startsWith('-')) positional.push(word)
+    }
+    pushes.push({ dir, refspecs: positional.slice(1), all: everything, tags, moved })
+  }
+  return pushes
+}
+
+const PROTECTED = new Set(['main', 'master'])
+
+/**
+ * Why a push needs the user's permission (it reaches main or master), or undefined. `branchOf` answers the current
+ * branch of a `-C` folder (undefined for the session's), or undefined when it cannot tell.
+ */
+export const protectedPush = async (
+  source: string,
+  branchOf: (dir: string | undefined) => Promise<string | undefined>,
+): Promise<string | undefined> => {
+  for (const push of pushesOf(source)) {
+    if (push.moved) return 'git push depois de mudar de pasta: não dá para saber a branch'
+    if (push.all) return 'git push de todas as branches, inclusive a main'
+    // Only tags: no branch moves.
+    if (push.tags && push.refspecs.length === 0) continue
+    const needsBranch = push.refspecs.length === 0 || push.refspecs.some((r) => /(^\+?|:)HEAD$/.test(r))
+    const branch = needsBranch ? await branchOf(push.dir) : undefined
+    if (push.refspecs.length === 0) {
+      if (branch !== undefined && PROTECTED.has(branch)) return `git push da branch ${branch}`
+      continue
+    }
+    for (const refspec of push.refspecs) {
+      let target = refspec.replace(/^\+/, '').split(':').pop() ?? ''
+      if (target === 'HEAD') target = branch ?? ''
+      target = target.replace(/^refs\/heads\//, '')
+      if (PROTECTED.has(target)) return `git push para a branch ${target}`
+    }
+  }
+  return undefined
+}

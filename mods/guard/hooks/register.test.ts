@@ -1,6 +1,7 @@
 import type { On } from 'claude-code'
 import { describe, expect, test } from 'claude-code/testing'
 import type { Engine as TestEngine } from 'claude-code/testing'
+import { protectedPush } from './guard'
 
 /** Stands in for the engine running the command, so a test sees whether the call got through. */
 const runs = (on: On) => on('tool.call', () => ({ result: { stdout: 'ran' } }) as never)
@@ -186,16 +187,15 @@ const allowed = [
   'sail artisan test',
   'php artisan test --filter=MigrateFreshTest',
   'grep -r migrate:fresh docs/',
-  // Regular pushes.
-  'git push',
+  // Regular pushes of a branch. A push of the current branch reads it with git, which this engine does not run:
+  // protectedPush's own tests below cover those.
   'git push -u origin feature/fix-login',
-  'git push origin HEAD',
   'git push origin feature:feature',
   'git push --set-upstream origin feature/delete-user',
   'git push --tags',
-  'git push --follow-tags origin main',
-  'git push -o ci.skip origin main',
-  'git push --dry-run origin main',
+  'git push --follow-tags origin feature',
+  'git push -o ci.skip origin feature',
+  'git push --dry-run origin feature',
   'git branch -d feature',
   'git fetch --prune',
   'git remote prune origin',
@@ -227,6 +227,46 @@ test('says in Portuguese what it blocked and that the user can run it with !', a
     'guard: bloqueado (git push com --force reescreve ou apaga branches remotas). Se for mesmo necessário, o usuário' +
       ' pode rodar o comando ele mesmo com `!` no prompt.',
   )
+})
+
+describe('asks before a push to main or master', () => {
+  // The current branch: `main` in the session's folder, `feat` in ../wt, unknown elsewhere.
+  const branchOf = async (dir: string | undefined) =>
+    dir === undefined ? 'main' : dir === '../wt' ? 'feat' : undefined
+  const onFeat = async () => 'feat'
+  const cases: [string, typeof branchOf, string | undefined][] = [
+    ['git push', branchOf, 'git push da branch main'],
+    ['git push -u origin HEAD', branchOf, 'git push para a branch main'],
+    ['git push', onFeat, undefined],
+    ['git push -u origin HEAD', onFeat, undefined],
+    ['git push origin feat', branchOf, undefined],
+    ['git push origin main', onFeat, 'git push para a branch main'],
+    ['git push origin HEAD:main', onFeat, 'git push para a branch main'],
+    ['git push origin feat:refs/heads/master', onFeat, 'git push para a branch master'],
+    ['git push origin feat:main-fix', onFeat, undefined],
+    ['git push --all', onFeat, 'git push de todas as branches, inclusive a main'],
+    ['git push --tags', branchOf, undefined],
+    ['git push origin HEAD', onFeat, undefined],
+    ['git -C ../wt push', branchOf, undefined],
+    ['git -C ../other push', branchOf, undefined],
+    ['cd ../app && git push', onFeat, 'git push depois de mudar de pasta: não dá para saber a branch'],
+    ['git status && git push', onFeat, undefined],
+    ['npm test', branchOf, undefined],
+    ["git commit -m 'push to main'", branchOf, undefined],
+  ]
+  for (const [command, branch, reason] of cases) {
+    test(JSON.stringify(command), async () => {
+      expect(await protectedPush(command, branch)).toBe(reason)
+    })
+  }
+})
+
+test('does not run a push to main without the user, and runs one of a branch', async ($, on) => {
+  runs(on)
+  expect(await $.tool.call({ tool: 'Bash', command: 'git push origin main' })).not.toEqual({
+    result: { stdout: 'ran' },
+  })
+  expect(await $.tool.call({ tool: 'Bash', command: 'git push origin feature' })).toEqual({ result: { stdout: 'ran' } })
 })
 
 test('leaves the other tools alone', async ($, on) => {

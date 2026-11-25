@@ -6,6 +6,9 @@ a Laravel database or rewrites remote git branches. It closes what
 `defaultMode: bypassPermissions`: the same file read through `cat`, or a
 destructive command, in Bash.
 
+It also asks before a push to `main` or `master` (see "What it asks
+about"), so a push of a branch needs no `ask` rule.
+
 Unlike `worktree`, which adds an instruction Claude may miss, this is a
 real block: a `tool.call` hook refuses the call and Claude receives the
 reason as the tool's error, in Portuguese, saying what was blocked and
@@ -34,6 +37,26 @@ that you can run it yourself. It works in subagents too.
   `-d`, `--mirror` or `--prune` in any position (a cluster such as
   `-uf` too), a `+` refspec (`git push origin +HEAD:main`) or one
   starting with `:` (`git push origin :feature`).
+
+## What it asks about
+
+A push that reaches `main` or `master` is not refused but put to you,
+even with `defaultMode: bypassPermissions`: a `tool.check` hook answers
+`ask`, with the reason in the dialog. That is:
+
+- a push naming one as its destination (`git push origin main`,
+  `HEAD:main`, `feature:refs/heads/master`);
+- a push of the current branch (`git push`, `git push -u origin HEAD`)
+  when that branch is `main` or `master`, read with
+  `git branch --show-current` in the session's folder, or in the folder
+  of `git -C <folder>`;
+- `git push --all` or `--mirror`, which push every branch;
+- a push after a `cd` in the same command line, whose folder it cannot
+  tell.
+
+A push of another branch, from a branch checkout or a worktree, keeps
+the decision it had (in `bypassPermissions`, it runs), and so does
+`git push --tags`. If reading the branch fails, it asks.
 
 The command is split into shell words, quotes aware, so it finds these
 in every part of `&&`, `||`, `;` and pipes, in `$( )` and backticks, in

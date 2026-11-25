@@ -1,6 +1,6 @@
 {
   "name": "datalogix",
-  "description": "Skills da datalogix: /datalogix:review (revisão de pacotes e aplicações Laravel, libs JS/TS e aplicações JS/TS: Nuxt, Next, Vue, React e Node), /datalogix:issue (issue do GitHub a partir de uma descrição), /datalogix:commit (commit das mudanças em stage), /datalogix:pr (pull request da branch atual), /datalogix:ci (diagnóstico do CI que falhou), /datalogix:release (tag e release do GitHub de um pacote) e /datalogix:sweep (uma mudança em vários repositórios, um pull request em cada)",
+  "description": "Skills da datalogix: /datalogix:review (revisão de pacotes e aplicações Laravel, libs JS/TS e aplicações JS/TS: Nuxt, Next, Vue, React e Node), /datalogix:issue (issue do GitHub a partir de uma descrição), /datalogix:commit (commit das mudanças em stage), /datalogix:pr (pull request da branch atual), /datalogix:ci (diagnóstico do CI que falhou), /datalogix:release (tag e release do GitHub de um pacote) /datalogix:sweep (uma mudança em vários repositórios, um pull request em cada) e /datalogix:design (padrões de interface para criar ou alterar telas)",
   "author": { "name": "datalogix" },
   "license": "MIT"
 }

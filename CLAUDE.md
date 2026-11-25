@@ -230,6 +230,14 @@ node bin/cli.js --link                    # install from this clone: edits apply
   `gh pr create --body-file`; worktrees are removed only if checked, never with `--force`. It follows the "Idioma"
   and "Formato" items (asked once for all, without "Gravar no CLAUDE.md"), the commit skill's steps 3 and 5 and its
   "Listas de arquivos" item, and the pr skill's steps 5 and 7: renumbering them breaks those references.
+- `/datalogix:design` (`design/SKILL.md`) is a single prompt-only file in Portuguese and the only skill without
+  `disable-model-invocation`: Claude loads it on its own for interface work, so its `description` says when. It reads
+  the stack, reuses the project's components (TALLKit's docs from `vendor/datalogix/tallkit/docs/`), follows the
+  project's visual direction or, without one, suggests it (colors with contrast, fonts, scale, spacing, structure)
+  and reviews a design brief the user brings, and checks the screen with the Chrome DevTools MCP when available,
+  reading only `APP_URL` from `.env`. It holds no colors or fonts of its own; it writes a `## Design` section to the
+  project's `CLAUDE.md` only if checked, the one write it makes there. It never adds dependencies or commits, and
+  leaves project-wide front-end review to review's `frontend` step.
 - These skills end their previews and questions with a `## Pendências` list in the format `topics` parses
   (`mods/topics/hooks/parse.ts`), and `/datalogix:review` uses the same format for its reports when `topics` is active
   (its `SKILL.md` section 7) and always for the outdated base and dated branch questions and the commit flow; keep them
@@ -313,3 +321,4 @@ node bin/cli.js --link                    # install from this clone: edits apply
 - Don't keep copies of these skills in a project's `.claude/skills/` or `.claude/commands/`: they would show up next to
   `/datalogix:<name>` and drift from it.
 - Issues and pull requests: English
+- Commits: Conventional Commits

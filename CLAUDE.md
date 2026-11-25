@@ -199,6 +199,16 @@ node bin/cli.js --link                    # install from this clone: edits apply
   (the run of the current or pull request head commit, else the branch's latest failed run), applies only the
   fixes the user checks, and only if checked reproduces a failure locally or reruns the failed jobs
   (`gh run rerun --failed`); it never commits, pushes or comments.
+- `/datalogix:sweep` (`sweep/SKILL.md`) is a single prompt-only file in Portuguese. It applies one described change
+  to up to 10 repositories checked from the siblings of the current one (`find` in the parent folder of
+  `--git-common-dir`). A read-only check per repository (GitHub `origin`, `fetch`, the files read from
+  `origin/<default>`) skips one where the change exists or does not apply. After confirmation it creates
+  `<repo>/.claude/worktrees/sweep-<slug>` on `<type>/<slug>` from `origin/<default>` and makes the change there, with
+  one subagent per repository (formatter on the changed files, tests, never commit/push), never touching the main
+  checkouts. Only the repositories checked in the summary get `git commit -F`, `git push -u` (never `--force`) and
+  `gh pr create --body-file`; worktrees are removed only if checked, never with `--force`. It follows the "Idioma"
+  and "Formato" items (asked once for all, without "Gravar no CLAUDE.md"), the commit skill's steps 3 and 5 and its
+  "Listas de arquivos" item, and the pr skill's steps 5 and 7: renumbering them breaks those references.
 - These skills end their previews and questions with a `## Pendências` list in the format `topics` parses
   (`mods/topics/hooks/parse.ts`), and `/datalogix:review` uses the same format for its reports when `topics` is active
   (its `SKILL.md` section 7) and always for the outdated base and dated branch questions and the commit flow; keep them

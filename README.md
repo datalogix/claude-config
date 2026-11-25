@@ -9,8 +9,8 @@ Each mod is selected during install; its options can be changed with
 `--configure` or with `/config`.
 
 - [datalogix](docs/mods/datalogix.md) — the skills `/datalogix:review`,
-  `/datalogix:issue`, `/datalogix:commit`, `/datalogix:pr` and
-  `/datalogix:ci`
+  `/datalogix:issue`, `/datalogix:commit`, `/datalogix:pr`,
+  `/datalogix:ci` and `/datalogix:sweep`
 - [steps](docs/mods/steps.md) — hides the tool rows and shows the
   current step with Claude's spinner
 - [status](docs/mods/status.md) — status line and notices (toast and

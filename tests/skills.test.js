@@ -88,7 +88,7 @@ test('the skills that follow the issue skill language item still find it', () =>
   assert.ok(step2, 'issue/SKILL.md has no step 2 followed by step 3')
   assert.match(step2[1], /^- Idioma:/m)
 
-  for (const skill of ['pr', 'commit', 'review']) {
+  for (const skill of ['pr', 'commit', 'review', 'sweep']) {
     assert.ok(flat(`${skill}/SKILL.md`).includes('item "Idioma" do passo 2 de `${CLAUDE_SKILL_DIR}/../issue/SKILL.md`'))
   }
 })
@@ -128,7 +128,7 @@ test('the skills that follow the commit skill format item still find it', () => 
   assert.ok(step1, 'commit/SKILL.md has no step 1 followed by step 2')
   assert.match(step1[1], /^- Formato:/m)
 
-  for (const skill of ['pr', 'review']) {
+  for (const skill of ['pr', 'review', 'sweep']) {
     assert.ok(
       flat(`${skill}/SKILL.md`).includes('item "Formato" do passo 1 de `${CLAUDE_SKILL_DIR}/../commit/SKILL.md`'),
     )
@@ -159,6 +159,27 @@ test('the review skill still follows the commit skill from its step 2, with its 
   assert.match(read('commit/SKILL.md'), /^## 2\. Contexto$/m)
   assert.ok(flat('commit/SKILL.md').includes('grupos marcados no passo 1'))
   assert.ok(flat('commit/SKILL.md').includes('Com grupos marcados, os commits são esses grupos'))
+})
+
+test('the sweep skill still finds the steps it follows in the commit and pr skills', () => {
+  const sweep = flat('sweep/SKILL.md')
+  for (const step of [
+    'passo 3 de `${CLAUDE_SKILL_DIR}/../commit/SKILL.md`',
+    'item "Listas de arquivos" do passo 1 de `${CLAUDE_SKILL_DIR}/../commit/SKILL.md`',
+    'passo 5 da commit skill',
+    'passo 5 de `${CLAUDE_SKILL_DIR}/../pr/SKILL.md`',
+    'passo 7 de `${CLAUDE_SKILL_DIR}/../pr/SKILL.md`',
+  ]) {
+    assert.ok(sweep.includes(step), step)
+  }
+  const commit = read('commit/SKILL.md')
+  assert.match(commit, /^## 3\. Redação$/m)
+  assert.match(commit, /^## 5\. Envio$/m)
+  assert.match(/^## 1\. .*\n([\s\S]*?)^## 2\. /m.exec(commit)?.[1] ?? '', /^- Listas de arquivos:/m)
+  const pr = read('pr/SKILL.md')
+  assert.match(pr, /^## 3\. Contexto$/m)
+  assert.match(pr, /^## 5\. Redação$/m)
+  assert.match(pr, /^## 7\. Envio$/m)
 })
 
 test('the commit skill still takes the groups as an argument', () => {
@@ -195,7 +216,7 @@ describe('the text the skills keep in copies', () => {
     assert.equal(copyOf('issue/SKILL.md', ANSWERS, /\n\n/), copyOf('pr/SKILL.md', ANSWERS, /\n\n/))
   })
 
-  test.each(['commit', 'ci'])('%s starts the answers from the same rules', (skill) => {
+  test.each(['commit', 'ci', 'sweep'])('%s starts the answers from the same rules', (skill) => {
     const answers = copyOf(`${skill}/SKILL.md`, ANSWERS, /\n\n/)
     assert.ok(answers.includes('- Cada caixa vale como chega na resposta: marcada é sim; desmarcada, não faça aquilo.'))
     assert.ok(

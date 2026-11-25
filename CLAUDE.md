@@ -149,6 +149,16 @@ node bin/cli.js --link                    # install from this clone: edits apply
   (`composer install`, the JS install from the lockfile, copying `.env` from the main checkout,
   `php artisan key:generate` for an empty `APP_KEY`). Its tests check that the text is there, not that Claude follows
   it.
+- `guard` is a real block: a `tool.call` hook on `Bash` returns `{ deny }` (Portuguese, pointing to `!`) for a command
+  that reads a secret file, runs a destructive artisan command or force-pushes/deletes remote branches. Its `.catch`
+  refuses when the hook throws, since a failed guard would let the command run. `hooks/shell.ts` splits the command
+  into simple commands (quotes, operators, `$( )`, backticks, heredocs skipped); `hooks/guard.ts` holds the rules,
+  matched per simple command after unwrapping `sudo`/`env`/assignments, recursing into `bash -c` and `eval`. Copying
+  secret files (`cp`, `mv`, `ln`) stays allowed: `.worktreeinclude` copies `.env`. Keep `docs/mods/guard.md` in sync.
+  A `tool.check` hook on `Bash` answers `ask` for a push to `main`/`master` (`protectedPush`: an explicit destination,
+  or the current branch from `git branch --show-current` through `$.process.run(argv, { cwd })`, `--all`/`--mirror`,
+  or a push after a `cd`), and asks when that read fails. The test engine has no `$.process` nor `$.session.cwd`, so
+  the current-branch cases are tested on `protectedPush` with a fake reader, not through `$.tool.call`.
 - A new mod needs (`tests/mods.test.js` checks these, plus `name` equal to its folder, no `version` and, with a `types`
   field, that its file exists):
   - `"license": "MIT"` and `"author": { "name": "datalogix" }` in its `plugin.json`;

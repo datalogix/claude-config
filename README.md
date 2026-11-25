@@ -19,6 +19,9 @@ Each mod is selected during install; its options can be changed with
   a `## Pendências` list to answer in place
 - [worktree](docs/mods/worktree.md) — asks whether to create a git
   worktree before changing files
+- [guard](docs/mods/guard.md) — blocks Bash commands that read secret
+  files, wipe the database with artisan or force-push, and asks before
+  a push to main
 - [core](https://github.com/datalogix/workflows/blob/main/docs/claude.md)
   — the conventions Claude follows in `datalogix/workflows`' CI
   (language, scope, validation, review rounds, pull requests), from that

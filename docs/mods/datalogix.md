@@ -158,10 +158,31 @@ check its skills.
   workflows call `package-release.yml`, whose release pull request
   releases instead. Run `/datalogix:release help` for details.
 
-`/datalogix:issue`, `/datalogix:pr`, `/datalogix:ci` and
-`/datalogix:release` need the [`gh`](https://cli.github.com) CLI,
-logged in with access to the repository. `/datalogix:issue`,
-`/datalogix:commit` and `/datalogix:pr` write in the language set in the project's
+- `sweep/` — `/datalogix:sweep`: applies one described change (a
+  `phpunit.xml` attribute, a `composer.json` block, a CI input) to
+  several sibling repositories, one branch and one pull request each.
+  It offers the git repositories next to the current one, unchecked
+  and grouped by kind (Laravel package, Laravel app, JS), plus other
+  paths, at most 10 per run. A read-only check per repository (GitHub
+  `origin`, `fetch`, the files on `origin/<default>`) skips the ones
+  where the change already exists or does not apply. After
+  confirmation it creates a worktree in each repository's
+  `.claude/worktrees/sweep-<slug>`, on `<type>/<slug>` from
+  `origin/<default>`, and makes the change there with one subagent per
+  repository, which runs the formatter on the changed files and the
+  tests, never committing. The main checkouts are never touched. A
+  summary table (applied, tests, diff stat) ends with one item per
+  repository to commit, push and open the pull request (recommended
+  when the tests passed), the full diffs and the cleanup of the
+  worktrees. The pull requests share a title and use the `/datalogix:pr`
+  description; it never force-pushes or merges. Run
+  `/datalogix:sweep help` for details.
+
+`/datalogix:issue`, `/datalogix:pr`, `/datalogix:ci`,
+`/datalogix:release` and `/datalogix:sweep` need the
+[`gh`](https://cli.github.com) CLI, logged in with access to the
+repository. `/datalogix:issue`, `/datalogix:commit` and
+`/datalogix:pr` write in the language set in the project's
 `CLAUDE.md` (e.g. `- Issues and pull requests: Portuguese`), which is
 also the commits' language; without it, they use the `language`
 input the project's workflows pass to `datalogix/workflows` (as in
@@ -180,7 +201,7 @@ the language is undefined too, in each language, four options in
 one question), recommend no type in apps and Conventional Commits in
 packages, and offer to add the lines to `CLAUDE.md`, checked.
 Conventional Commits types stay in English. The previews and questions
-of issue, pr, commit, ci and release end with a `## Pendências` list
+of issue, pr, commit, ci, release and sweep end with a `## Pendências` list
 (`/datalogix:review` uses it for its reports only when `topics` is
 active, and always for the outdated base and dated branch questions
 and the commit flow), answered in place when the [topics](topics.md)

@@ -89,4 +89,41 @@ describe('the worktree instruction', () => {
     expect(sections[0]?.text).toContain('Tarefa nova no meio de outra, com alterações não commitadas dela')
     expect(sections[0]?.text).toContain('Sem essas alterações, uma recusa continua valendo.')
   })
+
+  test('offers, after EnterWorktree, only the setup steps that apply, as a Pendências list', async ($, on) => {
+    on('prompt.compose', () => ({ sections: [] }) as never)
+    const { sections } = await $.prompt.compose(input)
+    expect(sections[0]?.text).toContain('Logo depois de um EnterWorktree bem-sucedido, veja o que falta')
+    expect(sections[0]?.text).toContain('em `## Pendências` com um item `- [ ] (recomendo)` por ação')
+    expect(sections[0]?.text).toContain('só os passos que se aplicam, nesta ordem')
+    expect(sections[0]?.text).toContain('Se nada se aplicar, não ofereça.')
+  })
+
+  test('installs dependencies only when they are missing, from the lockfile', async ($, on) => {
+    on('prompt.compose', () => ({ sections: [] }) as never)
+    const { sections } = await $.prompt.compose(input)
+    expect(sections[0]?.text).toContain('`composer install`, se houver `composer.json` e não houver `vendor/`')
+    expect(sections[0]?.text).toContain('`npm ci` para package-lock.json')
+    expect(sections[0]?.text).toContain('`pnpm install --frozen-lockfile`')
+    expect(sections[0]?.text).toContain('`yarn install --frozen-lockfile`')
+    expect(sections[0]?.text).toContain('`--immutable` no Yarn 2+')
+    expect(sections[0]?.text).toContain('`bun install --frozen-lockfile`')
+    expect(sections[0]?.text).toContain('se houver lockfile e não houver `node_modules/`')
+  })
+
+  test('copies .env from the main checkout and checks APP_KEY without printing either', async ($, on) => {
+    on('prompt.compose', () => ({ sections: [] }) as never)
+    const { sections } = await $.prompt.compose(input)
+    expect(sections[0]?.text).toContain('copiar o `.env` da <raiz> com `cp`, sem nunca mostrar o conteúdo')
+    expect(sections[0]?.text).toContain('`.worktreeinclude` que já o copiou faz o passo não se aplicar')
+    expect(sections[0]?.text).toContain('`php artisan key:generate`, se houver `artisan`')
+    expect(sections[0]?.text).toContain("`grep -q '^APP_KEY=$' .env`")
+  })
+
+  test('runs only the checked steps and does not retry a failure in a loop', async ($, on) => {
+    on('prompt.compose', () => ({ sections: [] }) as never)
+    const { sections } = await $.prompt.compose(input)
+    expect(sections[0]?.text).toContain('Nunca rode sem o usuário marcar; rode os marcados nessa ordem')
+    expect(sections[0]?.text).toContain('sem tentar de novo em loop')
+  })
 })

@@ -33,8 +33,25 @@ setting changes that) on a `worktree-<name>` branch, so Claude runs
 start from an old commit and goes on. On another branch, or with commits
 not pushed, the question says that the worktree starts without them.
 
-The mod does not install dependencies or copy local files: list files such
-as `.env` in a `.worktreeinclude` at the project root.
+A new worktree has no `vendor/`, `node_modules/` or `.env`, so right
+after `EnterWorktree` Claude offers, in one `## Pendências` list at the
+end of its answer, only the steps that apply, each one an item marked
+`(recomendo)`:
+
+- `composer install`, with a `composer.json` and no `vendor/`;
+- installing the JS dependencies from the lockfile, with no
+  `node_modules/`: `npm ci`, `pnpm install --frozen-lockfile`,
+  `yarn install --frozen-lockfile` (`--immutable` on Yarn 2+) or
+  `bun install --frozen-lockfile`;
+- copying `.env` from the main checkout with `cp`, without printing it,
+  when the worktree has none and the main checkout has one (files listed
+  in a `.worktreeinclude` at the project root are already copied);
+- `php artisan key:generate` for a Laravel app, when the `.env` it will
+  have has an empty `APP_KEY=`, checked without printing other values.
+
+With nothing to do, there is no list. Nothing runs unless checked; the
+checked steps run in that order, and a failure is reported, not retried
+in a loop.
 
 This is an instruction Claude follows, not a block like a hook, so it may
 miss now and then. To turn it off, unselect the mod with `--configure`.

@@ -145,7 +145,10 @@ node bin/cli.js --link                    # install from this clone: edits apply
   push reaches `update`.
 - `worktree` only adds an instruction to the system prompt (`prompt.compose`), so Claude asks before the first file
   change of a task and calls `EnterWorktree`, after a `git fetch origin`, since a worktree starts from the remote's
-  default branch. Its tests check that the text is there, not that Claude follows it.
+  default branch. Right after it, Claude offers in a `## Pendências` list only the setup steps that apply
+  (`composer install`, the JS install from the lockfile, copying `.env` from the main checkout,
+  `php artisan key:generate` for an empty `APP_KEY`). Its tests check that the text is there, not that Claude follows
+  it.
 - A new mod needs (`tests/mods.test.js` checks these, plus `name` equal to its folder, no `version` and, with a `types`
   field, that its file exists):
   - `"license": "MIT"` and `"author": { "name": "datalogix" }` in its `plugin.json`;

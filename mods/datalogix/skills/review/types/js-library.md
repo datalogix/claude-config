@@ -21,7 +21,7 @@ git (`private: true`, com `npx github:...`, com ou sem
   `peerDependencies` (ex.: lib de componentes Vue ou React).
 - **Publicação**: registry (`publishConfig`), workflow de publicação
   se houver, e se o `name` tem escopo (`@org/lib`).
-- **Testes**: o runner de JS/TS da seção 2 do `SKILL.md`; não há
+- **Testes**: o runner de JS/TS de `profile.md`; não há
   testes PHP nem verificação PHP neste tipo.
 
 ## Etapas, nesta ordem

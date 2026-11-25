@@ -68,7 +68,7 @@ seção 3.
 
 ## 3. JS/TS
 Mesmas ideias com o runner em uso (Vitest, ou Jest se o projeto já
-usa; regras na seção 2 do `SKILL.md`), incluindo fake timers
+usa; regras em `../profile.md`), incluindo fake timers
 (`vi.useFakeTimers`/`jest.useFakeTimers`) para data/hora e mocks de
 `fetch` em vez de rede real.
 

@@ -126,7 +126,7 @@ node bin/cli.js --link                    # install from this clone: edits apply
   `datalogix/workflows`, with no `ref`, so it follows that repository's default branch. The installer takes its
   description from the entry and asks no options (`listMods`), and warns when `core@datalogix`, the same plugin from
   that repository's own marketplace, is installed too (`OTHER_MARKETPLACE_IDS`). The stack plugins (`laravel`, `js`)
-  stay out: in the user scope they would load in every project, and their `fix-ci` pushes on its own. The rules below
+  stay out: in the user scope they would load in every project, including those of the other stack. The rules below
   are for the mods in `mods/`; `tests/mods.test.js` pins the `core` entry.
 - Each mod has `.claude-plugin/plugin.json` and, except `datalogix`, `hooks/hooks.json`. The latter lists the TS/TSX
   modules (`{ "modules": ["./register.tsx"] }`), which import from `'claude-code'`. Tests sit next to them as

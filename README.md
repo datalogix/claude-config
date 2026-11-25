@@ -110,8 +110,10 @@ The installer also cleans up after earlier versions:
 
 [`datalogix/workflows`](https://github.com/datalogix/workflows) has its
 own plugins, which its Claude workflows load in CI: `core` (conventions
-for every project) and one per stack, `laravel` or `js` (its practices
-and commands such as `/laravel:plan` and `/laravel:fix-ci`).
+for every project), one per stack, `laravel` or `js` (its practices and
+its `security-review` command), and `ci` (`plan`, `fix-ci`,
+`fix-security` and `incident`, which push or comment on their own), which
+only the workflows install.
 
 `core` is a mod here (`core@claude-config`), taken from the default
 branch of `datalogix/workflows`, so each install or update gets its
@@ -122,8 +124,7 @@ uninstall that one, or `core` loads twice.
 
 The installer leaves the stack plugins out: installed in the user
 scope, one would load in every project, including those of the other
-stack, and `/laravel:fix-ci` commits and pushes on its own, as CI does.
-To use one in a project, add it in its project scope, which writes
+stack. To use one in a project, add it in its project scope, which writes
 `.claude/settings.json` (commit it to share it with the team), from the
 project's root:
 

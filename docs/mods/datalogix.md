@@ -177,6 +177,31 @@ check its skills.
   worktrees. The pull requests share a title and use the `/datalogix:pr`
   description; it never force-pushes or merges. Run
   `/datalogix:sweep help` for details.
+- `design/` — `/datalogix:design`: the interface conventions for
+  creating or changing a screen, a form, a table or a component. Unlike
+  the other skills, Claude also loads it on its own when the task is
+  interface work. It reads the stack from `composer.json` and
+  `package.json` (TALLKit, Livewire, Filament, Inertia with Vue or
+  React, Tailwind 3 or 4), reuses the project's components (with
+  `datalogix/tallkit`, its `<tk:...>` components, reading only the
+  docs under `vendor/datalogix/tallkit/docs/` it needs, never
+  publishing its views), and follows the project's visual direction
+  instead of inventing one. It holds no colors or fonts of its own:
+  in a project without a direction, or for a new look, it suggests one
+  before coding (HEX colors with their contrast, a font pair and type
+  scale, spacing, the screen's blocks and interaction), drawing on the
+  `frontend-design` skill when installed and avoiding the usual tells
+  of AI-generated design; a design brief you bring keeps your choices,
+  with only clichés, contrast failures and gaps fixed. Adding that
+  direction to a `## Design` section of the project's `CLAUDE.md` is
+  offered, checked, and done only if left checked. It applies the screen
+  conventions: forms, tables, loading, empty and error states, feedback,
+  pt-BR texts, mobile first and accessibility. With the Chrome DevTools
+  MCP it opens the screen (reading only `APP_URL` from `.env`), takes
+  screenshots at 1280px and 375px, reads the console and fixes what is
+  clearly broken, at most twice; without it, it lists what to check.
+  It never adds dependencies or commits. Reviewing a whole project's
+  front-end stays in the `frontend` step of `/datalogix:review`.
 
 `/datalogix:issue`, `/datalogix:pr`, `/datalogix:ci`,
 `/datalogix:release` and `/datalogix:sweep` need the
@@ -201,7 +226,7 @@ the language is undefined too, in each language, four options in
 one question), recommend no type in apps and Conventional Commits in
 packages, and offer to add the lines to `CLAUDE.md`, checked.
 Conventional Commits types stay in English. The previews and questions
-of issue, pr, commit, ci, release and sweep end with a `## Pendências` list
+of issue, pr, commit, ci, release, sweep and design end with a `## Pendências` list
 (`/datalogix:review` uses it for its reports only when `topics` is
 active, and always for the outdated base and dated branch questions
 and the commit flow), answered in place when the [topics](topics.md)

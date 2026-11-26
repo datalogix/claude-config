@@ -317,4 +317,4 @@ node bin/cli.js --link                    # install from this clone: edits apply
 - Don't keep copies of these skills in a project's `.claude/skills/` or `.claude/commands/`: they would show up next to
   `/datalogix:<name>` and drift from it.
 - Issues and pull requests: English
-- Commits: no type prefix
+- Commits: Conventional Commits

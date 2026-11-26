@@ -85,6 +85,9 @@ Respostas às seções `## Pendências`, em todos os passos:
     idioma e no formato dos itens "Idioma" e "Formato" abaixo ou, se
     eles ainda vão perguntar, no idioma e no formato recomendados, e
     diga acima da lista que a mensagem final sai na prévia.
+  - Um grupo só, sem `grupos:` nos argumentos: não pergunte. Siga
+    como se ele estivesse marcado: o commit é esse grupo, e nada vai
+    para o stage antes da confirmação; a prévia lista os arquivos.
   - Depois dos grupos, `- [ ] Fazer tudo em um commit só` e `- [ ]
     Escolher os arquivos um a um`, cada uma com o detalhe indentado
     "ignora os grupos". Com a segunda marcada, pergunte "Quais arquivos
@@ -107,6 +110,12 @@ Respostas às seções `## Pendências`, em todos os passos:
   nesse formato e idioma (com grupos, o do primeiro; sem título
   ainda, `adiciona exportação de pedidos` como exemplo) e o detalhe
   indentado com o formato e o idioma (ex.: "sem tipo, português").
+  - Acima da pergunta, só como informação, uma linha com o formato
+    dos últimos títulos de commit (`git log -20 --format=%s`), se
+    houver commits: "Os últimos <n> commits usam Conventional Commits
+    (feat:, docs:)", "... não usam tipo" ou, misturados, "Dos últimos
+    <n> commits, <x> usam tipo e <y> não". Ela não muda a
+    recomendação abaixo.
   - Se o item "Idioma" também vai perguntar, esta pergunta substitui
     a dele e define os dois: quatro opções, Conventional Commits e
     sem tipo em português, depois em inglês (outro idioma, em
@@ -129,6 +138,10 @@ Respostas às seções `## Pendências`, em todos os passos:
 - As perguntas deste passo vão numa única mensagem, que termina com
   uma seção `## Pendências`, e espera a resposta. Sem perguntas,
   siga direto para o passo 2.
+- Sem a pergunta dos grupos nem a dos arquivos, as de idioma e de
+  formato não param aqui: vão na prévia (passo 4), que mostra a
+  mensagem com o título da opção recomendada. A branch com data
+  continua parando aqui.
 
 Depois da resposta:
 - Se havia a pergunta dos grupos ou a dos arquivos e nada foi
@@ -244,6 +257,13 @@ marcando as caixas e devolvendo a lista:
   Dividir em <n> commits` e `- ( ) Fazer um commit só`. A prévia
   mostra os commits divididos; com "Fazer um commit só", mostre a
   prévia de novo, com uma mensagem só.
+- As perguntas de idioma e de formato que o passo 1 deixou para a
+  prévia, com as mesmas opções e o mesmo "Gravar no CLAUDE.md". Cada
+  opção traz o título nesse formato e idioma; o commit usa o título
+  da opção marcada, sem nova prévia, e o corpo só muda de idioma se
+  a opção marcada for de outro idioma (aí mostre a prévia de novo).
+  Confirmado, grave as linhas marcadas no `CLAUDE.md` antes do
+  commit; elas ficam fora dele, e o fim diz isso.
 - "O que fazer?", uma alternativa exclusiva por linha: confirmar e
   fazer o commit (dividindo, todos os commits), e cancelar.
   Dividindo, entre as duas, `- ( ) Confirmar um commit por vez`.

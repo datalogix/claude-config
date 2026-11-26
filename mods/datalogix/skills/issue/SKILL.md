@@ -1,8 +1,7 @@
 ---
 name: issue
-description: Transforma a descrição livre de uma tarefa em uma issue do GitHub bem escrita, com as responsabilidades separadas, usando o CLAUDE.md e o README do projeto como contexto. Busca duplicadas, segue o template do projeto, mostra a prévia e só cria a issue depois da confirmação. Também reescreve uma issue existente (#<número>).
+description: "Transforma a descrição de uma tarefa numa issue do GitHub no padrão da datalogix (busca duplicadas, segue o template do projeto, prévia e confirmação), ou reescreve uma issue existente (#<número>). Use quando o usuário pedir para criar, abrir ou reescrever uma issue. Nunca por iniciativa própria."
 argument-hint: "[help [<argumento>] | -R <owner/repo>] [#<número> | <link da issue>] [<descrição da tarefa>]"
-disable-model-invocation: true
 ---
 
 # /datalogix:issue — issue a partir de uma descrição

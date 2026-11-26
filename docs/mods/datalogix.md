@@ -1,6 +1,12 @@
 # datalogix
 
-Ships the skills, so they are invoked as `/datalogix:<name>`. Skills are
+Ships the skills, so they are invoked as `/datalogix:<name>`.
+`/datalogix:commit`, `/datalogix:pr`, `/datalogix:issue` and
+`/datalogix:ci` also start when you ask in plain words ("faz o commit",
+"abre o PR", "cria uma issue", "o CI quebrou"), never on Claude's own
+initiative; they still show the preview and wait for your confirmation.
+`/datalogix:review`, `/datalogix:sweep` and `/datalogix:release` start
+only from the command. Skills are
 prompts in Portuguese, one folder each under `mods/datalogix/skills/`;
 this mod has no hooks, so it has no `claude plugin test` in the
 `test` script; `tests/skills.test.js` and `tests/license.test.js`

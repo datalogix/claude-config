@@ -1,8 +1,7 @@
 ---
 name: ci
-description: Diagnostica a execução de CI que falhou (da branch atual, de um PR ou de um run), lendo só os jobs com falha, classifica a causa e corrige localmente apenas o que o usuário marcar, sem commit nem push.
+description: "Diagnostica a execução de CI que falhou (da branch atual, de um PR ou de um run), classifica a causa e corrige localmente só o que o usuário marcar, sem commit nem push. Use quando o usuário disser que o CI, os checks ou o GitHub Actions falharam, ou pedir o motivo da falha. Não é a core:ci, que só roda dentro do CI."
 argument-hint: "[help [<argumento>]] [#<número do PR> | <id do run> | <link do run>]"
-disable-model-invocation: true
 ---
 
 # /datalogix:ci — diagnóstico do CI que falhou

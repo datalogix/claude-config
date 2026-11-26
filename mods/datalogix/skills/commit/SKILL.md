@@ -1,8 +1,7 @@
 ---
 name: commit
-description: Cria o commit das mudanças em stage no padrão do datalogix/workflows (Conventional Commits ou sem tipo, como o projeto definir, e descrição no idioma do time), mostra a prévia e só faz o commit depois da confirmação. Sem nada em stage, sugere commits por funcionalidade ou correção, separando trechos de um mesmo arquivo, ou deixa escolher os arquivos.
+description: "Faz o commit das mudanças no padrão da datalogix (formato e idioma do projeto), com prévia e confirmação; sem nada em stage, sugere como dividir os commits por funcionalidade ou correção. Use quando o usuário pedir um commit ('commita', 'faz o commit', 'salva no git'). Nunca por iniciativa própria nem ao terminar uma tarefa. Não faz push."
 argument-hint: "[help [<argumento>]] [<observações> | grupos: <título> (<arquivos>); ...]"
-disable-model-invocation: true
 ---
 
 # /datalogix:commit — commit das mudanças em stage

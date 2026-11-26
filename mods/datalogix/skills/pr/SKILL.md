@@ -1,8 +1,7 @@
 ---
 name: pr
-description: Abre o pull request da branch atual no padrão dos PRs do Claude no datalogix/workflows (título no formato dos commits do projeto, Resumo, Motivação com Closes, Plano de Testes, Observações), confere o diff contra os critérios de aceite da issue, mostra a prévia e só cria o PR depois da confirmação. Com um PR já aberto da branch, atualiza a descrição dele.
+description: "Abre ou atualiza o pull request da branch atual no padrão da datalogix, conferindo o diff contra os critérios de aceite da issue, com prévia e confirmação. Use quando o usuário pedir para abrir, criar ou atualizar o PR. Nunca por iniciativa própria nem ao terminar uma tarefa. Não faz commit; para isso, /datalogix:commit."
 argument-hint: "[help [<argumento>]] [#<número>] [--base <branch>] [--draft] [<observações>]"
-disable-model-invocation: true
 ---
 
 # /datalogix:pr — pull request da branch atual

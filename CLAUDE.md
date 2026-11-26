@@ -180,6 +180,10 @@ node bin/cli.js --link                    # install from this clone: edits apply
 
 ### Skills (`mods/datalogix/skills/`)
 
+- `commit`, `pr`, `issue` and `ci` have no `disable-model-invocation`, so Claude also loads them when the user asks
+  in plain words ("faz o commit", "abre o PR"); their `description` says when, and that they never run on Claude's
+  own initiative. `review`, `sweep` and `release` keep it, so only the user starts them: they are long, touch several
+  repositories or publish a version. Every skill still previews and waits for confirmation before acting.
 - Skills ship in the `datalogix` mod, so they are invoked as `/datalogix:<name>`. Each folder with a `SKILL.md` is a
   skill, found by Claude Code with no registry to update. Refer to them by the full name in skill text and docs.
 - Supporting files are found from `${CLAUDE_SKILL_DIR}`, the skill's own folder.
@@ -193,8 +197,8 @@ node bin/cli.js --link                    # install from this clone: edits apply
   user picks them. Only after confirmation does it push the branch (if the user checked it, never with `--force`)
   and run `gh pr create --body-file`. With an open pull request for the branch it follows its section 9 instead,
   rewriting _Resumo_ and _Plano de Testes_ and keeping the rest, with `gh pr edit --body-file`. Without an issue it can create one by reading and following
-  `../issue/SKILL.md` from its step 2 (the issue skill has `disable-model-invocation`, so it cannot be invoked as a
-  skill): renumbering the issue skill's steps breaks that reference.
+  `../issue/SKILL.md` from its step 2 (it follows the issue skill from there, with its own changes, instead of
+  invoking it): renumbering the issue skill's steps breaks that reference.
 - `/datalogix:commit` (`commit/SKILL.md`) is a single prompt-only file in Portuguese. It commits what is staged;
   with nothing staged it suggests commits grouped by feature or fix, unchecked, plus one commit of everything or
   the changed files of `git status --porcelain -uall` one by one, unchecked, and stages only what is checked (never
@@ -261,7 +265,7 @@ node bin/cli.js --link                    # install from this clone: edits apply
   - `SKILL.md` fetches the default branch at the start of a session. A branch behind it gets a `git pull --ff-only`
     offer when it is the default branch with a clean tree (outside `report`), and only a warning otherwise.
   - `SKILL.md` drives the flow. It makes the commits the user checks at the end of a step by reading and following
-    `../commit/SKILL.md` from its step 2 (commit has `disable-model-invocation` too), with the checked commits as
+    `../commit/SKILL.md` from its step 2 (it follows commit from there instead of invoking it), with the checked commits as
     step 1's groups: renumbering the commit skill's steps breaks that reference.
   - `types/` holds the rules per project type, including the step order: `laravel-package` and `laravel-app`,
     `js-library` and `js-app` (Nuxt, Next, Vue or React with Vite, and Node in one type, with a section per framework
@@ -313,3 +317,4 @@ node bin/cli.js --link                    # install from this clone: edits apply
 - Don't keep copies of these skills in a project's `.claude/skills/` or `.claude/commands/`: they would show up next to
   `/datalogix:<name>` and drift from it.
 - Issues and pull requests: English
+- Commits: no type prefix

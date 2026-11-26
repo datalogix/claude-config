@@ -193,13 +193,17 @@ node bin/cli.js --link                    # install from this clone: edits apply
   picked (`gh label create`), never on its own. Only if checked, after creating an issue in the current repository, it
   creates its branch with `git switch -c <type>/<number>-<slug> --no-track origin/<default>`: without upstream,
   `/datalogix:pr` offers the push. The pr skill's issue creation skips that question.
-- `/datalogix:pr` (`pr/SKILL.md`) is a single prompt-only file in Portuguese. It runs test/lint scripts only when the
+- `/datalogix:pr` (`pr/SKILL.md`) is a single prompt-only file in Portuguese. Only a dated branch name and a closed
+  issue given as `#<number>` are asked before its preview; the push, the branch's issue, the scripts, the language
+  and format and creating an issue are items of the preview, and the test plan and motivation come from the session
+  and the commits. It runs test/lint scripts only when the
   user picks them. Only after confirmation does it push the branch (if the user checked it, never with `--force`)
   and run `gh pr create --body-file`. With an open pull request for the branch it follows its section 9 instead,
   rewriting _Resumo_ and _Plano de Testes_ and keeping the rest, with `gh pr edit --body-file`. Without an issue it can create one by reading and following
   `../issue/SKILL.md` from its step 2 (it follows the issue skill from there, with its own changes, instead of
   invoking it): renumbering the issue skill's steps breaks that reference.
-- `/datalogix:commit` (`commit/SKILL.md`) is a single prompt-only file in Portuguese. It commits what is staged;
+- `/datalogix:commit` (`commit/SKILL.md`) is a single prompt-only file in Portuguese. With one group, or with something
+  staged, it asks nothing before the preview, where an undefined language or format is asked. It commits what is staged;
   with nothing staged it suggests commits grouped by feature or fix, unchecked, plus one commit of everything or
   the changed files of `git status --porcelain -uall` one by one, unchecked, and stages only what is checked (never
   `git add -A`); cancelling unstages what it staged. It may split the commit, unstaging with `git restore --staged`

@@ -90,11 +90,17 @@ check its skills.
   template. It finds the issue from the argument or the branch name (a
   number taken from the branch is always confirmed: checked when the
   commits match the issue's title, unchecked with a warning otherwise),
-  checks the diff against its acceptance criteria and asks what was tested
-  (offering to run the project's test and lint scripts, never ones
-  that change files). Without an issue, it asks for the motivation
-  (an answer is optional) and can create the issue first with
-  `/datalogix:issue`. Only after confirmation does it push the
+  checks the diff against its acceptance criteria and, in the usual
+  case, asks nothing before one preview. The test plan comes from the
+  test and lint commands run in the session on the current code; with
+  none, the preview offers the project's test and lint scripts, checked,
+  which run before anything is sent (never ones that change files). The
+  motivation comes from the arguments, the conversation or the commit
+  bodies, and the push, a number taken from the branch, the language
+  and format questions and creating the issue first with
+  `/datalogix:issue` are all items of that same preview. Only a branch
+  name that ends in a date or a closed issue given as `#<number>` is
+  asked before it. Only after confirmation does it push the
   branch, if you checked that, never with `--force`, and create the
   pull request with `gh`. `--base <branch>` targets another branch and
   `--draft` opens a draft. When the branch already has an open pull
@@ -109,7 +115,11 @@ check its skills.
   suggests one commit per feature or fix, unchecked, and makes only
   the ones you check, all shown in one preview and confirmed at once
   or one by one; you can also make a single commit of everything, or
-  pick the changed files one by one. It never stages with `git add
+  pick the changed files one by one. When all the changes make one
+  commit, it skips that question and goes straight to the preview, and
+  an undefined language or format is asked in the preview too, so the
+  usual commit takes one answer. The format question shows, as
+  information only, the format of the last 20 commits. It never stages with `git add
   -A`, and cancelling unstages what it staged. `grupos: <title>
   (<files>); ...` starts from a split you give. The preview also
   points out files that look generated (`dist/`, `vendor/`, minified
